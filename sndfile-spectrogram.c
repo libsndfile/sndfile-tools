@@ -102,8 +102,12 @@ render_spectrogram (float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int widt
 	unsigned char colour [3], *data ;
 	int w, h, stride ;
 
-	data = cairo_image_surface_get_data (surface) ;
 	stride = cairo_image_surface_get_stride (surface) ;
+
+	printf ("width %d    height %d    stride %d\n", width, height, stride) ;
+
+	data = cairo_image_surface_get_data (surface) ;
+	memset (data, 0xEE, stride * height) ;
 
 	for (w = 0 ; w < width ; w ++)
 		for (h = 0 ; h < height ; h++)
@@ -115,6 +119,7 @@ render_spectrogram (float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int widt
 			data [h * stride + w * 4 + 0] = colour [0] ;
 			data [h * stride + w * 4 + 1] = colour [1] ;
 			data [h * stride + w * 4 + 2] = colour [2] ;
+			data [h * stride + w * 4 + 3] = 1 ;
 			} ;
 
 	return ;
@@ -129,7 +134,7 @@ render_to_surface (SNDFILE *infile, sf_count_t filelen, cairo_surface_t * surfac
 	static float mag_spec [MAX_WIDTH][MAX_HEIGHT] ;
 
 	fftw_plan plan ;
-	int width, height, k ;
+	int width, height, w ;
 	double max_mag = 0.0 ;
 
 	width = cairo_image_surface_get_width (surface) ;
@@ -141,14 +146,14 @@ render_to_surface (SNDFILE *infile, sf_count_t filelen, cairo_surface_t * surfac
 		exit (1) ;
 		} ;
 
-	for (k = 0 ; k < width ; k++)
+	for (w = 0 ; w < width ; w++)
 	{	double temp ;
 
-		read_audio_data (infile, filelen, time_domain, ARRAY_LEN (time_domain), k, width) ;
+		read_audio_data (infile, filelen, time_domain, ARRAY_LEN (time_domain), w, width) ;
 	
 		fftw_execute (plan) ;
 
-		temp = calc_magnitude (freq_domain, ARRAY_LEN (freq_domain), mag_spec [k]) ;
+		temp = calc_magnitude (freq_domain, ARRAY_LEN (freq_domain), mag_spec [w]) ;
 		max_mag = MAX (temp, max_mag) ;
 		} ;
 
@@ -171,7 +176,7 @@ open_cairo_surface (SNDFILE *infile, sf_count_t filelen, int width, int height, 
 	*/
 
 	surface = cairo_image_surface_create (CAIRO_FORMAT_RGB24, width, height) ;
-	if (surface == NULL)
+	if (surface == NULL || cairo_surface_status (surface) != CAIRO_STATUS_SUCCESS)
 	{	status = cairo_surface_status (surface) ;
 		printf ("Error while creating surface : %s\n", cairo_status_to_string (status)) ;
 		return ;
@@ -197,6 +202,8 @@ open_sndfile (const char *sndfilename, int width, int height, const char * pngfi
 {
 	SNDFILE *infile ;
 	SF_INFO info ;
+
+	memset (&info, 0, sizeof (info)) ;
 
 	infile = sf_open (sndfilename, SFM_READ, &info) ;
 	if (infile == NULL)
