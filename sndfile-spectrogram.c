@@ -93,6 +93,54 @@ read_audio_data (SNDFILE * infile, sf_count_t filelen, double * data, int datale
 	return ;
 } /* read_audio_data */
 
+static void
+calc_nuttall_window (double * data, int datalen)
+{
+    const double a0 = 0.355768, a1 = 0.487396, a2 = 0.144232, a3 = 0.012604 ;
+	int k ;
+
+	/*
+	**	Nuttall window function from :
+	**
+	**	http://en.wikipedia.org/wiki/Window_function
+	*/
+
+	for (k = 0 ; k < datalen ; k++)
+	{	double scale ;
+
+		scale = M_PI * k / (datalen - 1) ;
+
+		data [k] = a0 - a1 * cos (2.0 * scale) + a2 * cos (4.0 * scale) - a3 * cos (6.0 * scale) ;
+		} ;
+
+	return ;
+} /* calc_nuttall_window */
+
+static void
+apply_window (double * data, int datalen)
+{
+	static double window [2 * MAX_HEIGHT] ;
+	static int window_len = 0 ;
+	int k ;
+
+	if (window_len != datalen)
+	{
+		window_len = datalen ;
+		if (datalen > ARRAY_LEN (window))
+		{
+			printf ("%s : datalen >  MAX_HEIGHT\n", __func__) ;
+			exit (1) ;
+		} ;
+
+		calc_nuttall_window (window, datalen) ;
+	} ;
+
+	for (k = 0 ; k < datalen ; k++)
+		data [k] *= window [k] ;
+
+	return ;
+} /* apply_window */
+
 static double
 calc_magnitude (const double * freq, int freqlen, float * magnitude)
 {
@@ -166,7 +214,9 @@ render_to_surface (SNDFILE *infile, sf_count_t filelen, cairo_surface_t * surfac
 	{	double temp ;
 
 		read_audio_data (infile, filelen, time_domain, ARRAY_LEN (time_domain), w, width) ;
-	
+
+		apply_window (time_domain, ARRAY_LEN (time_domain)) ;
+
 		fftw_execute (plan) ;
 
 		temp = calc_magnitude (freq_domain, ARRAY_LEN (freq_domain), mag_spec [w]) ;
