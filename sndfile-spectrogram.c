@@ -61,12 +61,6 @@ get_colour_map_value (float value, unsigned char colour [3])
 	colour [1] = lrintf ((1.0 - rem) * map [indx][1] + rem * map [indx + 1][1]) ;
 	colour [2] = lrintf ((1.0 - rem) * map [indx][2] + rem * map [indx + 1][2]) ;
 
-#if 0
-	printf ("%d %d -> %d\n", map [indx][0], map [indx + 1][0], colour [0]) ;
-	printf ("%d %d -> %d\n", map [indx][1], map [indx + 1][1], colour [1]) ;
-	printf ("%d %d -> %d\n", map [indx][2], map [indx + 1][2], colour [2]) ;
-#endif
-
 	return ;
 } /* get_colour_map_value */
 
