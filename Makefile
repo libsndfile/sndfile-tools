@@ -1,4 +1,4 @@
-TARGETS = sndfile-spectrogram
+TARGETS = sndfile-spectrogram sndfile-generate-chirp
 
 CC = gcc
 CFLAGS = -ggdb -W -Wall -Werror -std=gnu99
@@ -21,3 +21,5 @@ clean :
 sndfile-spectrogram : sndfile-spectrogram.c
 	$(CC) $(CFLAGS) $(CAIRO_INC) $(SNDFILE_INC) $(FFTW_INC) $^ $(CAIRO_LIB) $(SNDFILE_LIB) $(FFTW_LIB) -lm -o $@
 
+sndfile-generate-chirp : sndfile-generate-chirp.c
+	$(CC) $(CFLAGS) $(SNDFILE_INC) $^ $(SNDFILE_LIB) -lm -o $@
