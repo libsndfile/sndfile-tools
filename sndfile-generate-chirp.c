@@ -27,8 +27,9 @@
 static void
 write_log_chirp (SNDFILE * file, int samplerate, int seconds)
 {
+	double f0, f1, beta ;
 	float * data ;
-	int sec ;
+	int sec, k ;
 
 	data = malloc (samplerate * sizeof (data [0])) ;
 	if (data == NULL)
@@ -36,8 +37,22 @@ write_log_chirp (SNDFILE * file, int samplerate, int seconds)
 		exit (1) ;
 		} ;
 
+	f0 = 2 ;
+	f1 = 10.0 ;
+
+	printf ("f0 : %3.1f Hz    f1 : %3.1f Hz\n", f0, f1) ;
+
+	beta = log10 (f1 - f0) ;
+
 	for (sec = 0 ; sec < seconds ; sec ++)
-	{
+	{	for (k = 0 ; k < samplerate ; k++)
+		{	double t ;
+		
+			t = sec + k / (1.0 * samplerate) ;
+
+			data [k] = sin (2.0 * M_PI * ((pow (10.0, beta * t) - 1.0) / (beta * log (10)) + f0 * t)) ;
+			} ;
+
 		sf_write_float (file, data, samplerate) ;
 		} ;
 
@@ -62,7 +77,7 @@ generate_file (const char * filename, int format, int samplerate, int seconds)
 		exit (1) ;
 		} ;
 
-	sf_set_string (file, SF_STR_TITLE, filename) ;
+	sf_set_string (file, SF_STR_TITLE, "Logarithmic chirp signal.") ;
 	sf_set_string (file, SF_STR_SOFTWARE, "sndfile-generate-chirp") ;
 	sf_set_string (file, SF_STR_COPYRIGHT, "No copyright.") ;
 
