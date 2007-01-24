@@ -291,15 +291,31 @@ check_int_range (const char * name, int value, int lower, int upper)
 		} ;
 } /* check_int_range */
 
+static void
+usage_exit (const char * argv0)
+{
+	const char * progname ;
+
+	progname = strrchr (argv0, '/') ;
+	progname = (progname == NULL) ? argv0 : progname + 1 ;
+
+	printf ("\nUsage :\n\n    %s <sound file> <img width> <img height> <png name>\n\n", progname) ;
+
+	puts (
+		"    Create a spectrogram as a PNG file from a given sound file. The\n"
+		"    spectrogram image will be of the given width and height.\n"
+		) ;
+
+	exit (0) ;
+} /* usage_exit */
+
 int
 main (int argc, char * argv [])
 {
 	int width, height ;
 
 	if (argc != 5)
-	{	printf ("Usage : ...\n\n") ;
-		exit (1) ;
-		} ;
+		usage_exit (argv [0]) ;
 
 	width = atoi (argv [2]) ;
 	height = atoi (argv [3]) ;
