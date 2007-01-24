@@ -74,11 +74,23 @@ get_colour_map_value (float value, unsigned char colour [3])
 static void
 read_audio_data (SNDFILE * infile, sf_count_t filelen, double * data, int datalen, int index, int total)
 {
+	sf_count_t start ;
+
 	memset (data, 0, datalen * sizeof (data [0])) ;
 
-	sf_read_double (infile, data, datalen) ;
+	start = (index * filelen) / total - datalen / 2 ;
 
-	filelen = index = total ;
+	if (start < 0)
+	{	start = -start ;
+		sf_seek (infile, 0, SEEK_SET) ;
+		sf_read_double (infile, data + start, datalen - start) ;
+		}
+	else
+	{	sf_seek (infile, start, SEEK_SET) ;
+		sf_read_double (infile, data, datalen) ;
+		} ;
+
+	return ;
 } /* read_audio_data */
 
 static double
@@ -107,19 +119,23 @@ render_spectrogram (float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int widt
 	printf ("width %d    height %d    stride %d\n", width, height, stride) ;
 
 	data = cairo_image_surface_get_data (surface) ;
-	memset (data, 0xEE, stride * height) ;
+	memset (data, 0, stride * height) ;
 
 	for (w = 0 ; w < width ; w ++)
 		for (h = 0 ; h < height ; h++)
-		{	mag2d [w][h] = mag2d [w][h] / maxval ;
+		{	int hindex ;
+
+			mag2d [w][h] = mag2d [w][h] / maxval ;
 			mag2d [w][h] = (mag2d [w][h] < 1e-15) ? -200.0 : 20.0 * log10 (mag2d [w][h]) ;
 
 			get_colour_map_value (mag2d [w][h], colour) ;
 
-			data [h * stride + w * 4 + 0] = colour [0] ;
-			data [h * stride + w * 4 + 1] = colour [1] ;
-			data [h * stride + w * 4 + 2] = colour [2] ;
-			data [h * stride + w * 4 + 3] = 1 ;
+			hindex = height - 1 - h ;
+
+			data [hindex * stride + w * 4 + 0] = colour [0] ;
+			data [hindex * stride + w * 4 + 1] = colour [1] ;
+			data [hindex * stride + w * 4 + 2] = colour [2] ;
+			data [hindex * stride + w * 4 + 3] = 0 ;
 			} ;
 
 	return ;
