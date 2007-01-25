@@ -111,7 +111,7 @@ read_audio_data (SNDFILE * infile, sf_count_t filelen, double * data, int datale
 static void
 calc_nuttall_window (double * data, int datalen)
 {
-    const double a0 = 0.355768, a1 = 0.487396, a2 = 0.144232, a3 = 0.012604 ;
+    const double a [4] = { 0.355768, 0.487396, 0.144232, 0.012604 } ;
 	int k ;
 
 	/*
@@ -125,7 +125,7 @@ calc_nuttall_window (double * data, int datalen)
 
 		scale = M_PI * k / (datalen - 1) ;
 
-		data [k] = a0 - a1 * cos (2.0 * scale) + a2 * cos (4.0 * scale) - a3 * cos (6.0 * scale) ;
+		data [k] = a[0] - a[1] * cos (2.0 * scale) + a[2] * cos (4.0 * scale) - a[3] * cos (6.0 * scale) ;
 		} ;
 
 	return ;
