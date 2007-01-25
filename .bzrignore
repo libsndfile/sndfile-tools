@@ -1,3 +1,4 @@
 *.png
+*.wav
 sndfile-generate-chirp
 sndfile-spectrogram
