@@ -27,7 +27,8 @@
 static void
 write_log_chirp (SNDFILE * file, int samplerate, int seconds)
 {
-	double f0, f1, beta ;
+	double w0, w1, ln10w0, ln10w1, total_samples ;
+	double instantaneous_w, current_phase ;
 	float * data ;
 	int sec, k ;
 
@@ -37,24 +38,36 @@ write_log_chirp (SNDFILE * file, int samplerate, int seconds)
 		exit (1) ;
 		} ;
 
-	f0 = 2 ;
-	f1 = 10.0 ;
+	w0 = 2.0 * M_PI * 15000.0 / samplerate ;
+	w1 = 2.0 * M_PI * 20000.0 / samplerate ;
 
-	printf ("f0 : %3.1f Hz    f1 : %3.1f Hz\n", f0, f1) ;
+	ln10w0 = log10 (w0) ;
+	ln10w1 = log10 (w1) ;
 
-	beta = log10 (f1 - f0) ;
+	total_samples = (1.0 * seconds) * samplerate ;
+
+	printf ("w0 : %0.4f    w1 : %0.4f\n", w0, w1) ;
+
+	current_phase = 0.0 ;
+	instantaneous_w = w0 ;
+
+	printf ("instantaneous angluar freq : %f (%7.1f Hz)\n", instantaneous_w, instantaneous_w * samplerate / (2.0 * M_PI)) ;
 
 	for (sec = 0 ; sec < seconds ; sec ++)
 	{	for (k = 0 ; k < samplerate ; k++)
-		{	double t ;
+		{	int current ;
 		
-			t = sec + k / (1.0 * samplerate) ;
+			data [k] = sin (current_phase) ;
 
-			data [k] = sin (2.0 * M_PI * ((pow (10.0, beta * t) - 1.0) / (beta * log (10)) + f0 * t)) ;
+			current = sec * samplerate + k ;
+			instantaneous_w = pow (10.0, ln10w0 + (ln10w1 - ln10w0) * current / (total_samples + 1.0)) ;
+			current_phase = fmod (current_phase + instantaneous_w, 2.0 * M_PI) ;
 			} ;
 
 		sf_write_float (file, data, samplerate) ;
 		} ;
+
+	printf ("instantaneous angluar freq : %f (%7.1f Hz)\n", instantaneous_w, instantaneous_w * samplerate / (2.0 * M_PI)) ;
 
 	free (data) ;
 } /* write_log_chirp */
