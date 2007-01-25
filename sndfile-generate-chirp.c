@@ -27,7 +27,7 @@
 static void
 write_log_chirp (SNDFILE * file, int samplerate, int seconds)
 {
-	double w0, w1, ln10w0, ln10w1, total_samples ;
+	double w0, w1, log10_w0, log10_w1, total_samples ;
 	double instantaneous_w, current_phase ;
 	float * data ;
 	int sec, k ;
@@ -38,11 +38,11 @@ write_log_chirp (SNDFILE * file, int samplerate, int seconds)
 		exit (1) ;
 		} ;
 
-	w0 = 2.0 * M_PI * 15000.0 / samplerate ;
-	w1 = 2.0 * M_PI * 20000.0 / samplerate ;
+	w0 = 2.0 * M_PI * 200.0 / samplerate ;
+	w1 = 2.0 * M_PI * 0.5 ;
 
-	ln10w0 = log10 (w0) ;
-	ln10w1 = log10 (w1) ;
+	log10_w0 = log10 (w0) ;
+	log10_w1 = log10 (w1) ;
 
 	total_samples = (1.0 * seconds) * samplerate ;
 
@@ -60,7 +60,7 @@ write_log_chirp (SNDFILE * file, int samplerate, int seconds)
 			data [k] = sin (current_phase) ;
 
 			current = sec * samplerate + k ;
-			instantaneous_w = pow (10.0, ln10w0 + (ln10w1 - ln10w0) * current / (total_samples + 1.0)) ;
+			instantaneous_w = pow (10.0, log10_w0 + (log10_w1 - log10_w0) * current / total_samples) ;
 			current_phase = fmod (current_phase + instantaneous_w, 2.0 * M_PI) ;
 			} ;
 
