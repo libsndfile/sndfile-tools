@@ -195,9 +195,9 @@ render_spectrogram (float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int widt
 
 			hindex = height - 1 - h ;
 
-			data [hindex * stride + w * 4 + 0] = colour [0] ;
+			data [hindex * stride + w * 4 + 0] = colour [2] ;
 			data [hindex * stride + w * 4 + 1] = colour [1] ;
-			data [hindex * stride + w * 4 + 2] = colour [2] ;
+			data [hindex * stride + w * 4 + 2] = colour [0] ;
 			data [hindex * stride + w * 4 + 3] = 0 ;
 			} ;
 
