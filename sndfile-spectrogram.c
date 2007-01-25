@@ -219,7 +219,12 @@ render_to_surface (SNDFILE *infile, sf_count_t filelen, cairo_surface_t * surfac
 	width = cairo_image_surface_get_width (surface) ;
 	height = cairo_image_surface_get_height (surface) ;
 
-	plan = fftw_plan_r2r_1d (ARRAY_LEN (time_domain), time_domain, freq_domain, FFTW_R2HC, FFTW_MEASURE | FFTW_PRESERVE_INPUT) ;
+	if (2 * height > ARRAY_LEN (time_domain))
+	{	printf ("%s : 2 * height > ARRAY_LEN (time_domain)\n", __func__) ;
+		exit (1) ;
+		} ;
+
+	plan = fftw_plan_r2r_1d (2 * height, time_domain, freq_domain, FFTW_R2HC, FFTW_MEASURE | FFTW_PRESERVE_INPUT) ;
 	if (plan == NULL)
 	{	printf ("%s : line %d : create plan failed.\n", __FILE__, __LINE__) ;
 		exit (1) ;
@@ -228,13 +233,13 @@ render_to_surface (SNDFILE *infile, sf_count_t filelen, cairo_surface_t * surfac
 	for (w = 0 ; w < width ; w++)
 	{	double temp ;
 
-		read_audio_data (infile, filelen, time_domain, ARRAY_LEN (time_domain), w, width) ;
+		read_audio_data (infile, filelen, time_domain, 2 * height, w, width) ;
 
-		apply_window (time_domain, ARRAY_LEN (time_domain)) ;
+		apply_window (time_domain, 2 * height) ;
 
 		fftw_execute (plan) ;
 
-		temp = calc_magnitude (freq_domain, ARRAY_LEN (freq_domain), mag_spec [w]) ;
+		temp = calc_magnitude (freq_domain, 2 * height, mag_spec [w]) ;
 		max_mag = MAX (temp, max_mag) ;
 		} ;
 
