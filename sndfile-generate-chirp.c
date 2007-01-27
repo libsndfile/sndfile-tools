@@ -24,6 +24,62 @@
 
 #include <sndfile.h>
 
+static void usage_exit (const char * argv0) ;
+static int guess_major_format (const char * filename) ;
+static void generate_file (const char * filename, int format, int samplerate, int seconds) ;
+static void write_log_chirp (SNDFILE * file, int samplerate, int seconds) ;
+static void check_int_range (const char * name, int value, int lower, int upper) ;
+
+int
+main (int argc, char * argv [])
+{
+	const char * filename ;
+	int samplerate, seconds, format ;
+
+	if (argc != 4)
+		usage_exit (argv [0]) ;
+
+	samplerate = atoi (argv [1]) ;
+	seconds = atoi (argv [2]) ;
+	filename = argv [3] ;
+
+	check_int_range ("sample rate", samplerate, 1000, 200 * 1000) ;
+	check_int_range ("seconds", seconds, 1, 1000) ;
+
+	format = guess_major_format (filename) | SF_FORMAT_FLOAT ;
+
+	generate_file (filename, format, samplerate, seconds) ;
+
+	return 0 ;
+} /* main */
+
+/*==============================================================================
+*/
+
+static void
+usage_exit (const char * argv0)
+{
+	const char * progname ;
+
+	progname = strrchr (argv0, '/') ;
+	progname = (progname == NULL) ? argv0 : progname + 1 ;
+
+	printf ("\nUsage :\n\n    %s <sample rate> <length in seconds> <sound file>\n\n", progname) ;
+
+	puts ("    Create a file containing a logarithmic chirp.\n") ;
+
+	exit (0) ;
+} /* usage_exit */
+
+static void
+check_int_range (const char * name, int value, int lower, int upper)
+{
+	if (value < lower || value > upper)
+	{	printf ("Error : '%s' parameter must be in range [%d, %d]\n", name, lower, upper) ;
+		exit (1) ;
+		} ;
+} /* check_int_range */
+
 static void
 write_log_chirp (SNDFILE * file, int samplerate, int seconds)
 {
@@ -126,49 +182,3 @@ guess_major_format (const char * filename)
 	return 0 ;
 } /* guess_major_format */
 
-static void
-check_int_range (const char * name, int value, int lower, int upper)
-{
-	if (value < lower || value > upper)
-	{	printf ("Error : '%s' parameter must be in range [%d, %d]\n", name, lower, upper) ;
-		exit (1) ;
-		} ;
-} /* check_int_range */
-
-static void
-usage_exit (const char * argv0)
-{
-	const char * progname ;
-
-	progname = strrchr (argv0, '/') ;
-	progname = (progname == NULL) ? argv0 : progname + 1 ;
-
-	printf ("\nUsage :\n\n    %s <sample rate> <length in seconds> <sound file>\n\n", progname) ;
-
-	puts ("    Create a file containing a logarithmic chirp.\n") ;
-
-	exit (0) ;
-} /* usage_exit */
-
-int
-main (int argc, char * argv [])
-{
-	const char * filename ;
-	int samplerate, seconds, format ;
-
-	if (argc != 4)
-		usage_exit (argv [0]) ;
-
-	samplerate = atoi (argv [1]) ;
-	seconds = atoi (argv [2]) ;
-	filename = argv [3] ;
-
-	check_int_range ("sample rate", samplerate, 1000, 200 * 1000) ;
-	check_int_range ("seconds", seconds, 1, 1000) ;
-
-	format = guess_major_format (filename) | SF_FORMAT_FLOAT ;
-
-	generate_file (filename, format, samplerate, seconds) ;
-
-	return 0 ;
-} /* main */
