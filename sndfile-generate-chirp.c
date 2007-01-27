@@ -25,10 +25,10 @@
 #include <sndfile.h>
 
 static void usage_exit (const char * argv0) ;
-static int guess_major_format (const char * filename) ;
 static void generate_file (const char * filename, int format, int samplerate, int seconds) ;
-static void write_log_chirp (SNDFILE * file, int samplerate, int seconds) ;
 static void check_int_range (const char * name, int value, int lower, int upper) ;
+static int guess_major_format (const char * filename) ;
+
 
 int
 main (int argc, char * argv [])
