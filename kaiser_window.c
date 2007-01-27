@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <math.h>
 
 #include "kaiser_window.h"
@@ -12,12 +13,6 @@ static double lgam (double x) ;
 static double p1evl (double x, double coef [], int N) ;
 static double polevl (double x, double coef [], int N) ;
 
-static inline double
-besseli (double nu, double x)
-{	return iv (nu, x) ;
-} /* besseli */
-
-
 void
 calc_kaiser_window (double * data, int datalen, double beta)
 {
@@ -27,13 +22,20 @@ calc_kaiser_window (double * data, int datalen, double beta)
 	**                 besseli (0, beta)
 	*/
 
-	double two_k_on_n ;
+	double two_k_on_n, denom ;
 	int n, k ;
+
+	denom = iv (0.0, beta) ;
+
+	if (! isfinite (denom))
+	{	printf ("denom : %f\nExiting\n", denom) ;
+		exit (1) ;
+		} ;
 
 	for (k = 0 ; k < datalen ; k++)
 	{	n = k - datalen / 2 ;
 		two_k_on_n = (2.0 * k) / n ;
-		data [k] = besseli (0.0, beta * sqrt (1.0 - two_k_on_n * two_k_on_n)) / besseli (0.0, beta) ;
+		data [k] = iv (0.0, beta * sqrt (1.0 - two_k_on_n * two_k_on_n)) / denom ;
 		} ;
 
 	return ;
@@ -139,7 +141,7 @@ iv (double v, double x)
 	t = v * log (0.5 * ax) - x ;
 	t = sign * exp (t) / gamma (v + 1.0) ;
 	ax = v + 0.5 ;
-	return (t * hyperg (ax, 2.0 * ax, 2.0 * x)) ;
+	return t * hyperg (ax, 2.0 * ax, 2.0 * x) ;
 } /* iv */
 
 
@@ -220,7 +222,7 @@ hyperg (double a, double b, double x)
 	/* See if a Kummer transformation will help */
 	temp = b - a ;
 	if (fabs (temp) < 0.001 * fabs (a))
-		return (exp (x) * hyperg (temp, b, -x) ) ;
+		return exp (x) * hyperg (temp, b, -x) ;
 
 
 	psum = hy1f1p (a, b, x, &pcanc) ;
@@ -245,7 +247,7 @@ hyperg (double a, double b, double x)
 	if (pcanc > 1.0e-12)
 		puts ("hyperg : PLOSS") ;
 
-	return (psum) ;
+	return psum ;
 }
 
 
@@ -275,10 +277,10 @@ static double hy1f1p (double a, double b, double x, double * err)
 		if (bn == 0)			/* check bn first since if both	*/
 			{
 			puts ("hyperg : SING") ;
-			return (MAXNUM) ;	/* an and bn are zero it is	*/
+			return MAXNUM ;	/* an and bn are zero it is	*/
 			}
 		if (an == 0)			/* a singularity		*/
-			return (sum) ;
+			return sum ;
 		if (n > 200)
 			goto pdone ;
 		u = x * ( an / (bn * n)) ;
@@ -320,7 +322,7 @@ static double hy1f1p (double a, double b, double x, double * err)
 
 	*err = pcanc ;
 
-	return (sum) ;
+	return sum ;
 }
 
 
@@ -386,7 +388,6 @@ hy1f1a (double a, double b, double x, double *err)
 
 	acanc = fabs (err1) + fabs (err2) ;
 
-
 	if (b < 0)
 		{
 		temp = gamma (b) ;
@@ -403,7 +404,7 @@ hy1f1a (double a, double b, double x, double *err)
 
 adone:
 	*err = acanc ;
-	return (asum) ;
+	return asum ;
 }
 
 /*							hyp2f0 ()	*/
@@ -497,13 +498,13 @@ ndone:	/* series did not converge */
 
 done:
 	sum += alast ;
-	return (sum) ;
+	return sum ;
 
 /* series blew up: */
 error:
 	*err = MAXNUM ;
 	puts ("hyperg : TLOSS") ;
-	return (sum) ;
+	return sum ;
 }
 
 /*==============================================================================
@@ -652,98 +653,94 @@ static double C [] = {
 static double
 lgam (double x)
 {
-static int sgngam = 0 ;
-double p, q, u, w, z ;
-int i ;
+	static int sgngam = 0 ;
+	double p, q, u, w, z ;
+	int i ;
 
-sgngam = 1 ;
-if (isnan (x))
-	return (x) ;
+	sgngam = 1 ;
+	if (isnan (x))
+		return x ;
 
-if (!isfinite (x))
-	return (INFINITY) ;
-
-if (x < -34.0)
-	{
-	q = -x ;
-	w = lgam (q) ; /* note this modifies sgngam! */
-	p = floor (q) ;
-	if (p == q)
-		{
-lgsing:
-		puts ("lgam : SING") ;
+	if (!isfinite (x))
+	{	puts ("lgam : INF") ;
 		return INFINITY ;
-		}
-	i = p ;
-	if ((i & 1) == 0)
-		sgngam = -1 ;
-	else
-		sgngam = 1 ;
-	z = q - p ;
-	if (z > 0.5)
-		{
-		p += 1.0 ;
-		z = p - q ;
-		}
-	z = q * sin (M_PI * z) ;
-	if (z == 0.0)
-		goto lgsing ;
-/*	z = log (PI) - log (z) - w ;*/
-	z = LOGPI - log (z) - w ;
-	return (z) ;
-	}
+		} ;
 
-if (x < 13.0)
-	{
-	z = 1.0 ;
-	p = 0.0 ;
-	u = x ;
-	while (u >= 3.0)
+	if (x < -34.0)
+	{	q = -x ;
+		w = lgam (q) ; /* note this modifies sgngam! */
+		p = floor (q) ;
+		if (p == q)
 		{
-		p -= 1.0 ;
-		u = x + p ;
-		z *= u ;
-		}
-	while (u < 2.0)
-		{
-		if (u == 0.0)
+	lgsing:
+			puts ("lgam : SING") ;
+			return INFINITY ;
+			} ;
+		i = p ;
+		if ((i & 1) == 0)
+			sgngam = -1 ;
+		else
+			sgngam = 1 ;
+		z = q - p ;
+		if (z > 0.5)
+		{	p += 1.0 ;
+			z = p - q ;
+			} ;
+		z = q * sin (M_PI * z) ;
+		if (z == 0.0)
 			goto lgsing ;
-		z /= u ;
-		p += 1.0 ;
-		u = x + p ;
+	/*	z = log (PI) - log (z) - w ;*/
+		z = LOGPI - log (z) - w ;
+		return z ;
 		}
-	if (z < 0.0)
-		{
-		sgngam = -1 ;
-		z = -z ;
-		}
+
+	if (x < 13.0)
+	{	z = 1.0 ;
+		p = 0.0 ;
+		u = x ;
+		while (u >= 3.0)
+		{	p -= 1.0 ;
+			u = x + p ;
+			z *= u ;
+			} ;
+		while (u < 2.0)
+		{	if (u == 0.0)
+				goto lgsing ;
+			z /= u ;
+			p += 1.0 ;
+			u = x + p ;
+			} ;
+		if (z < 0.0)
+		{	sgngam = -1 ;
+			z = -z ;
+			}
+		else
+			sgngam = 1 ;
+		if (u == 2.0)
+			return log (z) ;
+		p -= 2.0 ;
+		x = x + p ;
+		p = x * polevl (x, B, 5) / p1evl (x, C, 6) ;
+		return log (z) + p ;
+		} ;
+
+	if (x > MAXLGM)
+	{	puts ("lgam : INFINITY") ;
+		return sgngam * INFINITY ;
+		} ;
+
+	q = ( x - 0.5) * log (x) - x + LS2PI ;
+	if (x > 1.0e8)
+		return q ;
+
+	p = 1.0/ (x * x) ;
+	if (x >= 1000.0)
+		q += ((7.9365079365079365079365e-4 * p
+			- 2.7777777777777777777778e-3) *p
+			+ 0.0833333333333333333333) / x ;
 	else
-		sgngam = 1 ;
-	if (u == 2.0)
-		return (log (z)) ;
-	p -= 2.0 ;
-	x = x + p ;
-	p = x * polevl (x, B, 5) / p1evl (x, C, 6) ;
-	return (log (z) + p) ;
-	}
-
-if (x > MAXLGM)
-	{
-	return sgngam * INFINITY ;
-	}
-
-q = ( x - 0.5) * log (x) - x + LS2PI ;
-if (x > 1.0e8)
-	return (q) ;
-
-p = 1.0/ (x*x) ;
-if (x >= 1000.0)
-	q += ((7.9365079365079365079365e-4 * p
-		- 2.7777777777777777777778e-3) *p
-		+ 0.0833333333333333333333) / x ;
-else
-	q += polevl (p, A, 4) / x ;
-return (q) ;
+		q += polevl (p, A, 4) / x ;
+	return q ;
 }
 
 /*==============================================================================
@@ -840,7 +837,7 @@ p1evl (double x, double coef [], int N)
 		ans = ans * x + *p++ ;
 	while (--i) ;
 
-	return (ans) ;
+	return ans ;
 }
 
 static void calculate_machine_eps (void) __attribute__ ((constructor)) ;
