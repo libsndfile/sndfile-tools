@@ -137,7 +137,7 @@ write_chirp (SNDFILE * file, int samplerate, int seconds, double w0, double w1, 
 	printf ("End   frequency : %8.1f Hz (%f rad/sec)\n", instantaneous_w * samplerate / (2.0 * M_PI), instantaneous_w) ;
 
 	free (data) ;
-} /* write_linear_chirp */
+} /* write_chirp */
 
 static void
 generate_file (const char * filename, int format, int samplerate, int seconds, freq_func_t sweep_func)
@@ -177,10 +177,7 @@ log_freq_func (double w0, double w1, double indx)
 
 static double
 quad_freq_func (double w0, double w1, double indx)
-{
-	puts ("quad_freq_func not working yet.") ;
-	exit (1) ;
-	return pow (10.0, log10 (w0) + (log10 (w1) - log10 (w0)) * indx) ;
+{	return w0 + (w1 - w0) * indx * indx ;
 } /* log_freq_func */
 
 static double
