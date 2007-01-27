@@ -1,4 +1,4 @@
-TARGETS = sndfile-spectrogram sndfile-generate-chirp
+TARGETS = sndfile-spectrogram sndfile-generate-chirp test_kaiser_window
 
 CC = gcc
 CFLAGS = -ggdb -W -Wall -Werror -std=gnu99
@@ -16,10 +16,23 @@ FFTW_LIB = $(shell pkg-config --libs fftw3)
 all : $(TARGETS)
 
 clean :
-	rm -f $(TARGETS)
+	rm -f $(TARGETS) *.o
 
-sndfile-spectrogram : sndfile-spectrogram.c
+sndfile-spectrogram : window.o sndfile-spectrogram.c
 	$(CC) $(CFLAGS) $(CAIRO_INC) $(SNDFILE_INC) $(FFTW_INC) $^ $(CAIRO_LIB) $(SNDFILE_LIB) $(FFTW_LIB) -lm -o $@
 
 sndfile-generate-chirp : sndfile-generate-chirp.c
 	$(CC) $(CFLAGS) $(SNDFILE_INC) $^ $(SNDFILE_LIB) -lm -o $@
+
+#---------------------------------------------------------------------
+# Test programs.
+
+test_kaiser_window : window.o test_kaiser_window.c
+	$(CC) $(CFLAGS) $^ -lm -o $@
+
+
+#---------------------------------------------------------------------
+# Dependancies.
+
+window.o : window.c window.h
+

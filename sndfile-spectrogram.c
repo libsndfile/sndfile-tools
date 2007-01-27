@@ -28,6 +28,8 @@
 
 #include <sndfile.h>
 
+#include "window.h"
+
 #define	MAX_WIDTH	4096
 #define	MAX_HEIGHT	2048
 
@@ -71,6 +73,11 @@ get_colour_map_value (float value, unsigned char colour [3])
 
 	indx = lrintf (floor (value)) ;
 
+	if (indx < 0)
+	{	printf ("\nError : colour map array index is %d\n\n", indx) ;
+		exit (1) ;
+		} ;
+
 	if (indx >= ARRAY_LEN (map) - 1)
 	{	colour = map [ARRAY_LEN (map) - 1] ;
 		return ;
@@ -109,29 +116,6 @@ read_audio_data (SNDFILE * infile, sf_count_t filelen, double * data, int datale
 } /* read_audio_data */
 
 static void
-calc_nuttall_window (double * data, int datalen)
-{
-    const double a [4] = { 0.355768, 0.487396, 0.144232, 0.012604 } ;
-	int k ;
-
-	/*
-	**	Nuttall window function from :
-	**
-	**	http://en.wikipedia.org/wiki/Window_function
-	*/
-
-	for (k = 0 ; k < datalen ; k++)
-	{	double scale ;
-
-		scale = M_PI * k / (datalen - 1) ;
-
-		data [k] = a[0] - a[1] * cos (2.0 * scale) + a[2] * cos (4.0 * scale) - a[3] * cos (6.0 * scale) ;
-		} ;
-
-	return ;
-} /* calc_nuttall_window */
-
-static void
 apply_window (double * data, int datalen)
 {
 	static double window [2 * MAX_HEIGHT] ;
@@ -147,7 +131,7 @@ apply_window (double * data, int datalen)
 			exit (1) ;
 		} ;
 
-		calc_nuttall_window (window, datalen) ;
+		calc_kaiser_window (window, datalen, 20.0) ;
 	} ;
 
 	for (k = 0 ; k < datalen ; k++)

@@ -1,9 +1,26 @@
+/*
+** Copyright (C) 2007 Erik de Castro Lopo <erikd@mega-nerd.com>
+**
+** This program is free software; you can redistribute it and/or modify
+** it under the terms of the GNU General Public License as published by
+** the Free Software Foundation; version 2 of the License only.
+**
+** This program is distributed in the hope that it will be useful,
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
+** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+** GNU General Public License for more details.
+**
+** You should have received a copy of the GNU General Public License
+** along with this program; if not, write to the Free Software
+** Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
+*/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
 #include <math.h>
 
-#include "kaiser_window.h"
+#include "window.h"
 
 #define ARRAY_LEN(x)		((int) (sizeof (x) / sizeof (x [0])))
 
@@ -39,6 +56,32 @@ calc_kaiser_window (double * data, int datalen, double beta)
 	return ;
 } /* calc_kaiser_window */
 
+void
+calc_nuttall_window (double * data, int datalen)
+{
+    const double a [4] = { 0.355768, 0.487396, 0.144232, 0.012604 } ;
+	int k ;
+
+	/*
+	**	Nuttall window function from :
+	**
+	**	http://en.wikipedia.org/wiki/Window_function
+	*/
+
+	for (k = 0 ; k < datalen ; k++)
+	{	double scale ;
+
+		scale = M_PI * k / (datalen - 1) ;
+
+		data [k] = a[0] - a[1] * cos (2.0 * scale) + a[2] * cos (4.0 * scale) - a[3] * cos (6.0 * scale) ;
+		} ;
+
+	return ;
+} /* calc_nuttall_window */
+
+/*==============================================================================
+*/
+
 static double
 besseli0 (double x)
 {	int k ;
@@ -46,7 +89,7 @@ besseli0 (double x)
 
 	for (k = 1 ; k < 25 ; k++)
 	{	double temp ;
-	
+
 		temp = pow (0.5 * x, k) / factorial (k) ;
 		result += temp * temp ;
 		} ;
