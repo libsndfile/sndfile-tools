@@ -256,7 +256,7 @@ open_cairo_surface (SNDFILE *infile, sf_count_t filelen, int width, int height, 
 
 	render_to_surface (infile, filelen, surface) ;
 
-	cairo_surface_mark_dirty (surface);
+	cairo_surface_mark_dirty (surface) ;
 
 	status = cairo_surface_write_to_png (surface, pngfilename) ;
 	if (status != CAIRO_STATUS_SUCCESS)

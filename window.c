@@ -73,7 +73,7 @@ calc_nuttall_window (double * data, int datalen)
 
 		scale = M_PI * k / (datalen - 1) ;
 
-		data [k] = a[0] - a[1] * cos (2.0 * scale) + a[2] * cos (4.0 * scale) - a[3] * cos (6.0 * scale) ;
+		data [k] = a [0] - a [1] * cos (2.0 * scale) + a [2] * cos (4.0 * scale) - a [3] * cos (6.0 * scale) ;
 		} ;
 
 	return ;

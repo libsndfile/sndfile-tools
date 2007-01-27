@@ -123,7 +123,7 @@ write_chirp (SNDFILE * file, int samplerate, int seconds, double w0, double w1, 
 	for (sec = 0 ; sec < seconds ; sec ++)
 	{	for (k = 0 ; k < samplerate ; k++)
 		{	int current ;
-		
+
 			data [k] = sin (current_phase) ;
 
 			current = sec * samplerate + k ;
@@ -167,7 +167,7 @@ generate_file (const char * filename, int format, int samplerate, int seconds, f
 
 	write_chirp (file, samplerate, seconds, w0, w1, sweep_func) ;
 
-	sf_close (file) ; 
+	sf_close (file) ;
 } /* generate_file */
 
 static double
