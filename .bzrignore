@@ -1,5 +1,6 @@
 *.png
 *.wav
+sndfile-faulkner-resample
 sndfile-generate-chirp
 sndfile-spectrogram
 test_kaiser_window
