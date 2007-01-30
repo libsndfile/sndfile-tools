@@ -17,7 +17,7 @@
 
 /*
 **	Faulkner Resampler. Uses SRC_SINC_BEST_QUAILTY to upsample to 4
-**	times the destination ratem then use an average of 4 samples to
+**	times the destination rate, then use an average of 4 samples to
 **	get to the final target sample rate.
 **
 **	http://stereophile.com/reference/104law/index.html
@@ -32,13 +32,20 @@
 #include <sndfile.h>
 #include <samplerate.h>
 
-#define	INPUT_LEN			(1 << 14)
+#define	INPUT_LEN			(1 << 12)
 #define ARRAY_LEN(x)		((int) ((sizeof (x)) / (sizeof (x [0]))))
+
+
+typedef struct
+{	int count ;
+	float current [32] ;
+} AVG_STATE ;
 
 static void usage_exit (void) ;
 
 static sf_count_t sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, double src_ratio, int channels, double * gain) ;
 static double apply_gain (float * data, long frames, int channels, double max, double gain) ;
+static void average4_output (SNDFILE * outfile, int channels, const float * sinc_up_out, long count, AVG_STATE * avg_state) ;
 
 int
 main (int argc, char ** argv)
@@ -67,6 +74,12 @@ main (int argc, char ** argv)
 		exit (1) ;
 		} ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
+	if ((infile = sf_open (argv [argc - 2], SFM_READ, &sfinfo)) == NULL)
+	{	printf ("Error : Not able to open input file '%s'\n", argv [argc - 2]) ;
+		sf_close (infile) ;
+		exit (1) ;
+		} ;
 
 	printf ("Input File    : %s\n", argv [argc - 2]) ;
 	printf ("Sample Rate   : %d\n", sfinfo.samplerate) ;
@@ -101,8 +114,6 @@ main (int argc, char ** argv)
 		exit (1) ;
 		} ;
 
-	/* Update the file header after every write. */
-	sf_command (outfile, SFC_SET_UPDATE_HEADER_AUTO, NULL, SF_TRUE) ;
 	sf_command (outfile, SFC_SET_CLIPPING, NULL, SF_TRUE) ;
 
 	printf ("Output file   : %s\n", argv [argc - 1]) ;
@@ -123,13 +134,16 @@ main (int argc, char ** argv)
 static sf_count_t
 sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, double src_ratio, int channels, double * gain)
 {	static float input [INPUT_LEN] ;
-	static float output [5 * INPUT_LEN] ;
+	static float sinc_up_out [20 * INPUT_LEN] ;
 
 	SRC_STATE	*src_state ;
 	SRC_DATA	src_data ;
+	AVG_STATE		avg_state ;
 	int			error ;
 	double		max = 0.0 ;
 	sf_count_t	output_count = 0 ;
+
+	memset (&avg_state, 0, sizeof (avg_state)) ;
 
 	sf_seek (infile, 0, SEEK_SET) ;
 	sf_seek (outfile, 0, SEEK_SET) ;
@@ -146,10 +160,10 @@ sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, double src_ratio, int ch
 	src_data.input_frames = 0 ;
 	src_data.data_in = input ;
 
-	src_data.src_ratio = src_ratio ;
+	src_data.src_ratio = 4.0 * src_ratio ;
 
-	src_data.data_out = output ;
-	src_data.output_frames = ARRAY_LEN (output) /channels ;
+	src_data.data_out = sinc_up_out ;
+	src_data.output_frames = ARRAY_LEN (sinc_up_out) /channels ;
 
 	while (1)
 	{
@@ -175,7 +189,7 @@ sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, double src_ratio, int ch
 		max = apply_gain (src_data.data_out, src_data.output_frames_gen, channels, max, *gain) ;
 
 		/* Write output. */
-		sf_writef_float (outfile, output, src_data.output_frames_gen) ;
+		average4_output (outfile, channels, sinc_up_out, src_data.output_frames_gen, &avg_state) ;
 		output_count += src_data.output_frames_gen ;
 
 		src_data.data_in += src_data.input_frames_used * channels ;
@@ -194,6 +208,35 @@ sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, double src_ratio, int ch
 
 	return output_count ;
 } /* sample_rate_convert */
+
+static void
+average4_output (SNDFILE * outfile, int channels, const float * sinc_up_out, long frames, AVG_STATE * avg_state)
+{	static float output [5 * INPUT_LEN] ;
+	int ch, findex = 0, oindex = 0 ;
+
+	while (findex < frames)
+	{	while (findex < frames && oindex + channels < ARRAY_LEN (output) / channels)
+		{	for (ch = 0 ; ch < channels ; ch++)
+				avg_state->current [ch] += sinc_up_out [findex * channels + ch] ;
+			avg_state->count ++ ;
+			if (avg_state->count == 4)
+			{	for (ch = 0 ; ch < channels ; ch++)
+				{	output [oindex + ch] = 0.25 * avg_state->current [ch] ;
+					avg_state->current [ch] = 0.0 ;
+					} ;
+				avg_state->count = 0 ;
+				oindex ++ ;
+				} ;
+
+			findex++ ;
+			} ;
+
+		sf_writef_float (outfile, output, oindex) ;
+		oindex = 0 ;
+		} ;
+
+	return ;
+} /* average4_output */
 
 static double
 apply_gain (float * data, long frames, int channels, double max, double gain)
