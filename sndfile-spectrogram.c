@@ -226,7 +226,7 @@ int_floor (double d)
 
 static inline int
 calculate_ticks (double max, int distance, TICKS * ticks)
-{	const int div_array [] = { 10, 10, 8, 6, 8, 10, 6, 7, 8, 9, 10 } ; 
+{	const int div_array [] = { 10, 10, 8, 6, 8, 10, 6, 7, 8, 9, 10 } ;
 
 	double scale = 1.0, scale_max ;
 	int k, leading, divisions ;
@@ -238,11 +238,11 @@ calculate_ticks (double max, int distance, TICKS * ticks)
 
 	while (scale * max > 10.0)
 		scale *= 0.1 ;
- 
+
 	while (scale * max < 10.0)
 		scale *= 10.0 ;
 
-	scale *= 0.1 ;	
+	scale *= 0.1 ;
 	leading = int_floor (scale * max) ;
 
 	divisions = div_array [leading % ARRAY_LEN (div_array)] ;
@@ -253,31 +253,37 @@ calculate_ticks (double max, int distance, TICKS * ticks)
 	scale = scale_max / divisions ;
 	divisions = int_floor (max / scale) ;
 
-	if (0)
-		printf ("max %10.2f    new_max %10.2f    leading %d    divisions %2d    scale %10.4f\n",
-					max, scale_max, leading, divisions, scale) ;
-
 	for (k = 0 ; k <= divisions ; k++)
 	{	ticks->value [k] = k * scale ;
 		ticks->distance [k] = distance * ticks->value [k] / max ;
-		if (0)
-			printf ("    %10.2f     %10.1f\n", ticks->distance [k], ticks->value [k]) ;
 		} ;
 
 	return divisions ;
 } /* calculate_ticks */
 
 static void
-print_value (cairo_t * cr, double x, double y, double value)
+str_print_value (char * text, int text_len, double value)
 {
-	cr = NULL ;
-	x = y = value ;
-} /* print_value */
+	if (fabs (value) < 1e-10)
+		snprintf (text, text_len, "0") ;
+	else if (value >= 10.0)
+		snprintf (text, text_len, "%1.0f", value) ;
+	else if (value >= 1.0)
+		snprintf (text, text_len, "%3.1f", value) ;
+	else
+		snprintf (text, text_len, "%4.2f", value) ;
+
+	return ;
+} /* str_print_value */
 
 static void
 render_scales (cairo_surface_t * surface, int left, int width, double seconds, int top, int height, double max_freq)
 {
+	const char * font_family = "Terminus" ;
+	char text [512] ;
 	cairo_t * cr ;
+	cairo_text_extents_t extents ;
+
 	TICKS ticks ;
 	int k, tick_count ;
 
@@ -286,24 +292,47 @@ render_scales (cairo_surface_t * surface, int left, int width, double seconds, i
 	cairo_set_source_rgb (cr, 0.0, 0.0, 0.0) ;
 	cairo_set_line_width (cr, 1.8) ;
 
+	/* Border around outside. */
 	cairo_rectangle (cr, 1.0, 1.0, cairo_image_surface_get_width (surface) - 1, cairo_image_surface_get_height (surface) - 1) ;
 
+
+	/* Print title. */
+	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
+	cairo_set_font_size (cr, 25.0) ;
+
+	snprintf (text, sizeof (text), "Spectrogram") ;
+	cairo_text_extents (cr, text, &extents) ;
+	cairo_move_to (cr, left + 2, extents.height) ;
+	cairo_show_text (cr, text) ;
+
+
+	/* Print labels. */
+	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL) ;
+	cairo_set_font_size (cr, 16.0) ;
+
+	/* Border around actual spectrogram. */
 	cairo_rectangle (cr, left, top, width, height) ;
 
 	tick_count = calculate_ticks (seconds, width, &ticks) ;
-	if (0) printf ("seconds  %10.4f    count %d    min %f\n", seconds, tick_count, tick_count * ticks.value [1]) ;
 	for (k = 0 ; k <= tick_count ; k++)
 	{	y_line (cr, left + ticks.distance [k], top + height, 8) ;
-		if (k % 2 == 0)
-			print_value (cr, left + ticks.distance [k], top + height, ticks.value [k]) ;
+		if (k % 2 == 1)
+			continue ;
+		str_print_value (text, sizeof (text), ticks.value [k]) ;
+		cairo_text_extents (cr, text, &extents) ;
+		cairo_move_to (cr, left + ticks.distance [k] - extents.width / 2, top + height + 8 + extents.height) ;
+		cairo_show_text (cr, text) ;
 		} ;
 
 	tick_count = calculate_ticks (max_freq, height, &ticks) ;
-	if (0) printf ("max_freq %10.4f    count %d    min %f\n", max_freq, tick_count, tick_count * ticks.value [1]) ;
 	for (k = 0 ; k <= tick_count ; k++)
 	{	x_line (cr, left + width, top + height - ticks.distance [k], 8) ;
-		if (k % 2 == 0)
-			print_value (cr, left + width, top + height - ticks.distance [k], ticks.value [k]) ;
+		if (k % 2 == 1)
+			continue ;
+		str_print_value (text, sizeof (text), ticks.value [k]) ;
+		cairo_text_extents (cr, text, &extents) ;
+		cairo_move_to (cr, left + width + 12, top + height - ticks.distance [k] + extents.height / 4.5) ;
+		cairo_show_text (cr, text) ;
 		} ;
 
 	cairo_destroy (cr) ;
@@ -312,7 +341,7 @@ render_scales (cairo_surface_t * surface, int left, int width, double seconds, i
 static void
 render_to_surface (SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
-	static const int left_border = 25 ;
+	static const int left_border = 20 ;
 	static const int top_border = 35 ;
 	static const int right_border = 80 ;
 	static const int bottom_border = 40 ;
