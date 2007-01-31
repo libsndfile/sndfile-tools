@@ -214,11 +214,72 @@ y_line (cairo_t * cr, int x, int y, int len)
 	cairo_stroke (cr) ;
 } /* y_line */
 
+typedef struct
+{	double value [10] ;
+	double distance [10] ;
+} TICKS ;
+
+static inline int
+int_floor (double d)
+{	return lrint (floor (d)) ;
+} /* int_floor */
+
+static inline int
+calculate_ticks (double max, int distance, TICKS * ticks)
+{	const int div_array [] = { 10, 10, 8, 6, 8, 10, 6, 7, 8, 9, 10 } ; 
+
+	double scale = 1.0, scale_max ;
+	int k, leading, divisions ;
+
+	if (max < 0)
+	{	printf ("\nError in %s : max < 0\n\n", __func__) ;
+		exit (1) ;
+		} ;
+
+	while (scale * max > 10.0)
+		scale *= 0.1 ;
+ 
+	while (scale * max < 10.0)
+		scale *= 10.0 ;
+
+	scale *= 0.1 ;	
+	leading = int_floor (scale * max) ;
+
+	divisions = div_array [leading % ARRAY_LEN (div_array)] ;
+
+	/* Scale max down. */
+	scale_max = leading / scale ;
+
+	scale = scale_max / divisions ;
+	divisions = int_floor (max / scale) ;
+
+	if (0)
+		printf ("max %10.2f    new_max %10.2f    leading %d    divisions %2d    scale %10.4f\n",
+					max, scale_max, leading, divisions, scale) ;
+
+	for (k = 0 ; k <= divisions ; k++)
+	{	ticks->value [k] = k * scale ;
+		ticks->distance [k] = distance * ticks->value [k] / max ;
+		if (0)
+			printf ("    %10.2f     %10.1f\n", ticks->distance [k], ticks->value [k]) ;
+		} ;
+
+	return divisions ;
+} /* calculate_ticks */
+
+static void
+print_value (cairo_t * cr, double x, double y, double value)
+{
+	cr = NULL ;
+	x = y = value ;
+} /* print_value */
+
 static void
 render_scales (cairo_surface_t * surface, int left, int width, double seconds, int top, int height, double max_freq)
 {
 	cairo_t * cr ;
-	int k, ticks ;
+	TICKS ticks ;
+	int k, tick_count ;
 
 	cr = cairo_create (surface) ;
 
@@ -228,19 +289,19 @@ render_scales (cairo_surface_t * surface, int left, int width, double seconds, i
 	cairo_rectangle (cr, 1.0, 1.0, cairo_image_surface_get_width (surface) - 1, cairo_image_surface_get_height (surface) - 1) ;
 
 	cairo_rectangle (cr, left, top, width, height) ;
-	y_line (cr, left, top + height, 8) ;
-	x_line (cr, left + width, top + height, 8) ;
 
-	ticks = (int) floor (seconds) ;
-	if (ticks > 1 && ticks < 10)
-		for (k = 1 ; k <= ticks ; k++)
-			y_line (cr, left + k * width / seconds, top + height, 7) ;
+	tick_count = calculate_ticks (seconds, width, &ticks) ;
+	if (0) printf ("seconds  %10.4f    count %d    min %f\n", seconds, tick_count, tick_count * ticks.value [1]) ;
+	for (k = 0 ; k <= tick_count ; k++)
+	{	y_line (cr, left + ticks.distance [k], top + height, 8) ;
+		if (k % 2 == 0)
+			print_value (cr, left + ticks.distance [k], top + height, ticks.value [k]) ;
+		} ;
 
-	max_freq /= 1000.0 ;
-	ticks = (int) floor (max_freq) ;
-	if (ticks > 1 && ticks < 30)
-		for (k = 1 ; k <= ticks ; k++)
-			x_line (cr, left + width, top + k * height / max_freq, 7) ;
+	tick_count = calculate_ticks (max_freq, height, &ticks) ;
+	if (0) printf ("max_freq %10.4f    count %d    min %f\n", max_freq, tick_count, tick_count * ticks.value [1]) ;
+	for (k = 0 ; k <= tick_count ; k++)
+		x_line (cr, left + width, top + height - ticks.distance [k], 8) ;
 
 	cairo_destroy (cr) ;
 } /* render_scales */
@@ -248,9 +309,9 @@ render_scales (cairo_surface_t * surface, int left, int width, double seconds, i
 static void
 render_to_surface (SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
-	static const int left_border = 15 ;
-	static const int top_border = 15 ;
-	static const int right_border = 40 ;
+	static const int left_border = 25 ;
+	static const int top_border = 35 ;
+	static const int right_border = 80 ;
 	static const int bottom_border = 40 ;
 
 	static double time_domain [2 * MAX_HEIGHT] ;
