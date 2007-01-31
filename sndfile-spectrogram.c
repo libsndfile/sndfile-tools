@@ -277,12 +277,14 @@ str_print_value (char * text, int text_len, double value)
 } /* str_print_value */
 
 static void
-render_scales (cairo_surface_t * surface, int left, int width, double seconds, int top, int height, double max_freq)
+render_scales (cairo_surface_t * surface, const char * filename, int left, int width, double seconds, int top, int height, double max_freq)
 {
 	const char * font_family = "Terminus" ;
 	char text [512] ;
+
 	cairo_t * cr ;
 	cairo_text_extents_t extents ;
+	cairo_matrix_t matrix ;
 
 	TICKS ticks ;
 	int k, tick_count ;
@@ -297,12 +299,12 @@ render_scales (cairo_surface_t * surface, int left, int width, double seconds, i
 
 
 	/* Print title. */
-	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_BOLD);
-	cairo_set_font_size (cr, 25.0) ;
+	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL) ;
+	cairo_set_font_size (cr, 22.0) ;
 
-	snprintf (text, sizeof (text), "Spectrogram") ;
+	snprintf (text, sizeof (text), "Spectrogram : \"%s\"", filename) ;
 	cairo_text_extents (cr, text, &extents) ;
-	cairo_move_to (cr, left + 2, extents.height) ;
+	cairo_move_to (cr, left + 2, top - extents.height / 2) ;
 	cairo_show_text (cr, text) ;
 
 
@@ -335,16 +337,35 @@ render_scales (cairo_surface_t * surface, int left, int width, double seconds, i
 		cairo_show_text (cr, text) ;
 		} ;
 
+	cairo_set_font_size (cr, 16.0) ;
+
+	/* Label X axis. */
+	snprintf (text, sizeof (text), "Time (secs)") ;
+	cairo_text_extents (cr, text, &extents) ;
+	cairo_move_to (cr, left + (width - extents.width) / 2, cairo_image_surface_get_height (surface) - 8) ;
+	cairo_show_text (cr, text) ;
+
+	/* Label Y axis (rotated). */
+	snprintf (text, sizeof (text), "Frequency (Hz)") ;
+	cairo_text_extents (cr, text, &extents) ;
+
+	cairo_get_font_matrix (cr, &matrix) ;
+	cairo_matrix_rotate (&matrix, -0.5 * M_PI) ;
+	cairo_set_font_matrix (cr, &matrix) ;
+
+	cairo_move_to (cr, cairo_image_surface_get_width (surface) - 12, top + (height + extents.width) / 2) ;
+	cairo_show_text (cr, text) ;
+
 	cairo_destroy (cr) ;
 } /* render_scales */
 
 static void
-render_to_surface (SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
+render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
 	static const int left_border = 20 ;
 	static const int top_border = 35 ;
-	static const int right_border = 80 ;
-	static const int bottom_border = 40 ;
+	static const int right_border = 85 ;
+	static const int bottom_border = 50 ;
 
 	static double time_domain [2 * MAX_HEIGHT] ;
 	static double freq_domain [2 * MAX_HEIGHT] ;
@@ -387,13 +408,13 @@ render_to_surface (SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_su
 
 	cairo_surface_mark_dirty (surface) ;
 
-	render_scales (surface, left_border, width, filelen / (1.0 * samplerate), top_border, height, 0.5 * samplerate) ;
+	render_scales (surface, filename, left_border, width, filelen / (1.0 * samplerate), top_border, height, 0.5 * samplerate) ;
 
 	return ;
 } /* render_to_surface */
 
 static void
-open_cairo_surface (SNDFILE *infile, int samplerate, sf_count_t filelen, int width, int height, const char * pngfilename)
+open_cairo_surface (SNDFILE *infile, const char * filename, int samplerate, sf_count_t filelen, int width, int height, const char * pngfilename)
 {
 	cairo_surface_t * surface = NULL ;
 	cairo_status_t status ;
@@ -412,7 +433,7 @@ open_cairo_surface (SNDFILE *infile, int samplerate, sf_count_t filelen, int wid
 
 	cairo_surface_flush (surface) ;
 
-	render_to_surface (infile, samplerate, filelen, surface) ;
+	render_to_surface (infile, filename, samplerate, filelen, surface) ;
 
 	status = cairo_surface_write_to_png (surface, pngfilename) ;
 	if (status != CAIRO_STATUS_SUCCESS)
@@ -426,6 +447,7 @@ open_cairo_surface (SNDFILE *infile, int samplerate, sf_count_t filelen, int wid
 static void
 open_sndfile (const char *sndfilename, int width, int height, const char * pngfilename)
 {
+	const char * filename ;
 	SNDFILE *infile ;
 	SF_INFO info ;
 
@@ -437,8 +459,11 @@ open_sndfile (const char *sndfilename, int width, int height, const char * pngfi
 		return ;
 		} ;
 
+	filename = strrchr (sndfilename, '/') ;
+	filename = (filename != NULL) ? filename + 1 : sndfilename ;
+
 	if (info.channels == 1)
-		open_cairo_surface (infile, info.samplerate, info.frames, width, height, pngfilename) ;
+		open_cairo_surface (infile, filename, info.samplerate, info.frames, width, height, pngfilename) ;
 	else
 		printf ("Error : sorry, can't render files with more than one channel.\n"
 				"File '%s' has %d channels.\n\n", sndfilename, info.channels) ;
