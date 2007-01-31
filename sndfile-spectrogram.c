@@ -40,6 +40,8 @@
 
 #include "window.h"
 
+#define	MIN_WIDTH	640
+#define	MIN_HEIGHT	480
 #define	MAX_WIDTH	4096
 #define	MAX_HEIGHT	2048
 
@@ -166,7 +168,7 @@ calc_magnitude (const double * freq, int freqlen, float * magnitude)
 } /* calc_magnitude */
 
 static void
-render_spectrogram (float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int width, int height, cairo_surface_t * surface)
+render_spectrogram (float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int left_width, int top_width, int width, int height, cairo_surface_t * surface)
 {
 	unsigned char colour [3], *data ;
 	int w, h, stride ;
@@ -176,7 +178,7 @@ render_spectrogram (float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int widt
 	printf ("width %d    height %d    stride %d\n", width, height, stride) ;
 
 	data = cairo_image_surface_get_data (surface) ;
-	memset (data, 0, stride * height) ;
+	memset (data, 0x90, stride * cairo_image_surface_get_height (surface)) ;
 
 	for (w = 0 ; w < width ; w ++)
 		for (h = 0 ; h < height ; h++)
@@ -187,17 +189,22 @@ render_spectrogram (float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int widt
 
 			get_colour_map_value (mag2d [w][h], colour) ;
 
-			hindex = height - 1 - h ;
+			hindex = height + top_width - 1 - h ;
 
-			data [hindex * stride + w * 4 + 0] = colour [2] ;
-			data [hindex * stride + w * 4 + 1] = colour [1] ;
-			data [hindex * stride + w * 4 + 2] = colour [0] ;
-			data [hindex * stride + w * 4 + 3] = 0 ;
+			data [hindex * stride + (w + left_width) * 4 + 0] = colour [2] ;
+			data [hindex * stride + (w + left_width) * 4 + 1] = colour [1] ;
+			data [hindex * stride + (w + left_width) * 4 + 2] = colour [0] ;
+			data [hindex * stride + (w + left_width) * 4 + 3] = 0 ;
 			} ;
 
 	return ;
 } /* render_spectrogram */
 
+#define LEFT_BORDER		15
+#define TOP_BORDER		15
+
+#define	RIGHT_BORDER		40
+#define	BOTTOM_BORDER	40
 
 static void
 render_to_surface (SNDFILE *infile, sf_count_t filelen, cairo_surface_t * surface)
@@ -210,8 +217,8 @@ render_to_surface (SNDFILE *infile, sf_count_t filelen, cairo_surface_t * surfac
 	int width, height, w ;
 	double max_mag = 0.0 ;
 
-	width = cairo_image_surface_get_width (surface) ;
-	height = cairo_image_surface_get_height (surface) ;
+	width = cairo_image_surface_get_width (surface) - LEFT_BORDER - RIGHT_BORDER ;
+	height = cairo_image_surface_get_height (surface) - TOP_BORDER - BOTTOM_BORDER ;
 
 	if (2 * height > ARRAY_LEN (time_domain))
 	{	printf ("%s : 2 * height > ARRAY_LEN (time_domain)\n", __func__) ;
@@ -237,7 +244,7 @@ render_to_surface (SNDFILE *infile, sf_count_t filelen, cairo_surface_t * surfac
 		max_mag = MAX (temp, max_mag) ;
 		} ;
 
-	render_spectrogram (mag_spec, max_mag, width, height, surface) ;
+	render_spectrogram (mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height, surface) ;
 
 	fftw_destroy_plan (plan) ;
 
