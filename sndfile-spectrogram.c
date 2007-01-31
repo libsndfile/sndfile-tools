@@ -19,6 +19,16 @@
 **	Generate a spectrogram as a PNG file from a given sound file.
 */
 
+/*
+**	Todo:
+**      - Decouple height of image from FFT length. FFT length should be
+*         greater that height and then interpolated to height.
+**      - Add border, scales.
+**      - Make magnitude to colour mapper allow abitrary scaling (ie cmdline
+**        arg).
+**      - Better cmdline arg parsing and flexibility.
+*/
+
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
