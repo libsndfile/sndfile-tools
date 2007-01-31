@@ -203,14 +203,14 @@ render_spectrogram (cairo_surface_t * surface, float mag2d [MAX_WIDTH][MAX_HEIGH
 static inline void
 x_line (cairo_t * cr, int x, int y, int len)
 {	cairo_move_to (cr, x, y) ;
-	cairo_line_to (cr, x + len, y) ;
+	cairo_rel_line_to (cr, len, 0.0) ;
 	cairo_stroke (cr) ;
 } /* x_line */
 
 static inline void
 y_line (cairo_t * cr, int x, int y, int len)
 {	cairo_move_to (cr, x, y) ;
-	cairo_line_to (cr, x, y + len) ;
+	cairo_rel_line_to (cr, 0.0, len) ;
 	cairo_stroke (cr) ;
 } /* y_line */
 
@@ -218,28 +218,40 @@ static void
 render_scales (cairo_surface_t * surface, int left, int width, double seconds, int top, int height, double max_freq)
 {
 	cairo_t * cr ;
+	int k, ticks ;
 
 	cr = cairo_create (surface) ;
 
 	cairo_set_source_rgb (cr, 0.0, 0.0, 0.0) ;
 	cairo_set_line_width (cr, 1.8) ;
 
+	cairo_rectangle (cr, 1.0, 1.0, cairo_image_surface_get_width (surface) - 1, cairo_image_surface_get_height (surface) - 1) ;
+
 	cairo_rectangle (cr, left, top, width, height) ;
 	y_line (cr, left, top + height, 8) ;
 	x_line (cr, left + width, top + height, 8) ;
 
-	cairo_destroy (cr) ;
+	ticks = (int) floor (seconds) ;
+	if (ticks > 1 && ticks < 10)
+		for (k = 1 ; k <= ticks ; k++)
+			y_line (cr, left + k * width / seconds, top + height, 7) ;
 
-	seconds = max_freq = 0.0 ;
+	max_freq /= 1000.0 ;
+	ticks = (int) floor (max_freq) ;
+	if (ticks > 1 && ticks < 30)
+		for (k = 1 ; k <= ticks ; k++)
+			x_line (cr, left + width, top + k * height / max_freq, 7) ;
+
+	cairo_destroy (cr) ;
 } /* render_scales */
 
 static void
 render_to_surface (SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
-	static const int LEFT_BORDER = 15 ;
-	static const int TOP_BORDER = 15 ;
-	static const int RIGHT_BORDER = 40 ;
-	static const int BOTTOM_BORDER = 40 ;
+	static const int left_border = 15 ;
+	static const int top_border = 15 ;
+	static const int right_border = 40 ;
+	static const int bottom_border = 40 ;
 
 	static double time_domain [2 * MAX_HEIGHT] ;
 	static double freq_domain [2 * MAX_HEIGHT] ;
@@ -249,8 +261,8 @@ render_to_surface (SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_su
 	int width, height, w ;
 	double max_mag = 0.0 ;
 
-	width = cairo_image_surface_get_width (surface) - LEFT_BORDER - RIGHT_BORDER ;
-	height = cairo_image_surface_get_height (surface) - TOP_BORDER - BOTTOM_BORDER ;
+	width = cairo_image_surface_get_width (surface) - left_border - right_border ;
+	height = cairo_image_surface_get_height (surface) - top_border - bottom_border ;
 
 	if (2 * height > ARRAY_LEN (time_domain))
 	{	printf ("%s : 2 * height > ARRAY_LEN (time_domain)\n", __func__) ;
@@ -276,13 +288,13 @@ render_to_surface (SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_su
 		max_mag = MAX (temp, max_mag) ;
 		} ;
 
-	render_spectrogram (surface, mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height) ;
+	render_spectrogram (surface, mag_spec, max_mag, left_border, top_border, width, height) ;
 
 	fftw_destroy_plan (plan) ;
 
 	cairo_surface_mark_dirty (surface) ;
 
-	render_scales (surface, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, 0.5 * samplerate) ;
+	render_scales (surface, left_border, width, filelen / (1.0 * samplerate), top_border, height, 0.5 * samplerate) ;
 
 	return ;
 } /* render_to_surface */
