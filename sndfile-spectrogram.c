@@ -301,7 +301,10 @@ render_scales (cairo_surface_t * surface, int left, int width, double seconds, i
 	tick_count = calculate_ticks (max_freq, height, &ticks) ;
 	if (0) printf ("max_freq %10.4f    count %d    min %f\n", max_freq, tick_count, tick_count * ticks.value [1]) ;
 	for (k = 0 ; k <= tick_count ; k++)
-		x_line (cr, left + width, top + height - ticks.distance [k], 8) ;
+	{	x_line (cr, left + width, top + height - ticks.distance [k], 8) ;
+		if (k % 2 == 0)
+			print_value (cr, left + width, top + height - ticks.distance [k], ticks.value [k]) ;
+		} ;
 
 	cairo_destroy (cr) ;
 } /* render_scales */
