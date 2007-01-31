@@ -168,7 +168,7 @@ calc_magnitude (const double * freq, int freqlen, float * magnitude)
 } /* calc_magnitude */
 
 static void
-render_spectrogram (float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int left_width, int top_width, int width, int height, cairo_surface_t * surface)
+render_spectrogram (cairo_surface_t * surface, float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int left_width, int top_width, int width, int height)
 {
 	unsigned char colour [3], *data ;
 	int w, h, stride ;
@@ -200,15 +200,47 @@ render_spectrogram (float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int left
 	return ;
 } /* render_spectrogram */
 
-#define LEFT_BORDER		15
-#define TOP_BORDER		15
+static inline void
+x_line (cairo_t * cr, int x, int y, int len)
+{	cairo_move_to (cr, x, y) ;
+	cairo_line_to (cr, x + len, y) ;
+	cairo_stroke (cr) ;
+} /* x_line */
 
-#define	RIGHT_BORDER		40
-#define	BOTTOM_BORDER	40
+static inline void
+y_line (cairo_t * cr, int x, int y, int len)
+{	cairo_move_to (cr, x, y) ;
+	cairo_line_to (cr, x, y + len) ;
+	cairo_stroke (cr) ;
+} /* y_line */
 
 static void
-render_to_surface (SNDFILE *infile, sf_count_t filelen, cairo_surface_t * surface)
+render_scales (cairo_surface_t * surface, int left, int width, double seconds, int top, int height, double max_freq)
 {
+	cairo_t * cr ;
+
+	cr = cairo_create (surface) ;
+
+	cairo_set_source_rgb (cr, 0.0, 0.0, 0.0) ;
+	cairo_set_line_width (cr, 1.8) ;
+
+	cairo_rectangle (cr, left, top, width, height) ;
+	y_line (cr, left, top + height, 8) ;
+	x_line (cr, left + width, top + height, 8) ;
+
+	cairo_destroy (cr) ;
+
+	seconds = max_freq = 0.0 ;
+} /* render_scales */
+
+static void
+render_to_surface (SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
+{
+	static const int LEFT_BORDER = 15 ;
+	static const int TOP_BORDER = 15 ;
+	static const int RIGHT_BORDER = 40 ;
+	static const int BOTTOM_BORDER = 40 ;
+
 	static double time_domain [2 * MAX_HEIGHT] ;
 	static double freq_domain [2 * MAX_HEIGHT] ;
 	static float mag_spec [MAX_WIDTH][MAX_HEIGHT] ;
@@ -244,15 +276,19 @@ render_to_surface (SNDFILE *infile, sf_count_t filelen, cairo_surface_t * surfac
 		max_mag = MAX (temp, max_mag) ;
 		} ;
 
-	render_spectrogram (mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height, surface) ;
+	render_spectrogram (surface, mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height) ;
 
 	fftw_destroy_plan (plan) ;
+
+	cairo_surface_mark_dirty (surface) ;
+
+	render_scales (surface, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, 0.5 * samplerate) ;
 
 	return ;
 } /* render_to_surface */
 
 static void
-open_cairo_surface (SNDFILE *infile, sf_count_t filelen, int width, int height, const char * pngfilename)
+open_cairo_surface (SNDFILE *infile, int samplerate, sf_count_t filelen, int width, int height, const char * pngfilename)
 {
 	cairo_surface_t * surface = NULL ;
 	cairo_status_t status ;
@@ -271,9 +307,7 @@ open_cairo_surface (SNDFILE *infile, sf_count_t filelen, int width, int height, 
 
 	cairo_surface_flush (surface) ;
 
-	render_to_surface (infile, filelen, surface) ;
-
-	cairo_surface_mark_dirty (surface) ;
+	render_to_surface (infile, samplerate, filelen, surface) ;
 
 	status = cairo_surface_write_to_png (surface, pngfilename) ;
 	if (status != CAIRO_STATUS_SUCCESS)
@@ -299,7 +333,7 @@ open_sndfile (const char *sndfilename, int width, int height, const char * pngfi
 		} ;
 
 	if (info.channels == 1)
-		open_cairo_surface (infile, info.frames, width, height, pngfilename) ;
+		open_cairo_surface (infile, info.samplerate, info.frames, width, height, pngfilename) ;
 	else
 		printf ("Error : sorry, can't render files with more than one channel.\n"
 				"File '%s' has %d channels.\n\n", sndfilename, info.channels) ;
