@@ -23,7 +23,6 @@
 **	Todo:
 **      - Decouple height of image from FFT length. FFT length should be
 *         greater that height and then interpolated to height.
-**      - Add border, scales.
 **      - Make magnitude to colour mapper allow abitrary scaling (ie cmdline
 **        arg).
 **      - Better cmdline arg parsing and flexibility.
@@ -178,7 +177,7 @@ render_spectrogram (cairo_surface_t * surface, float mag2d [MAX_WIDTH][MAX_HEIGH
 	printf ("width %d    height %d    stride %d\n", width, height, stride) ;
 
 	data = cairo_image_surface_get_data (surface) ;
-	memset (data, 0x90, stride * cairo_image_surface_get_height (surface)) ;
+	memset (data, 0, stride * cairo_image_surface_get_height (surface)) ;
 
 	for (w = 0 ; w < width ; w ++)
 		for (h = 0 ; h < height ; h++)
@@ -291,12 +290,8 @@ render_scales (cairo_surface_t * surface, const char * filename, int left, int w
 
 	cr = cairo_create (surface) ;
 
-	cairo_set_source_rgb (cr, 0.0, 0.0, 0.0) ;
+	cairo_set_source_rgb (cr, 1.0, 1.0, 1.0) ;
 	cairo_set_line_width (cr, 1.8) ;
-
-	/* Border around outside. */
-	cairo_rectangle (cr, 1.0, 1.0, cairo_image_surface_get_width (surface) - 1, cairo_image_surface_get_height (surface) - 1) ;
-
 
 	/* Print title. */
 	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL) ;
