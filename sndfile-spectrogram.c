@@ -47,6 +47,12 @@
 #define ARRAY_LEN(x)		((int) (sizeof (x) / sizeof (x [0])))
 #define MAX(x,y)			((x) > (y) ? (x) : (y))
 
+typedef struct
+{	int left, top, width, height ;
+} RECT ; 
+
+static const char font_family [] = "Terminus" ;
+
 static void
 get_colour_map_value (float value, unsigned char colour [3])
 {	static unsigned char map [][3] =
@@ -167,37 +173,63 @@ calc_magnitude (const double * freq, int freqlen, float * magnitude)
 } /* calc_magnitude */
 
 static void
-render_spectrogram (cairo_surface_t * surface, float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int left_width, int top_width, int width, int height)
+render_spectrogram (cairo_surface_t * surface, float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int left, int top, int width, int height)
 {
 	unsigned char colour [3], *data ;
 	int w, h, stride ;
 
 	stride = cairo_image_surface_get_stride (surface) ;
 
-	printf ("width %d    height %d    stride %d\n", width, height, stride) ;
-
 	data = cairo_image_surface_get_data (surface) ;
 	memset (data, 0, stride * cairo_image_surface_get_height (surface)) ;
 
 	for (w = 0 ; w < width ; w ++)
 		for (h = 0 ; h < height ; h++)
-		{	int hindex ;
+		{	int x, y ;
 
 			mag2d [w][h] = mag2d [w][h] / maxval ;
 			mag2d [w][h] = (mag2d [w][h] < 1e-15) ? -200.0 : 20.0 * log10 (mag2d [w][h]) ;
 
 			get_colour_map_value (mag2d [w][h], colour) ;
 
-			hindex = height + top_width - 1 - h ;
-
-			data [hindex * stride + (w + left_width) * 4 + 0] = colour [2] ;
-			data [hindex * stride + (w + left_width) * 4 + 1] = colour [1] ;
-			data [hindex * stride + (w + left_width) * 4 + 2] = colour [0] ;
-			data [hindex * stride + (w + left_width) * 4 + 3] = 0 ;
+			y = height + top - 1 - h ;
+			x = (w + left) * 4 ;
+			data [y * stride + x + 0] = colour [2] ;
+			data [y * stride + x + 1] = colour [1] ;
+			data [y * stride + x + 2] = colour [0] ;
+			data [y * stride + x + 3] = 0 ;
 			} ;
 
-	return ;
+	cairo_surface_mark_dirty (surface) ;
 } /* render_spectrogram */
+
+static void
+render_heat_map (cairo_surface_t * surface, double magfloor, const RECT *r)
+{
+	unsigned char colour [3], *data ;
+	int w, h, stride ;
+
+	stride = cairo_image_surface_get_stride (surface) ;
+	data = cairo_image_surface_get_data (surface) ;
+
+	for (h = 0 ; h < r->height ; h++)
+	{	get_colour_map_value (magfloor * (r->height - h) / r->height, colour) ;
+
+		for (w = 0 ; w < r->width ; w ++)
+		{	int x, y ;
+
+			x = (w + r->left) * 4 ;
+			y = r->height + r->top - 1 - h ;
+
+			data [y * stride + x + 0] = colour [2] ;
+			data [y * stride + x + 1] = colour [1] ;
+			data [y * stride + x + 2] = colour [0] ;
+			data [y * stride + x + 3] = 0 ;
+			} ;
+		} ;
+
+	cairo_surface_mark_dirty (surface) ;
+} /* render_heat_map */
 
 static inline void
 x_line (cairo_t * cr, int x, int y, int len)
@@ -238,19 +270,21 @@ calculate_ticks (double max, int distance, TICKS * ticks)
 	while (scale * max > 10.0)
 		scale *= 0.1 ;
 
-	while (scale * max < 10.0)
+	while (scale * max < 1.0)
 		scale *= 10.0 ;
 
-	scale *= 0.1 ;
-	leading = int_floor (scale * max) ;
-
+	leading = lround (scale * max) ;
 	divisions = div_array [leading % ARRAY_LEN (div_array)] ;
 
 	/* Scale max down. */
 	scale_max = leading / scale ;
-
 	scale = scale_max / divisions ;
-	divisions = int_floor (max / scale) ;
+
+	if (divisions > ARRAY_LEN (ticks->value) - 1)
+	{
+		printf ("Error : divisions (%d) > ARRAY_LEN (ticks->value) (%d)\n", divisions, ARRAY_LEN (ticks->value)) ;
+		exit (1) ;
+		} ;
 
 	for (k = 0 ; k <= divisions ; k++)
 	{	ticks->value [k] = k * scale ;
@@ -276,9 +310,8 @@ str_print_value (char * text, int text_len, double value)
 } /* str_print_value */
 
 static void
-render_scales (cairo_surface_t * surface, const char * filename, int left, int width, double seconds, int top, int height, double max_freq)
+render_spect_border (cairo_surface_t * surface, const char * filename, int left, int width, double seconds, int top, int height, double max_freq)
 {
-	const char * font_family = "Terminus" ;
 	char text [512] ;
 
 	cairo_t * cr ;
@@ -352,12 +385,34 @@ render_scales (cairo_surface_t * surface, const char * filename, int left, int w
 	cairo_show_text (cr, text) ;
 
 	cairo_destroy (cr) ;
-} /* render_scales */
+} /* render_spect_border */
+
+static void
+render_heat_border (cairo_surface_t * surface, double magfloor, const RECT *r)
+{
+	cairo_t * cr ;
+	TICKS ticks ;
+	int tick_count ;
+
+printf ("%s (%d, %d, %d, %d)\n", __func__, r->left, r->top, r->width, r->height) ;
+
+	cr = cairo_create (surface) ;
+
+	cairo_set_source_rgb (cr, 1.0, 0.0, 0.0) ;
+	cairo_set_line_width (cr, 1.8) ;
+
+	/* Border around actual spectrogram. */
+	cairo_rectangle (cr, r->left, r->top, r->width, r->height) ;
+
+	tick_count = calculate_ticks (fabs (magfloor), r->height, &ticks) ;
+
+	cairo_destroy (cr) ;
+} /* render_heat_border */
 
 static void
 render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
-	static const int left_border = 20 ;
+	static const int left_border = 85 ;
 	static const int top_border = 35 ;
 	static const int right_border = 85 ;
 	static const int bottom_border = 50 ;
@@ -366,6 +421,8 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 	static double freq_domain [2 * MAX_HEIGHT] ;
 	static float mag_spec [MAX_WIDTH][MAX_HEIGHT] ;
 
+	RECT heat_rect ;
+	
 	fftw_plan plan ;
 	int width, height, w ;
 	double max_mag = 0.0 ;
@@ -397,13 +454,18 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 		max_mag = MAX (temp, max_mag) ;
 		} ;
 
-	render_spectrogram (surface, mag_spec, max_mag, left_border, top_border, width, height) ;
-
 	fftw_destroy_plan (plan) ;
 
-	cairo_surface_mark_dirty (surface) ;
+	heat_rect.left = 15 ;
+	heat_rect.top = 2 * top_border ;
+	heat_rect.width = 15 ;
+	heat_rect.height = height - 2 * top_border ;
 
-	render_scales (surface, filename, left_border, width, filelen / (1.0 * samplerate), top_border, height, 0.5 * samplerate) ;
+	render_spectrogram (surface, mag_spec, max_mag, left_border, top_border, width, height) ;
+	render_heat_map (surface, -180.0, &heat_rect) ;
+
+	render_spect_border (surface, filename, left_border, width, filelen / (1.0 * samplerate), top_border, height, 0.5 * samplerate) ;
+	render_heat_border (surface, -180.0, &heat_rect) ;
 
 	return ;
 } /* render_to_surface */
