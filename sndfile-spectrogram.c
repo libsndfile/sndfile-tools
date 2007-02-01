@@ -44,8 +44,14 @@
 #define	MAX_WIDTH	4096
 #define	MAX_HEIGHT	2048
 
-#define ARRAY_LEN(x)		((int) (sizeof (x) / sizeof (x [0])))
-#define MAX(x,y)			((x) > (y) ? (x) : (y))
+#define ARRAY_LEN(x)	((int) (sizeof (x) / sizeof (x [0])))
+#define MAX(x,y)		((x) > (y) ? (x) : (y))
+
+#define TICK_LEN			6
+#define	BORDER_LINE_WIDTH	1.6
+
+#define	TITLE_FONT_SIZE		22.0
+#define	NORMAL_FONT_SIZE	14.0
 
 typedef struct
 {	int left, top, width, height ;
@@ -246,8 +252,8 @@ y_line (cairo_t * cr, int x, int y, int len)
 } /* y_line */
 
 typedef struct
-{	double value [10] ;
-	double distance [10] ;
+{	double value [15] ;
+	double distance [15] ;
 } TICKS ;
 
 static inline int
@@ -257,7 +263,9 @@ int_floor (double d)
 
 static inline int
 calculate_ticks (double max, int distance, TICKS * ticks)
-{	const int div_array [] = { 10, 10, 8, 6, 8, 10, 6, 7, 8, 9, 10 } ;
+{	const int div_array [] =
+	{	10, 10, 8, 6, 8, 10, 6, 7, 8, 9, 10, 11, 12, 12, 7, 14, 8, 8, 9
+		} ;
 
 	double scale = 1.0, scale_max ;
 	int k, leading, divisions ;
@@ -267,26 +275,28 @@ calculate_ticks (double max, int distance, TICKS * ticks)
 		exit (1) ;
 		} ;
 
-	while (scale * max > 10.0)
+	while (scale * max >= ARRAY_LEN (div_array))
 		scale *= 0.1 ;
 
 	while (scale * max < 1.0)
 		scale *= 10.0 ;
 
 	leading = lround (scale * max) ;
+
 	divisions = div_array [leading % ARRAY_LEN (div_array)] ;
+
+	if (0) printf ("max %10.3f     leading %d    divisions %d\n", max, leading, divisions) ;
 
 	/* Scale max down. */
 	scale_max = leading / scale ;
 	scale = scale_max / divisions ;
 
 	if (divisions > ARRAY_LEN (ticks->value) - 1)
-	{
-		printf ("Error : divisions (%d) > ARRAY_LEN (ticks->value) (%d)\n", divisions, ARRAY_LEN (ticks->value)) ;
+	{	printf ("Error : divisions (%d) > ARRAY_LEN (ticks->value) (%d)\n", divisions, ARRAY_LEN (ticks->value)) ;
 		exit (1) ;
 		} ;
 
-	for (k = 0 ; k <= divisions ; k++)
+	for (k = 0 ; k < divisions ; k++)
 	{	ticks->value [k] = k * scale ;
 		ticks->distance [k] = distance * ticks->value [k] / max ;
 		} ;
@@ -299,9 +309,9 @@ str_print_value (char * text, int text_len, double value)
 {
 	if (fabs (value) < 1e-10)
 		snprintf (text, text_len, "0") ;
-	else if (value >= 10.0)
+	else if (fabs (value) >= 10.0)
 		snprintf (text, text_len, "%1.0f", value) ;
-	else if (value >= 1.0)
+	else if (fabs (value) >= 1.0)
 		snprintf (text, text_len, "%3.1f", value) ;
 	else
 		snprintf (text, text_len, "%4.2f", value) ;
@@ -313,7 +323,6 @@ static void
 render_spect_border (cairo_surface_t * surface, const char * filename, int left, int width, double seconds, int top, int height, double max_freq)
 {
 	char text [512] ;
-
 	cairo_t * cr ;
 	cairo_text_extents_t extents ;
 	cairo_matrix_t matrix ;
@@ -324,28 +333,27 @@ render_spect_border (cairo_surface_t * surface, const char * filename, int left,
 	cr = cairo_create (surface) ;
 
 	cairo_set_source_rgb (cr, 1.0, 1.0, 1.0) ;
-	cairo_set_line_width (cr, 1.5) ;
+	cairo_set_line_width (cr, BORDER_LINE_WIDTH) ;
 
 	/* Print title. */
 	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL) ;
-	cairo_set_font_size (cr, 22.0) ;
+	cairo_set_font_size (cr, TITLE_FONT_SIZE) ;
 
-	snprintf (text, sizeof (text), "Spectrogram : \"%s\"", filename) ;
+	snprintf (text, sizeof (text), "Spectrogram : %s", filename) ;
 	cairo_text_extents (cr, text, &extents) ;
 	cairo_move_to (cr, left + 2, top - extents.height / 2) ;
 	cairo_show_text (cr, text) ;
 
-
 	/* Print labels. */
 	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL) ;
-	cairo_set_font_size (cr, 16.0) ;
+	cairo_set_font_size (cr, NORMAL_FONT_SIZE) ;
 
 	/* Border around actual spectrogram. */
 	cairo_rectangle (cr, left, top, width, height) ;
 
 	tick_count = calculate_ticks (seconds, width, &ticks) ;
-	for (k = 0 ; k <= tick_count ; k++)
-	{	y_line (cr, left + ticks.distance [k], top + height, 8) ;
+	for (k = 0 ; k < tick_count ; k++)
+	{	y_line (cr, left + ticks.distance [k], top + height, TICK_LEN) ;
 		if (k % 2 == 1)
 			continue ;
 		str_print_value (text, sizeof (text), ticks.value [k]) ;
@@ -355,8 +363,8 @@ render_spect_border (cairo_surface_t * surface, const char * filename, int left,
 		} ;
 
 	tick_count = calculate_ticks (max_freq, height, &ticks) ;
-	for (k = 0 ; k <= tick_count ; k++)
-	{	x_line (cr, left + width, top + height - ticks.distance [k], 8) ;
+	for (k = 0 ; k < tick_count ; k++)
+	{	x_line (cr, left + width, top + height - ticks.distance [k], TICK_LEN) ;
 		if (k % 2 == 1)
 			continue ;
 		str_print_value (text, sizeof (text), ticks.value [k]) ;
@@ -365,7 +373,7 @@ render_spect_border (cairo_surface_t * surface, const char * filename, int left,
 		cairo_show_text (cr, text) ;
 		} ;
 
-	cairo_set_font_size (cr, 16.0) ;
+	cairo_set_font_size (cr, NORMAL_FONT_SIZE) ;
 
 	/* Label X axis. */
 	snprintf (text, sizeof (text), "Time (secs)") ;
@@ -390,22 +398,40 @@ render_spect_border (cairo_surface_t * surface, const char * filename, int left,
 static void
 render_heat_border (cairo_surface_t * surface, double magfloor, const RECT *r)
 {
+	const char decibels [] = "dB" ;
+	char text [512] ;
 	cairo_t * cr ;
+	cairo_text_extents_t extents ;
 	TICKS ticks ;
-	int tick_count ;
-
-printf ("%s (%d, %d, %d, %d)\n", __func__, r->left, r->top, r->width, r->height) ;
+	int k, tick_count ;
 
 	cr = cairo_create (surface) ;
 
 	cairo_set_source_rgb (cr, 1.0, 1.0, 1.0) ;
-	cairo_set_line_width (cr, 1.5) ;
+	cairo_set_line_width (cr, BORDER_LINE_WIDTH) ;
 
 	/* Border around actual spectrogram. */
 	cairo_rectangle (cr, r->left, r->top, r->width, r->height) ;
 	cairo_stroke (cr) ;
 
+	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL) ;
+	cairo_set_font_size (cr, NORMAL_FONT_SIZE) ;
+
+	cairo_text_extents (cr, decibels, &extents) ;
+	cairo_move_to (cr, r->left + (r->width - extents.width) / 2, r->top - 5) ;
+	cairo_show_text (cr, decibels) ;
+
 	tick_count = calculate_ticks (fabs (magfloor), r->height, &ticks) ;
+	for (k = 0 ; k < tick_count ; k++)
+	{	x_line (cr, r->left + r->width, r->top + ticks.distance [k], TICK_LEN) ;
+		if (k % 2 == 1)
+			continue ;
+
+		str_print_value (text, sizeof (text), -1.0 * ticks.value [k]) ;
+		cairo_text_extents (cr, text, &extents) ;
+		cairo_move_to (cr, r->left + r->width + 2 * TICK_LEN, r->top + ticks.distance [k] + extents.height / 4.5) ;
+		cairo_show_text (cr, text) ;
+		} ;
 
 	cairo_destroy (cr) ;
 } /* render_heat_border */
@@ -457,9 +483,9 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 
 	fftw_destroy_plan (plan) ;
 
-	heat_rect.left = 15 ;
+	heat_rect.left = 12 ;
 	heat_rect.top = top_border + top_border / 2 ;
-	heat_rect.width = 15 ;
+	heat_rect.width = 12 ;
 	heat_rect.height = height - top_border ;
 
 	render_spectrogram (surface, mag_spec, max_mag, left_border, top_border, width, height) ;
