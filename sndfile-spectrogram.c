@@ -219,7 +219,7 @@ render_heat_map (cairo_surface_t * surface, double magfloor, const RECT *r)
 	data = cairo_image_surface_get_data (surface) ;
 
 	for (h = 0 ; h < r->height ; h++)
-	{	get_colour_map_value (magfloor * (r->height - h) / r->height, colour) ;
+	{	get_colour_map_value (magfloor * (r->height - h) / (r->height + 1), colour) ;
 
 		for (w = 0 ; w < r->width ; w ++)
 		{	int x, y ;
@@ -282,10 +282,7 @@ calculate_ticks (double max, int distance, TICKS * ticks)
 		scale *= 10.0 ;
 
 	leading = lround (scale * max) ;
-
 	divisions = div_array [leading % ARRAY_LEN (div_array)] ;
-
-	if (0) printf ("max %10.3f     leading %d    divisions %d\n", max, leading, divisions) ;
 
 	/* Scale max down. */
 	scale_max = leading / scale ;
@@ -296,12 +293,12 @@ calculate_ticks (double max, int distance, TICKS * ticks)
 		exit (1) ;
 		} ;
 
-	for (k = 0 ; k < divisions ; k++)
+	for (k = 0 ; k <= divisions ; k++)
 	{	ticks->value [k] = k * scale ;
 		ticks->distance [k] = distance * ticks->value [k] / max ;
 		} ;
 
-	return divisions ;
+	return divisions + 1 ;
 } /* calculate_ticks */
 
 static void
@@ -339,7 +336,7 @@ render_spect_border (cairo_surface_t * surface, const char * filename, int left,
 	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL) ;
 	cairo_set_font_size (cr, TITLE_FONT_SIZE) ;
 
-	snprintf (text, sizeof (text), "Spectrogram : %s", filename) ;
+	snprintf (text, sizeof (text), "Spectrogram: %s", filename) ;
 	cairo_text_extents (cr, text, &extents) ;
 	cairo_move_to (cr, left + 2, top - extents.height / 2) ;
 	cairo_show_text (cr, text) ;
@@ -486,7 +483,7 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 	heat_rect.left = 12 ;
 	heat_rect.top = top_border + top_border / 2 ;
 	heat_rect.width = 12 ;
-	heat_rect.height = height - top_border ;
+	heat_rect.height = height - top_border / 2 ;
 
 	render_spectrogram (surface, mag_spec, max_mag, left_border, top_border, width, height) ;
 	render_heat_map (surface, -180.0, &heat_rect) ;
