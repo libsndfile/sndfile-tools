@@ -49,7 +49,7 @@
 
 typedef struct
 {	int left, top, width, height ;
-} RECT ; 
+} RECT ;
 
 static const char font_family [] = "Terminus" ;
 
@@ -324,7 +324,7 @@ render_spect_border (cairo_surface_t * surface, const char * filename, int left,
 	cr = cairo_create (surface) ;
 
 	cairo_set_source_rgb (cr, 1.0, 1.0, 1.0) ;
-	cairo_set_line_width (cr, 1.8) ;
+	cairo_set_line_width (cr, 1.5) ;
 
 	/* Print title. */
 	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL) ;
@@ -398,11 +398,12 @@ printf ("%s (%d, %d, %d, %d)\n", __func__, r->left, r->top, r->width, r->height)
 
 	cr = cairo_create (surface) ;
 
-	cairo_set_source_rgb (cr, 1.0, 0.0, 0.0) ;
-	cairo_set_line_width (cr, 1.8) ;
+	cairo_set_source_rgb (cr, 1.0, 1.0, 1.0) ;
+	cairo_set_line_width (cr, 1.5) ;
 
 	/* Border around actual spectrogram. */
 	cairo_rectangle (cr, r->left, r->top, r->width, r->height) ;
+	cairo_stroke (cr) ;
 
 	tick_count = calculate_ticks (fabs (magfloor), r->height, &ticks) ;
 
@@ -422,7 +423,7 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 	static float mag_spec [MAX_WIDTH][MAX_HEIGHT] ;
 
 	RECT heat_rect ;
-	
+
 	fftw_plan plan ;
 	int width, height, w ;
 	double max_mag = 0.0 ;
@@ -457,9 +458,9 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 	fftw_destroy_plan (plan) ;
 
 	heat_rect.left = 15 ;
-	heat_rect.top = 2 * top_border ;
+	heat_rect.top = top_border + top_border / 2 ;
 	heat_rect.width = 15 ;
-	heat_rect.height = height - 2 * top_border ;
+	heat_rect.height = height - top_border ;
 
 	render_spectrogram (surface, mag_spec, max_mag, left_border, top_border, width, height) ;
 	render_heat_map (surface, -180.0, &heat_rect) ;
