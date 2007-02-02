@@ -22,4 +22,4 @@
 #define MAX(x,y)		((x) > (y) ? (x) : (y))
 #define MIN(x,y)		((x) < (y) ? (x) : (y))
 
-sf_count_t sfe_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen) ;
+sf_count_t sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen) ;

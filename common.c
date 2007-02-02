@@ -20,7 +20,7 @@
 #include "common.h"
 
 sf_count_t
-sfe_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen)
+sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen)
 {
 	SF_INFO info ;
 
@@ -54,5 +54,5 @@ sfe_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen)
 		} ;
 
 	return dataout ;
-} /* sfe_mix_mono_read_double */
+} /* sfx_mix_mono_read_double */
 
