@@ -77,7 +77,7 @@ mix_to_mono (SNDFILE * infile, SNDFILE * outfile)
 {	double buffer [1024] ;
 	sf_count_t count ;
 	
-	while ((count = sfe_mix_mono_read_double (infile, buffer, ARRAY_LEN (buffer))) > 0)
+	while ((count = sfx_mix_mono_read_double (infile, buffer, ARRAY_LEN (buffer))) > 0)
 		sf_write_double (outfile, buffer, count) ;
 
 	return ;

@@ -4,3 +4,4 @@ sndfile-faulkner-resample
 sndfile-generate-chirp
 sndfile-spectrogram
 test_kaiser_window
+sndfile-mix-to-mono

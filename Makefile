@@ -1,4 +1,4 @@
-TARGETS = sndfile-spectrogram sndfile-generate-chirp sndfile-faulkner-resample
+TARGETS = sndfile-spectrogram sndfile-generate-chirp sndfile-faulkner-resample sndfile-mix-to-mono
 TEST_PROGS = test_kaiser_window
 
 CC = gcc
@@ -25,15 +25,21 @@ clean :
 check : $(TEST_PROGS)
 	./test_kaiser_window
 
-sndfile-spectrogram : window.o sndfile-spectrogram.c
+sndfile-spectrogram : window.o common.o sndfile-spectrogram.c
 	$(CC) $(CFLAGS) $(CAIRO_INC) $(SNDFILE_INC) $(FFTW_INC) $^ $(CAIRO_LIB) $(SNDFILE_LIB) $(FFTW_LIB) -lm -o $@
 
 sndfile-generate-chirp : sndfile-generate-chirp.c
 	$(CC) $(CFLAGS) $(SNDFILE_INC) $^ $(SNDFILE_LIB) -lm -o $@
 
+sndfile-mix-to-mono : common.o sndfile-mix-to-mono.c
+	$(CC) $(CFLAGS) $(SNDFILE_INC) $^ $(SNDFILE_LIB) -lm -o $@
+
 sndfile-faulkner-resample : sndfile-faulkner-resample.c
 	$(CC) $(CFLAGS) $(SNDFILE_INC) $(SRC_INC) $^ $(SNDFILE_LIB) $(SRC_LIB) -lm -o $@
 
+common.o : common.c common.h
+	$(CC) $(CFLAGS) $(SNDFILE_INC) $< -c -o $@
+	
 
 #---------------------------------------------------------------------
 # Test programs.
@@ -46,4 +52,5 @@ test_kaiser_window : window.o test_kaiser_window.c
 # Dependancies.
 
 window.o : window.c window.h
+common.o : common.c common.h
 
