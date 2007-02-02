@@ -16,6 +16,8 @@
 */
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 
 #include "window.h"
 
@@ -30,7 +32,30 @@ main (void)
 	calc_kaiser_window (window, ARRAY_LEN (window), 1.0) ;
 
 	for (k = 0 ; k < ARRAY_LEN (window) ; k++)
-		printf (" % f\n", window [k]) ;
+	{	if (window [k] > 1.0)
+		{	printf ("\nError (%s %d) : window [%d] > 1.0.\n", __func__, __LINE__, k) ;
+			exit (1) ;
+			} ;
+
+		if (window [k] < 0.0)
+		{	printf ("\nError (%s %d) : window [%d] < 0.0.\n", __func__, __LINE__, k) ;
+			exit (1) ;
+			} ;
+		} ;
+
+	if (fabs (window [0] - window [ARRAY_LEN (window) - 1]) > 1e-20)
+	{	printf ("\nError (%s %d) : fabs (%f - %f) > 1e-20)\n", __func__, __LINE__, window [0], window [ARRAY_LEN (window) - 1]) ;
+		exit (1) ;
+		} ;
+
+	calc_kaiser_window (window, ARRAY_LEN (window) - 1, 1.0) ;
+
+	if (fabs (window [0] - window [ARRAY_LEN (window) - 2]) > 1e-20)
+	{	printf ("\nError (%s %d) : fabs (%f - %f) > 1e-20)\n", __func__, __LINE__, window [0], window [ARRAY_LEN (window) - 1]) ;
+		exit (1) ;
+		} ;
+
+	puts ("----------------------\n        Passed\n----------------------") ;
 
 	return 0 ;
 } /* main */
