@@ -1,5 +1,5 @@
 TARGETS = sndfile-spectrogram sndfile-generate-chirp sndfile-faulkner-resample sndfile-mix-to-mono
-TEST_PROGS = test_kaiser_window
+TEST_PROGS = src/test_kaiser_window
 
 CC = gcc
 CFLAGS = -ggdb -W -Wall -Werror -std=gnu99
@@ -20,37 +20,37 @@ SRC_LIB = $(shell pkg-config --libs samplerate)
 all : $(TARGETS)
 
 clean :
-	rm -f $(TARGETS) $(TEST_PROGS) *.o
+	rm -f $(TARGETS) $(TEST_PROGS) src/*.o
 
 check : $(TEST_PROGS)
-	./test_kaiser_window
+	src/test_kaiser_window
 
-sndfile-spectrogram : window.o common.o sndfile-spectrogram.c
+sndfile-spectrogram : src/window.o src/common.o src/sndfile-spectrogram.c
 	$(CC) $(CFLAGS) $(CAIRO_INC) $(SNDFILE_INC) $(FFTW_INC) $^ $(CAIRO_LIB) $(SNDFILE_LIB) $(FFTW_LIB) -lm -o $@
 
-sndfile-generate-chirp : sndfile-generate-chirp.c
+sndfile-generate-chirp : src/sndfile-generate-chirp.c
 	$(CC) $(CFLAGS) $(SNDFILE_INC) $^ $(SNDFILE_LIB) -lm -o $@
 
-sndfile-mix-to-mono : common.o sndfile-mix-to-mono.c
+sndfile-mix-to-mono : src/common.o src/sndfile-mix-to-mono.c
 	$(CC) $(CFLAGS) $(SNDFILE_INC) $^ $(SNDFILE_LIB) -lm -o $@
 
-sndfile-faulkner-resample : sndfile-faulkner-resample.c
+sndfile-faulkner-resample : src/sndfile-faulkner-resample.c
 	$(CC) $(CFLAGS) $(SNDFILE_INC) $(SRC_INC) $^ $(SNDFILE_LIB) $(SRC_LIB) -lm -o $@
 
-common.o : common.c common.h
+src/common.o : src/common.c src/common.h
 	$(CC) $(CFLAGS) $(SNDFILE_INC) $< -c -o $@
 	
 
 #---------------------------------------------------------------------
 # Test programs.
 
-test_kaiser_window : window.o test_kaiser_window.c
+src/test_kaiser_window : src/window.o src/test_kaiser_window.c
 	$(CC) $(CFLAGS) $^ -lm -o $@
 
 
 #---------------------------------------------------------------------
 # Dependancies.
 
-window.o : window.c window.h
-common.o : common.c common.h
+src/window.o : src/window.c src/window.h
+src/common.o : src/common.c src/common.h
 
