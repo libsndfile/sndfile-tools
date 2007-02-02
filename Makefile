@@ -2,7 +2,7 @@ TARGETS = sndfile-spectrogram sndfile-generate-chirp sndfile-faulkner-resample s
 TEST_PROGS = src/test_kaiser_window
 
 CC = gcc
-CFLAGS = -ggdb -W -Wall -Werror -std=gnu99
+CFLAGS = -ggdb -std=gnu99 -Wextra -Wall -Werror -Wstrict-prototypes -Wmissing-prototypes -Wformat
 
 SNDFILE_INC = $(shell pkg-config --cflags sndfile)
 SNDFILE_LIB = $(shell pkg-config --libs sndfile)
