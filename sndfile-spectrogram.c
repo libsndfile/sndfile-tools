@@ -26,7 +26,6 @@
 **      - Make magnitude to colour mapper allow abitrary scaling (ie cmdline
 **        arg).
 **      - Better cmdline arg parsing and flexibility.
-**      - Mix multi-channel to mono.
 **      - Add option to do log frequency scale.
 */
 
@@ -40,14 +39,12 @@
 #include <sndfile.h>
 
 #include "window.h"
+#include "common.h"
 
 #define	MIN_WIDTH	640
 #define	MIN_HEIGHT	480
 #define	MAX_WIDTH	4096
 #define	MAX_HEIGHT	2048
-
-#define ARRAY_LEN(x)	((int) (sizeof (x) / sizeof (x [0])))
-#define MAX(x,y)		((x) > (y) ? (x) : (y))
 
 #define TICK_LEN			6
 #define	BORDER_LINE_WIDTH	1.6
@@ -119,18 +116,7 @@ get_colour_map_value (float value, unsigned char colour [3])
 
 
 static void
-read_and_mix_to_mono (SNDFILE *file, int channels, double * data, int datalen)
-{
-	if (channels == 1)
-	{	sf_read_double (file, data, datalen) ;
-		/* Don't need this if statement. */
-		return ;
-		} ;
-
-} /* read_and_mix_to_mono */
-
-static void
-read_mono_audio (SNDFILE * file, int channels, sf_count_t filelen, double * data, int datalen, int index, int total)
+read_mono_audio (SNDFILE * file, sf_count_t filelen, double * data, int datalen, int index, int total)
 {
 	sf_count_t start ;
 
@@ -146,11 +132,8 @@ read_mono_audio (SNDFILE * file, int channels, sf_count_t filelen, double * data
 		data += start ;
 		datalen -= start ;
 		} ;
-	
-	if (channels == 1)
-		sf_read_double (file, data, datalen) ;
-	else
-		read_and_mix_to_mono (file, channels, data, datalen) ;
+
+	sfx_mix_mono_read_double (file, data, datalen) ;
 
 	return ;
 } /* read_mono_audio */
@@ -451,7 +434,7 @@ render_heat_border (cairo_surface_t * surface, double magfloor, const RECT *r)
 } /* render_heat_border */
 
 static void
-render_to_surface (SNDFILE *infile, const char * filename, int channels, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
+render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
 	static const int left_border = 85 ;
 	static const int top_border = 35 ;
@@ -485,7 +468,7 @@ render_to_surface (SNDFILE *infile, const char * filename, int channels, int sam
 	for (w = 0 ; w < width ; w++)
 	{	double temp ;
 
-		read_mono_audio (infile, channels, filelen, time_domain, 2 * height, w, width) ;
+		read_mono_audio (infile, filelen, time_domain, 2 * height, w, width) ;
 
 		apply_window (time_domain, 2 * height) ;
 
@@ -512,7 +495,7 @@ render_to_surface (SNDFILE *infile, const char * filename, int channels, int sam
 } /* render_to_surface */
 
 static void
-open_cairo_surface (SNDFILE *infile, const char * filename, int channels, int samplerate, sf_count_t filelen, int width, int height, const char * pngfilename)
+open_cairo_surface (SNDFILE *infile, const char * filename, int samplerate, sf_count_t filelen, int width, int height, const char * pngfilename)
 {
 	cairo_surface_t * surface = NULL ;
 	cairo_status_t status ;
@@ -531,7 +514,7 @@ open_cairo_surface (SNDFILE *infile, const char * filename, int channels, int sa
 
 	cairo_surface_flush (surface) ;
 
-	render_to_surface (infile, filename, channels, samplerate, filelen, surface) ;
+	render_to_surface (infile, filename, samplerate, filelen, surface) ;
 
 	status = cairo_surface_write_to_png (surface, pngfilename) ;
 	if (status != CAIRO_STATUS_SUCCESS)
@@ -560,11 +543,7 @@ open_sndfile (const char *sndfilename, int width, int height, const char * pngfi
 	filename = strrchr (sndfilename, '/') ;
 	filename = (filename != NULL) ? filename + 1 : sndfilename ;
 
-	if (info.channels == 1)
-		open_cairo_surface (infile, filename, info.channels, info.samplerate, info.frames, width, height, pngfilename) ;
-	else
-		printf ("Error : sorry, can't render files with more than one channel.\n"
-				"File '%s' has %d channels.\n\n", sndfilename, info.channels) ;
+	open_cairo_surface (infile, filename, info.samplerate, info.frames, width, height, pngfilename) ;
 
 	sf_close (infile) ;
 
