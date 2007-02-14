@@ -26,34 +26,76 @@
 
 typedef double (*freq_func_t) (double w0, double w1, double total_length) ;
 
+typedef struct
+{	double amplitude ;
+	int start_freq, end_freq ;
+	int samplerate, seconds, format ;
+	freq_func_t sweep_func ;
+} PARAMS ;
+
 static void usage_exit (const char * argv0) ;
 static void check_int_range (const char * name, int value, int lower, int upper) ;
 static freq_func_t parse_sweep_type (const char * name) ;
 static int guess_major_format (const char * filename) ;
-static void generate_file (const char * filename, int format, int samplerate, int seconds, freq_func_t sweep_func) ;
+static void generate_file (const char * filename, const PARAMS * params) ;
 
 
 int
 main (int argc, char * argv [])
 {
+	PARAMS params = { 200, -1, -1.0, 0, 0, 0, NULL } ;
 	const char * filename ;
-	freq_func_t sweep_func ;
-	int samplerate, seconds, format ;
+	int k ;
 
-	if (argc != 5)
+	if (argc < 4)
 		usage_exit (argv [0]) ;
 
-	sweep_func = parse_sweep_type (argv [1]) ;
-	samplerate = atoi (argv [2]) ;
-	seconds = atoi (argv [3]) ;
-	filename = argv [4] ;
+	for (k = 1 ; k < argc - 3 ; k++)
+	{	if (strcmp (argv [k], "-from") == 0)
+		{	k++ ;
+			params.start_freq = atoi (argv [k]) ;
+			continue ;
+			} ;
+		if (strcmp (argv [k], "-to") == 0)
+		{	k++ ;
+			params.end_freq = atoi (argv [k]) ;
+			continue ;
+			} ;
+		if (strcmp (argv [k], "-amp") == 0)
+		{	k++ ;
+			params.amplitude = strtod (argv [k], NULL) ;
+			continue ;
+			} ;
 
-	check_int_range ("sample rate", samplerate, 1000, 200 * 1000) ;
-	check_int_range ("seconds", seconds, 1, 1000) ;
+		if (argv [k][0] == '-')
+		{	params.sweep_func = parse_sweep_type (argv [k]) ;
+			continue ;
+			} ;
 
-	format = guess_major_format (filename) | SF_FORMAT_FLOAT ;
+		printf ("\nUnknow option '%s'.\n\n", argv [k]) ;
+		exit (1) ;
+		} ;
 
-	generate_file (filename, format, samplerate, seconds, sweep_func) ;
+	params.samplerate = atoi (argv [argc - 3]) ;
+	params.seconds = atoi (argv [argc - 2]) ;
+	filename = argv [argc - 1] ;
+
+	check_int_range ("sample rate", params.samplerate, 1000, 200 * 1000) ;
+	check_int_range ("seconds", params.seconds, 1, 100) ;
+
+	if (params.sweep_func == NULL)
+		params.sweep_func = parse_sweep_type ("-log") ;
+	if (params.end_freq < 0.0)
+		params.end_freq = params.samplerate / 2 ;
+
+	if (params.end_freq <= params.start_freq)
+	{	printf ("\nError : end frequency %d < start frequency %d.\n\n", params.end_freq, params.start_freq) ;
+		exit (1) ;
+		} ;
+
+	params.format = guess_major_format (filename) | SF_FORMAT_FLOAT ;
+
+	generate_file (filename, &params) ;
 
 	return 0 ;
 } /* main */
@@ -71,13 +113,17 @@ usage_exit (const char * argv0)
 
 	puts ("\nCreate a sound file containing a swept sine wave (ie a chirp).") ;
 
-	printf ("\nUsage :\n\n    %s <sweep type> <sample rate> <length in seconds> <sound file>\n\n", progname) ;
+	printf ("\nUsage :\n\n    %s  [options] <sample rate> <length in seconds> <sound file>\n\n", progname) ;
 
 	puts (
-		"    Where <sweep type> is one of :\n"
-		"           -log      logarithmic sweep\n"
-		"           -qrad     quadratic sweep\n"
-		"           -linear   linear sweep\n"
+		"    Options include:\n\n"
+		"        -from <start>    Sweep start frequency in Hz (default 200Hz).\n"
+		"        -to <end>        Sweep end frequency in Hz (default fs/2).\n"
+		"        -amp <value>     Amplitude of generated sine (default 1.0).\n"
+		"        <sweep type>     One of (default -log):\n"
+		"                             -log     logarithmic sweep\n"
+		"                             -quad    quadratic sweep\n"
+		"                             -linear  linear sweep\n"
 		) ;
 
 	puts (
@@ -100,7 +146,7 @@ check_int_range (const char * name, int value, int lower, int upper)
 
 
 static void
-write_chirp (SNDFILE * file, int samplerate, int seconds, double w0, double w1, freq_func_t sweep_func)
+write_chirp (SNDFILE * file, int samplerate, int seconds, double amp, double w0, double w1, freq_func_t sweep_func)
 {
 	double total_samples ;
 	double instantaneous_w, current_phase ;
@@ -124,7 +170,7 @@ write_chirp (SNDFILE * file, int samplerate, int seconds, double w0, double w1, 
 	{	for (k = 0 ; k < samplerate ; k++)
 		{	int current ;
 
-			data [k] = sin (current_phase) ;
+			data [k] = amp * sin (current_phase) ;
 
 			current = sec * samplerate + k ;
 			instantaneous_w = sweep_func (w0, w1, current / total_samples) ;
@@ -140,16 +186,17 @@ write_chirp (SNDFILE * file, int samplerate, int seconds, double w0, double w1, 
 } /* write_chirp */
 
 static void
-generate_file (const char * filename, int format, int samplerate, int seconds, freq_func_t sweep_func)
+generate_file (const char * filename, const PARAMS * params)
 {
+	char buffer [1024] ;
 	SNDFILE * file ;
 	SF_INFO info ;
 	double w0, w1 ;
 
 	memset (&info, 0, sizeof (info)) ;
 
-	info.format = format ;
-	info.samplerate = samplerate ;
+	info.format = params->format ;
+	info.samplerate = params->samplerate ;
 	info.channels = 1 ;
 
 	file = sf_open (filename, SFM_WRITE, &info) ;
@@ -158,14 +205,18 @@ generate_file (const char * filename, int format, int samplerate, int seconds, f
 		exit (1) ;
 		} ;
 
-	sf_set_string (file, SF_STR_TITLE, "Logarithmic chirp signal.") ;
+	sf_set_string (file, SF_STR_TITLE, "Logarithmic chirp signal") ;
+
+	snprintf (buffer, sizeof (buffer), "start_freq : %d Hz   end_freq : %d Hz   amplitude : %g", params->start_freq, params->end_freq,  params->amplitude) ;
+	sf_set_string (file, SF_STR_COMMENT, buffer) ;
+
 	sf_set_string (file, SF_STR_SOFTWARE, "sndfile-generate-chirp") ;
 	sf_set_string (file, SF_STR_COPYRIGHT, "No copyright.") ;
 
-	w0 = 2.0 * M_PI * 200.0 / samplerate ;
-	w1 = 2.0 * M_PI * 0.5 ;
+	w0 = 2.0 * M_PI * params->start_freq / params->samplerate ;
+	w1 = 2.0 * M_PI * params->end_freq / params->samplerate ;
 
-	write_chirp (file, samplerate, seconds, w0, w1, sweep_func) ;
+	write_chirp (file, params->samplerate, params->seconds, params->amplitude, w0, w1, params->sweep_func) ;
 
 	sf_close (file) ;
 } /* generate_file */
