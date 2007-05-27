@@ -43,8 +43,8 @@
 
 #define	MIN_WIDTH	640
 #define	MIN_HEIGHT	480
-#define	MAX_WIDTH	4096
-#define	MAX_HEIGHT	2048
+#define	MAX_WIDTH	8192
+#define	MAX_HEIGHT	4096
 
 #define TICK_LEN			6
 #define	BORDER_LINE_WIDTH	1.6
@@ -458,6 +458,9 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 	{	printf ("%s : 2 * height > ARRAY_LEN (time_domain)\n", __func__) ;
 		exit (1) ;
 		} ;
+
+	if (height < samplerate / 40)
+		puts ("Really should oversample on the height axis.") ;
 
 	plan = fftw_plan_r2r_1d (2 * height, time_domain, freq_domain, FFTW_R2HC, FFTW_MEASURE | FFTW_PRESERVE_INPUT) ;
 	if (plan == NULL)
