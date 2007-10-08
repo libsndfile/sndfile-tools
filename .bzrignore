@@ -25,3 +25,5 @@ src/sndfile-generate-chirp
 src/sndfile-mix-to-mono
 src/sndfile-spectrogram
 src/stamp-h1
+src/*_test
+sndfile-tools-*.tar.gz
