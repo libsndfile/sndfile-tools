@@ -1,5 +1,5 @@
 
-# Tell automake to put the object file for apple/apple.c in dir apple/
+# Tell automake to put the object file in the same dir as the source file.
 AUTOMAKE_OPTIONS := subdir-objects
 
 EXTRA_DIST = M4/lrint.m4 M4/lrintf.m4
@@ -10,6 +10,8 @@ bin_PROGRAMS = src/sndfile-generate-chirp src/sndfile-spectrogram \
 noinst_PROGRAMS = src/kaiser_window_test
 
 INCLUDES = $(SNDFILE_CFLAGS) $(FFTW3_CFLAGS) $(CAIRO_CFLAGS)
+
+CLEANFILES = src/*~
 
 #=========================================================================================
 # The bin targets.

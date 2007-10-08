@@ -170,23 +170,23 @@ AC_MSG_RESULT([
 
   Configuration summary :
 
-    Version : ..................... ${VERSION}])
-AC_MSG_RESULT([    Enable debugging : ............ ${ac_arg_debug}
+    Version ....................... ${VERSION}])
+AC_MSG_RESULT([    Enable debugging .............. ${ac_arg_debug}
 ])
 
 
 if test x$ac_cv_c_compiler_gnu = xyes ; then
 	echo -e "  Tools :\n"
-	echo "    Compiler is GCC : ............. ${ac_cv_c_compiler_gnu}"
-	echo "    GCC major version : ........... ${GCC_MAJOR_VERSION}"
+	echo "    Compiler is GCC ............... ${ac_cv_c_compiler_gnu}"
+	echo "    GCC major version ............. ${GCC_MAJOR_VERSION}"
 	fi
 
 AC_MSG_RESULT([
   Extra tools required for testing and examples :
 
-    Use SNDFILE : ................. ${ac_cv_sndfile}
-    Use FFTW : .................... ${ac_cv_fftw3}
-    Use CAIRO : ................... ${ac_cv_cairo}
+    Use SNDFILE ................... ${ac_cv_sndfile}
+    Use FFTW ...................... ${ac_cv_fftw3}
+    Use CAIRO ..................... ${ac_cv_cairo}
 ])
 
 if test "x$ac_cv_sndfile$ac_cv_fftw3$ac_cv_cairo" != "xyesyesyes" ; then
@@ -197,7 +197,6 @@ if test "x$ac_cv_sndfile$ac_cv_fftw3$ac_cv_cairo" != "xyesyesyes" ; then
 
 AC_MSG_RESULT([  Installation directories :
 
-    Program directory : ........... ${prefix}/bin
-])
+    Program directory ............. ${prefix}/bin])
 
 
