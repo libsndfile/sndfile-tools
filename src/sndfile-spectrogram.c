@@ -47,10 +47,16 @@
 #define	MAX_HEIGHT	4096
 
 #define TICK_LEN			6
-#define	BORDER_LINE_WIDTH	1.6
+#define	BORDER_LINE_WIDTH	1.8
 
-#define	TITLE_FONT_SIZE		22.0
-#define	NORMAL_FONT_SIZE	14.0
+#define	TITLE_FONT_SIZE		20.0
+#define	NORMAL_FONT_SIZE	12.0
+
+#define	LEFT_BORDER			65.0
+#define	TOP_BORDER			30.0
+#define	RIGHT_BORDER		75.0
+#define	BOTTOM_BORDER		40.0
+
 
 typedef struct
 {	int left, top, width, height ;
@@ -179,7 +185,7 @@ calc_magnitude (const double * freq, int freqlen, float * magnitude)
 } /* calc_magnitude */
 
 static void
-render_spectrogram (cairo_surface_t * surface, float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, int left, int top, int width, int height)
+render_spectrogram (cairo_surface_t * surface, float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, double left, double top, double width, double height)
 {
 	unsigned char colour [3], *data ;
 	int w, h, stride ;
@@ -238,14 +244,14 @@ render_heat_map (cairo_surface_t * surface, double magfloor, const RECT *r)
 } /* render_heat_map */
 
 static inline void
-x_line (cairo_t * cr, int x, int y, int len)
+x_line (cairo_t * cr, double x, double y, double len)
 {	cairo_move_to (cr, x, y) ;
 	cairo_rel_line_to (cr, len, 0.0) ;
 	cairo_stroke (cr) ;
 } /* x_line */
 
 static inline void
-y_line (cairo_t * cr, int x, int y, int len)
+y_line (cairo_t * cr, double x, double y, double len)
 {	cairo_move_to (cr, x, y) ;
 	cairo_rel_line_to (cr, 0.0, len) ;
 	cairo_stroke (cr) ;
@@ -257,12 +263,7 @@ typedef struct
 } TICKS ;
 
 static inline int
-int_floor (double d)
-{	return lrint (floor (d)) ;
-} /* int_floor */
-
-static inline int
-calculate_ticks (double max, int distance, TICKS * ticks)
+calculate_ticks (double max, double distance, TICKS * ticks)
 {	const int div_array [] =
 	{	10, 10, 8, 6, 8, 10, 6, 7, 8, 9, 10, 11, 12, 12, 7, 14, 8, 8, 9
 		} ;
@@ -317,7 +318,7 @@ str_print_value (char * text, int text_len, double value)
 } /* str_print_value */
 
 static void
-render_spect_border (cairo_surface_t * surface, const char * filename, int left, int width, double seconds, int top, int height, double max_freq)
+render_spect_border (cairo_surface_t * surface, const char * filename, double left, double width, double seconds, double top, double height, double max_freq)
 {
 	char text [512] ;
 	cairo_t * cr ;
@@ -334,7 +335,7 @@ render_spect_border (cairo_surface_t * surface, const char * filename, int left,
 
 	/* Print title. */
 	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL) ;
-	cairo_set_font_size (cr, TITLE_FONT_SIZE) ;
+	cairo_set_font_size (cr, 1.0 * TITLE_FONT_SIZE) ;
 
 	snprintf (text, sizeof (text), "Spectrogram: %s", filename) ;
 	cairo_text_extents (cr, text, &extents) ;
@@ -343,7 +344,7 @@ render_spect_border (cairo_surface_t * surface, const char * filename, int left,
 
 	/* Print labels. */
 	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL) ;
-	cairo_set_font_size (cr, NORMAL_FONT_SIZE) ;
+	cairo_set_font_size (cr, 1.0 * NORMAL_FONT_SIZE) ;
 
 	/* Border around actual spectrogram. */
 	cairo_rectangle (cr, left, top, width, height) ;
@@ -370,7 +371,7 @@ render_spect_border (cairo_surface_t * surface, const char * filename, int left,
 		cairo_show_text (cr, text) ;
 		} ;
 
-	cairo_set_font_size (cr, NORMAL_FONT_SIZE) ;
+	cairo_set_font_size (cr, 1.0 * NORMAL_FONT_SIZE) ;
 
 	/* Label X axis. */
 	snprintf (text, sizeof (text), "Time (secs)") ;
@@ -412,7 +413,7 @@ render_heat_border (cairo_surface_t * surface, double magfloor, const RECT *r)
 	cairo_stroke (cr) ;
 
 	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL) ;
-	cairo_set_font_size (cr, NORMAL_FONT_SIZE) ;
+	cairo_set_font_size (cr, 1.0 * NORMAL_FONT_SIZE) ;
 
 	cairo_text_extents (cr, decibels, &extents) ;
 	cairo_move_to (cr, r->left + (r->width - extents.width) / 2, r->top - 5) ;
@@ -436,11 +437,6 @@ render_heat_border (cairo_surface_t * surface, double magfloor, const RECT *r)
 static void
 render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
-	static const int left_border = 85 ;
-	static const int top_border = 35 ;
-	static const int right_border = 85 ;
-	static const int bottom_border = 50 ;
-
 	static double time_domain [2 * MAX_HEIGHT] ;
 	static double freq_domain [2 * MAX_HEIGHT] ;
 	static float mag_spec [MAX_WIDTH][MAX_HEIGHT] ;
@@ -448,11 +444,11 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 	RECT heat_rect ;
 
 	fftw_plan plan ;
-	int width, height, w ;
 	double max_mag = 0.0 ;
+	int width, height, w ;
 
-	width = cairo_image_surface_get_width (surface) - left_border - right_border ;
-	height = cairo_image_surface_get_height (surface) - top_border - bottom_border ;
+	width = cairo_image_surface_get_width (surface) - LEFT_BORDER - RIGHT_BORDER ;
+	height = cairo_image_surface_get_height (surface) - TOP_BORDER - BOTTOM_BORDER ;
 
 	if (2 * height > ARRAY_LEN (time_domain))
 	{	printf ("%s : 2 * height > ARRAY_LEN (time_domain)\n", __func__) ;
@@ -477,28 +473,28 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 
 		fftw_execute (plan) ;
 
-		temp = calc_magnitude (freq_domain, 2 * height, mag_spec [w]) ;
+		temp = calc_magnitude (freq_domain, lrint (2.0 * height), mag_spec [w]) ;
 		max_mag = MAX (temp, max_mag) ;
 		} ;
 
 	fftw_destroy_plan (plan) ;
 
 	heat_rect.left = 12 ;
-	heat_rect.top = top_border + top_border / 2 ;
+	heat_rect.top = TOP_BORDER + TOP_BORDER / 2 ;
 	heat_rect.width = 12 ;
-	heat_rect.height = height - top_border / 2 ;
+	heat_rect.height = height - TOP_BORDER / 2 ;
 
-	render_spectrogram (surface, mag_spec, max_mag, left_border, top_border, width, height) ;
+	render_spectrogram (surface, mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height) ;
 	render_heat_map (surface, -180.0, &heat_rect) ;
 
-	render_spect_border (surface, filename, left_border, width, filelen / (1.0 * samplerate), top_border, height, 0.5 * samplerate) ;
+	render_spect_border (surface, filename, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, 0.5 * samplerate) ;
 	render_heat_border (surface, -180.0, &heat_rect) ;
 
 	return ;
 } /* render_to_surface */
 
 static void
-open_cairo_surface (SNDFILE *infile, const char * filename, int samplerate, sf_count_t filelen, int width, int height, const char * pngfilename)
+open_cairo_surface (SNDFILE *infile, const char * filename, int samplerate, sf_count_t filelen, double width, double height, const char * pngfilename)
 {
 	cairo_surface_t * surface = NULL ;
 	cairo_status_t status ;
