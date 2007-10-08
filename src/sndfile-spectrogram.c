@@ -122,13 +122,13 @@ get_colour_map_value (float value, unsigned char colour [3])
 
 
 static void
-read_mono_audio (SNDFILE * file, sf_count_t filelen, double * data, int datalen, int index, int total)
+read_mono_audio (SNDFILE * file, sf_count_t filelen, double * data, int datalen, int indx, int total)
 {
 	sf_count_t start ;
 
 	memset (data, 0, datalen * sizeof (data [0])) ;
 
-	start = (index * filelen) / total - datalen / 2 ;
+	start = (indx * filelen) / total - datalen / 2 ;
 
 	if (start >= 0)
 		sf_seek (file, start, SEEK_SET) ;
