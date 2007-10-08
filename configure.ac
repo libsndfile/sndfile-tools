@@ -6,7 +6,7 @@ AC_PREREQ(2.54)
 AC_INIT
 AC_CONFIG_SRCDIR([src/sndfile-spectrogram.c])
 AC_CANONICAL_TARGET([])
-AM_INIT_AUTOMAKE(sndfile-tools,0.1)
+AM_INIT_AUTOMAKE(sndfile-tools,1.0)
 AM_CONFIG_HEADER(src/config.h)
 
 #------------------------------------------------------------------------------------
