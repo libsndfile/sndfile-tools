@@ -189,6 +189,12 @@ AC_MSG_RESULT([
     Use CAIRO : ................... ${ac_cv_cairo}
 ])
 
+if test "x$ac_cv_sndfile$ac_cv_fftw3$ac_cv_cairo" != "xyesyesyes" ; then
+	AC_MSG_RESULT([**** Error : You will need to install the missing libaries. ****])
+	echo
+	exit 1
+	fi
+
 AC_MSG_RESULT([  Installation directories :
 
     Program directory : ........... ${prefix}/bin
