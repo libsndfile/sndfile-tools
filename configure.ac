@@ -10,11 +10,14 @@ AC_CONFIG_AUX_DIR(Cfg)
 
 AC_CONFIG_SRCDIR([src/sndfile-spectrogram.c])
 AC_CANONICAL_TARGET([])
+
 AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION)
 AM_CONFIG_HEADER(src/config.h)
 
 dnl Add parameters for aclocal
 AC_SUBST(ACLOCAL_AMFLAGS, "-I M4")
+
+AC_LANG([C])
 
 #------------------------------------------------------------------------------------
 
