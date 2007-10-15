@@ -129,7 +129,7 @@ usage_exit (const char * argv0)
 	puts (
 		"    The output file will contain floating point samples in the range [-1.0, 1.0].\n"
 		"    The ouput file type is determined by the file name extension which should be one\n"
-		"    of 'wav', 'aif', 'aiff', 'au', 'caf' and 'w64'.\n"
+		"    of 'wav', 'aifc', 'aif', 'aiff', 'au', 'caf' and 'w64'.\n"
 		) ;
 
 	exit (0) ;
@@ -264,7 +264,7 @@ guess_major_format (const char * filename)
 
 	if (strcasecmp (ext, ".wav") == 0)
 		return SF_FORMAT_WAV ;
-	if (strcasecmp (ext, ".aif") == 0 || strcasecmp (ext, ".aiff") == 0)
+	if (strcasecmp (ext, ".aif") == 0 || strcasecmp (ext, ".aiff") == 0 || strcasecmp (ext, ".aifc") == 0)
 		return SF_FORMAT_AIFF ;
 	if (strcasecmp (ext, ".au") == 0)
 		return SF_FORMAT_AU ;
@@ -273,7 +273,7 @@ guess_major_format (const char * filename)
 	if (strcasecmp (ext, ".w64") == 0)
 		return SF_FORMAT_W64 ;
 
-	printf ("\nError : Can only generate files with extentions 'wav', 'aiff', 'aif', 'au', 'w64' and 'caf'.\n\n") ;
+	printf ("\nError : Can only generate files with extentions 'wav', 'aifc', 'aiff', 'aif', 'au', 'w64' and 'caf'.\n\n") ;
 	exit (1) ;
 	return 0 ;
 } /* guess_major_format */

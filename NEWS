@@ -1,2 +1,5 @@
-Version 1.0 (2007-10-15)
+Version 1.01 (2007-10-16)
+  * Depend on libsndfile >= 1.0.18.
+
+Version 1.00 (2007-10-15)
   * Initial release.
