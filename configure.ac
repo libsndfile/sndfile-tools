@@ -33,8 +33,6 @@ AM_PROG_LIBTOOL
 
 AC_HEADER_STDC
 
-AC_CHECK_HEADERS(stdint.h)
-
 #====================================================================================
 # Finished checking, handle options.
 
@@ -90,7 +88,7 @@ case "x$ac_cv_c99_lrint$ac_cv_c99_lrintf" in
 #====================================================================================
 # Check for libsndfile.
 
-PKG_CHECK_MODULES(SNDFILE, sndfile >= 1.0.6, ac_cv_sndfile=1, ac_cv_sndfile=0)
+PKG_CHECK_MODULES(SNDFILE, sndfile >= 1.0.18, ac_cv_sndfile=1, ac_cv_sndfile=0)
 
 AC_DEFINE_UNQUOTED([HAVE_SNDFILE],$ac_cv_sndfile,[Set to 1 if you have libsndfile.])
 
