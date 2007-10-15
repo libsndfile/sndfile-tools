@@ -4,10 +4,17 @@ dnl Require autoconf version >= 2.54)
 AC_PREREQ(2.54)
 
 AC_INIT
+
+# Put config stuff in Cfg.
+AC_CONFIG_AUX_DIR(Cfg)
+
 AC_CONFIG_SRCDIR([src/sndfile-spectrogram.c])
 AC_CANONICAL_TARGET([])
-AM_INIT_AUTOMAKE(sndfile-tools,1.0)
+AM_INIT_AUTOMAKE(sndfile-tools,1.01)
 AM_CONFIG_HEADER(src/config.h)
+
+dnl Add parameters for aclocal
+AC_SUBST(ACLOCAL_AMFLAGS, "-I M4")
 
 #------------------------------------------------------------------------------------
 
@@ -184,9 +191,9 @@ if test x$ac_cv_c_compiler_gnu = xyes ; then
 AC_MSG_RESULT([
   Extra tools required for testing and examples :
 
-    Use SNDFILE ................... ${ac_cv_sndfile}
-    Use FFTW ...................... ${ac_cv_fftw3}
-    Use CAIRO ..................... ${ac_cv_cairo}
+    Found SNDFILE ................. ${ac_cv_sndfile}
+    Found FFTW .................... ${ac_cv_fftw3}
+    Found CAIRO ................... ${ac_cv_cairo}
 ])
 
 if test "x$ac_cv_sndfile$ac_cv_fftw3$ac_cv_cairo" != "xyesyesyes" ; then
