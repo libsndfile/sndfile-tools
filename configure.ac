@@ -3,14 +3,14 @@
 dnl Require autoconf version >= 2.54)
 AC_PREREQ(2.54)
 
-AC_INIT
+AC_INIT([sndfile-tools],[1.01],[erikd@mega-nerd.com])
 
 # Put config stuff in Cfg.
 AC_CONFIG_AUX_DIR(Cfg)
 
 AC_CONFIG_SRCDIR([src/sndfile-spectrogram.c])
 AC_CANONICAL_TARGET([])
-AM_INIT_AUTOMAKE(sndfile-tools,1.01)
+AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION)
 AM_CONFIG_HEADER(src/config.h)
 
 dnl Add parameters for aclocal
