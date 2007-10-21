@@ -3,7 +3,7 @@
 dnl Require autoconf version >= 2.54)
 AC_PREREQ(2.54)
 
-AC_INIT([sndfile-tools],[1.02pre1],[erikd@mega-nerd.com])
+AC_INIT([sndfile-tools],[1.02],[erikd@mega-nerd.com])
 
 # Put config stuff in Cfg.
 AC_CONFIG_AUX_DIR(Cfg)
