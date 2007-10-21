@@ -2,7 +2,7 @@
 # Tell automake to put the object file in the same dir as the source file.
 AUTOMAKE_OPTIONS := subdir-objects
 
-EXTRA_DIST = M4/lrint.m4 M4/lrintf.m4
+EXTRA_DIST = M4/lrint.m4 M4/lrintf.m4 doc/index.html doc/sweep.png
 
 bin_PROGRAMS = src/sndfile-generate-chirp src/sndfile-spectrogram \
 	src/sndfile-mix-to-mono

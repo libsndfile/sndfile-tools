@@ -1,3 +1,8 @@
+Version 1.02 (2007-10-21)
+  * sndfile-spectrogram : Calculate longer FFTs and then interpolate to the
+    image height.
+  * Add documentation.
+
 Version 1.01 (2007-10-16)
   * Depend on libsndfile >= 1.0.18.
 
