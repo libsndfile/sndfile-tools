@@ -26,7 +26,7 @@
 int
 main (void)
 {
-	double window [20] ;
+	double window [2000] ;
 	int k ;
 
 	calc_kaiser_window (window, ARRAY_LEN (window), 1.0) ;
