@@ -5,3 +5,6 @@
 
     * src/kaiser_window_test.c
     Test a longer window length.
+
+    * doc/*
+    Add rudimentary documentation.
