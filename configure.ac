@@ -3,7 +3,7 @@
 dnl Require autoconf version >= 2.54)
 AC_PREREQ(2.54)
 
-AC_INIT([sndfile-tools],[1.01],[erikd@mega-nerd.com])
+AC_INIT([sndfile-tools],[1.02pre1],[erikd@mega-nerd.com])
 
 # Put config stuff in Cfg.
 AC_CONFIG_AUX_DIR(Cfg)
@@ -205,6 +205,7 @@ if test "x$ac_cv_sndfile$ac_cv_fftw3$ac_cv_cairo" != "xyesyesyes" ; then
 
 AC_MSG_RESULT([  Installation directories :
 
-    Program directory ............. ${prefix}/bin])
+    Program directory ............. ${prefix}/bin
+])
 
 
