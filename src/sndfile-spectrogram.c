@@ -465,7 +465,7 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 		} ;
 
 	for (w = 0 ; w < width ; w++)
-	{	double temp ;
+	{	double single_max ;
 
 		read_mono_audio (infile, filelen, time_domain, 2 * height, w, width) ;
 
@@ -473,8 +473,8 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 
 		fftw_execute (plan) ;
 
-		temp = calc_magnitude (freq_domain, lrint (2.0 * height), mag_spec [w]) ;
-		max_mag = MAX (temp, max_mag) ;
+		single_max = calc_magnitude (freq_domain, lrint (2.0 * height), mag_spec [w]) ;
+		max_mag = MAX (max_mag, single_max) ;
 		} ;
 
 	fftw_destroy_plan (plan) ;
