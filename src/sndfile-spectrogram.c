@@ -147,7 +147,7 @@ read_mono_audio (SNDFILE * file, sf_count_t filelen, double * data, int datalen,
 static void
 apply_window (double * data, int datalen)
 {
-	static double window [2 * MAX_HEIGHT] ;
+	static double window [10 * MAX_HEIGHT] ;
 	static int window_len = 0 ;
 	int k ;
 
@@ -170,7 +170,7 @@ apply_window (double * data, int datalen)
 } /* apply_window */
 
 static double
-calc_magnitude (const double * freq, int freqlen, float * magnitude)
+calc_magnitude (const double * freq, int freqlen, double * magnitude)
 {
 	int k ;
 	double max = 0.0 ;
@@ -435,30 +435,54 @@ render_heat_border (cairo_surface_t * surface, double magfloor, const RECT *r)
 } /* render_heat_border */
 
 static void
+interp_spec (float * mag, int maglen, const double *spec, int speclen)
+{	int k ;
+
+	mag [0] = spec [0] ;
+	for (k = 1 ; k < maglen ; k++)
+	{	double partial, grad ;
+		int indx ;
+
+		indx = (k * speclen) / maglen ;
+		partial = fmod ((1.0 * k * speclen) / maglen, 1.0) ;
+		grad = spec [indx + 1] - spec [indx] ;
+
+		mag [k] = spec [indx] + grad * partial ;
+		} ;
+
+} /* interp_spec */
+
+static void
 render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
-	static double time_domain [2 * MAX_HEIGHT] ;
-	static double freq_domain [2 * MAX_HEIGHT] ;
+	static double time_domain [10 * MAX_HEIGHT] ;
+	static double freq_domain [10 * MAX_HEIGHT] ;
+	static double single_mag_spec [5 * MAX_HEIGHT] ;
 	static float mag_spec [MAX_WIDTH][MAX_HEIGHT] ;
 
 	RECT heat_rect ;
 
 	fftw_plan plan ;
 	double max_mag = 0.0 ;
-	int width, height, w ;
+	int width, height, w, speclen ;
 
-	width = cairo_image_surface_get_width (surface) - LEFT_BORDER - RIGHT_BORDER ;
-	height = cairo_image_surface_get_height (surface) - TOP_BORDER - BOTTOM_BORDER ;
+	width = lrint (cairo_image_surface_get_width (surface) - LEFT_BORDER - RIGHT_BORDER) ;
+	height = lrint (cairo_image_surface_get_height (surface) - TOP_BORDER - BOTTOM_BORDER) ;
 
-	if (2 * height > ARRAY_LEN (time_domain))
-	{	printf ("%s : 2 * height > ARRAY_LEN (time_domain)\n", __func__) ;
+	/*
+	**	Choose a speclen value that is long enough to represent frequencies down
+	**	to 60Hz, and then increase it slightly so it is a multiple of 0x40 so that
+	**	FFTW calculations will be quicker.
+	*/
+	speclen = height * (samplerate / 60 / height + 1) ;
+	speclen += 0x40 - (speclen & 0x3f) ;
+
+	if (2 * speclen > ARRAY_LEN (time_domain))
+	{	printf ("%s : 2 * speclen > ARRAY_LEN (time_domain)\n", __func__) ;
 		exit (1) ;
 		} ;
 
-	if (height < samplerate / 40)
-		puts ("Really should oversample on the height axis.") ;
-
-	plan = fftw_plan_r2r_1d (2 * height, time_domain, freq_domain, FFTW_R2HC, FFTW_MEASURE | FFTW_PRESERVE_INPUT) ;
+	plan = fftw_plan_r2r_1d (2 * speclen, time_domain, freq_domain, FFTW_R2HC, FFTW_MEASURE | FFTW_PRESERVE_INPUT) ;
 	if (plan == NULL)
 	{	printf ("%s : line %d : create plan failed.\n", __FILE__, __LINE__) ;
 		exit (1) ;
@@ -467,14 +491,16 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 	for (w = 0 ; w < width ; w++)
 	{	double single_max ;
 
-		read_mono_audio (infile, filelen, time_domain, 2 * height, w, width) ;
+		read_mono_audio (infile, filelen, time_domain, 2 * speclen, w, width) ;
 
-		apply_window (time_domain, 2 * height) ;
+		apply_window (time_domain, 2 * speclen) ;
 
 		fftw_execute (plan) ;
 
-		single_max = calc_magnitude (freq_domain, lrint (2.0 * height), mag_spec [w]) ;
+		single_max = calc_magnitude (freq_domain, 2 * speclen, single_mag_spec) ;
 		max_mag = MAX (max_mag, single_max) ;
+
+		interp_spec (mag_spec [w], height, single_mag_spec, speclen) ;
 		} ;
 
 	fftw_destroy_plan (plan) ;
@@ -494,7 +520,7 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 } /* render_to_surface */
 
 static void
-open_cairo_surface (SNDFILE *infile, const char * filename, int samplerate, sf_count_t filelen, double width, double height, const char * pngfilename)
+render_cairo_surface (SNDFILE *infile, const char * filename, int samplerate, sf_count_t filelen, double width, double height, const char * pngfilename)
 {
 	cairo_surface_t * surface = NULL ;
 	cairo_status_t status ;
@@ -522,10 +548,10 @@ open_cairo_surface (SNDFILE *infile, const char * filename, int samplerate, sf_c
 	cairo_surface_destroy (surface) ;
 
 	return ;
-} /* open_cairo_surface */
+} /* render_cairo_surface */
 
 static void
-open_sndfile (const char *sndfilename, int width, int height, const char * pngfilename)
+render_sndfile (const char *sndfilename, int width, int height, const char * pngfilename)
 {
 	const char * filename ;
 	SNDFILE *infile ;
@@ -542,12 +568,12 @@ open_sndfile (const char *sndfilename, int width, int height, const char * pngfi
 	filename = strrchr (sndfilename, '/') ;
 	filename = (filename != NULL) ? filename + 1 : sndfilename ;
 
-	open_cairo_surface (infile, filename, info.samplerate, info.frames, width, height, pngfilename) ;
+	render_cairo_surface (infile, filename, info.samplerate, info.frames, width, height, pngfilename) ;
 
 	sf_close (infile) ;
 
 	return ;
-} /* open_sndfile */
+} /* render_sndfile */
 
 static void
 check_int_range (const char * name, int value, int lower, int upper)
@@ -590,7 +616,7 @@ main (int argc, char * argv [])
 	check_int_range ("width", width, 1, MAX_WIDTH) ;
 	check_int_range ("height", height, 1, MAX_HEIGHT) ;
 
-	open_sndfile (argv [1], width, height, argv [4]) ;
+	render_sndfile (argv [1], width, height, argv [4]) ;
 
 	return 0 ;
 } /* main */
