@@ -15,6 +15,8 @@
 ** along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "config.h"
+
 #include <string.h>
 
 #include "common.h"
@@ -24,7 +26,15 @@ sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen)
 {
 	SF_INFO info ;
 
+#if HAVE_SF_GET_INFO
+	/*
+	**	The function sf_get_info was in a number of 1.0.18 pre-releases but was removed
+	**	before 1.0.18 final and replaced with the SFC_GET_CURRENT_SF_INFO command.
+	*/
 	sf_get_info (file, &info) ;
+#else
+	sf_command (file, SFC_GET_CURRENT_SF_INFO, &info, sizeof (info)) ;
+#endif
 
 	if (info.channels == 1)
 		return sf_read_double (file, data, datalen) ;

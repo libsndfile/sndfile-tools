@@ -8,3 +8,6 @@
 
     * doc/*
     Add rudimentary documentation.
+
+    * configure.ac src/common.c
+    Detect presence of sf_get_info() and SFC_GET_CURRENT_SF_INFO.

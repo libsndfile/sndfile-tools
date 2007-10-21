@@ -133,6 +133,31 @@ else
 	HAVE_CAIRO=0
 	fi
 
+
+#====================================================================================
+# The function sf_get_info was in a number of 1.0.18 pre-releases but was removed
+# before 1.0.18 final and replaced with the SFC_GET_CURRENT_SF_INFO command.
+
+HAVE_SF_GET_INFO=0
+HAVE_SFC_GET_CURRENT_SF_INFO=0
+
+if test x$HAVE_SNDFILE = x1 ; then
+	save_CFLAGS=$CFLAGS
+	CFLAGS="$SNDFILE_CFLAGS"
+
+	SF_CHECK_DECL(sf_get_info,[HAVE_SF_GET_INFO=1],[HAVE_SF_GET_INFO=0],[#include <sndfile.h>])
+	SF_CHECK_DECL(SFC_GET_CURRENT_SF_INFO,[HAVE_SFC_GET_CURRENT_SF_INFO=1],[HAVE_SFC_GET_CURRENT_SF_INFO=0],[#include <sndfile.h>])
+
+	CFLAGS=$save_CFLAGS
+	fi
+
+AC_DEFINE_UNQUOTED([HAVE_SF_GET_INFO],${HAVE_SF_GET_INFO}, [Define to 1 if libsndfile as sf_get_info.])
+AC_DEFINE_UNQUOTED([HAVE_SFC_GET_CURRENT_SF_INFO],${HAVE_SFC_GET_CURRENT_SF_INFO}, [Define to 1 if libsndfile as SFC_GET_CURRENT_SF_INFO.])
+
+if test x$HAVE_SF_GET_INFO$HAVE_SFC_GET_CURRENT_SF_INFO = x00 ; then
+	AC_MSG_WARN([*** Both sf_get_info() and SFC_GET_CURRENT_SF_INFO are missing. ***])
+	fi
+
 #====================================================================================
 # GCC stuff.
 
