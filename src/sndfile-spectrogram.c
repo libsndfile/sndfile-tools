@@ -440,14 +440,13 @@ interp_spec (float * mag, int maglen, const double *spec, int speclen)
 
 	mag [0] = spec [0] ;
 	for (k = 1 ; k < maglen ; k++)
-	{	double partial, grad ;
+	{	double partial ;
 		int indx ;
 
 		indx = (k * speclen) / maglen ;
 		partial = fmod ((1.0 * k * speclen) / maglen, 1.0) ;
-		grad = spec [indx + 1] - spec [indx] ;
 
-		mag [k] = spec [indx] + grad * partial ;
+		mag [k] = spec [indx] + (spec [indx + 1] - spec [indx]) * partial ;
 		} ;
 
 } /* interp_spec */
