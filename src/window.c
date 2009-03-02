@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -103,6 +103,11 @@ factorial (int val)
 	static int have_entry = 0 ;
 
 	int k ;
+
+	if (val < 0)
+	{	printf ("Oops : val < 0.\n") ;
+		exit (1) ;
+		} ;
 
 	if (val > ARRAY_LEN (memory))
 	{	printf ("Oops : val > ARRAY_LEN (memory).\n") ;
