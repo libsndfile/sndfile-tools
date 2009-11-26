@@ -22,7 +22,7 @@
 /*
 **	Todo:
 **      - Decouple height of image from FFT length. FFT length should be
-*         greater that height and then interpolated to height.
+*         greater than height and then interpolated to height.
 **      - Make magnitude to colour mapper allow abitrary scaling (ie cmdline
 **        arg).
 **      - Better cmdline arg parsing and flexibility.
@@ -397,7 +397,7 @@ render_spect_border (cairo_surface_t * surface, const char * filename, double le
 static void
 render_heat_border (cairo_surface_t * surface, double magfloor, const RECT *r)
 {
-	const char decibels [] = "dB" ;
+	const char *decibels = "dB" ;
 	char text [512] ;
 	cairo_t * cr ;
 	cairo_text_extents_t extents ;
@@ -463,7 +463,7 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 	RECT heat_rect ;
 
 	fftw_plan plan ;
-	double max_mag = 0.0 ;
+	double max_mag = 0.0, spec_floor = -180.0 ;
 	int width, height, w, speclen ;
 
 	width = lrint (cairo_image_surface_get_width (surface) - LEFT_BORDER - RIGHT_BORDER) ;
@@ -511,10 +511,10 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 	heat_rect.height = height - TOP_BORDER / 2 ;
 
 	render_spectrogram (surface, mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height) ;
-	render_heat_map (surface, -180.0, &heat_rect) ;
+	render_heat_map (surface, spec_floor, &heat_rect) ;
 
 	render_spect_border (surface, filename, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, 0.5 * samplerate) ;
-	render_heat_border (surface, -180.0, &heat_rect) ;
+	render_heat_border (surface, spec_floor, &heat_rect) ;
 
 	return ;
 } /* render_to_surface */
