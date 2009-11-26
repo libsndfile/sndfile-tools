@@ -4,6 +4,10 @@
     Initialize colour to black so it writes black instead of random values from
     the stack.
 
+    * src/sndfile-merge.c
+    New program contributed by Jonatan Liljedahl that takes two mono files and
+    merges them into a stereo file.
+
 2009-03-02  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * src/window.c
