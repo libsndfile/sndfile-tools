@@ -126,6 +126,5 @@ echo "  autoconf"
 autoconf || exit 1
 
 cd $olddir
-$srcdir/configure --enable-maintainer-mode --enable-gcc-werror "$@" && echo
+$srcdir/configure -enable-gcc-werror "$@" && echo
 
-# (cd src && make genfiles)
