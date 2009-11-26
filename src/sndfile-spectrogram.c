@@ -187,7 +187,8 @@ calc_magnitude (const double * freq, int freqlen, double * magnitude)
 static void
 render_spectrogram (cairo_surface_t * surface, float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, double left, double top, double width, double height)
 {
-	unsigned char colour [3], *data ;
+	unsigned char colour [3] = { 0, 0, 0 } ;
+	unsigned char *data ;
 	int w, h, stride ;
 
 	stride = cairo_image_surface_get_stride (surface) ;
