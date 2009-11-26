@@ -57,6 +57,14 @@
 #define	RIGHT_BORDER		75.0
 #define	BOTTOM_BORDER		40.0
 
+#define	SPEC_FLOOR_DB		-180.0
+
+
+typedef struct
+{	const char *sndfilepath, *pngfilepath, *filename ;
+	int width, height ;
+	double spec_floor_db ;
+} RENDER ;
 
 typedef struct
 {	int left, top, width, height ;
@@ -65,9 +73,9 @@ typedef struct
 static const char font_family [] = "Terminus" ;
 
 static void
-get_colour_map_value (float value, unsigned char colour [3])
+get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3])
 {	static unsigned char map [][3] =
-	{
+	{	/* These values were originally calculated for a range of 180dB. */
 		{	255, 255, 255 },  /* -0dB */
 		{	240, 254, 216 },  /* -10dB */
 		{	242, 251, 185 },  /* -20dB */
@@ -97,7 +105,7 @@ get_colour_map_value (float value, unsigned char colour [3])
 		return ;
 		} ;
 
-	value = fabs (value * 0.1) ;
+	value = fabs (value * (-180.0 / spec_floor_db) * 0.1) ;
 
 	indx = lrintf (floor (value)) ;
 
@@ -185,10 +193,11 @@ calc_magnitude (const double * freq, int freqlen, double * magnitude)
 } /* calc_magnitude */
 
 static void
-render_spectrogram (cairo_surface_t * surface, float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, double left, double top, double width, double height)
+render_spectrogram (cairo_surface_t * surface, double spec_floor_db, float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, double left, double top, double width, double height)
 {
 	unsigned char colour [3] = { 0, 0, 0 } ;
 	unsigned char *data ;
+	double linear_spec_floor ;
 	int w, h, stride ;
 
 	stride = cairo_image_surface_get_stride (surface) ;
@@ -196,14 +205,16 @@ render_spectrogram (cairo_surface_t * surface, float mag2d [MAX_WIDTH][MAX_HEIGH
 	data = cairo_image_surface_get_data (surface) ;
 	memset (data, 0, stride * cairo_image_surface_get_height (surface)) ;
 
+	linear_spec_floor = pow (10.0, spec_floor_db / 20.0) ;
+
 	for (w = 0 ; w < width ; w ++)
 		for (h = 0 ; h < height ; h++)
 		{	int x, y ;
 
 			mag2d [w][h] = mag2d [w][h] / maxval ;
-			mag2d [w][h] = (mag2d [w][h] < 1e-15) ? -200.0 : 20.0 * log10 (mag2d [w][h]) ;
+			mag2d [w][h] = (mag2d [w][h] < linear_spec_floor) ? spec_floor_db : 20.0 * log10 (mag2d [w][h]) ;
 
-			get_colour_map_value (mag2d [w][h], colour) ;
+			get_colour_map_value (mag2d [w][h], spec_floor_db, colour) ;
 
 			y = height + top - 1 - h ;
 			x = (w + left) * 4 ;
@@ -226,7 +237,7 @@ render_heat_map (cairo_surface_t * surface, double magfloor, const RECT *r)
 	data = cairo_image_surface_get_data (surface) ;
 
 	for (h = 0 ; h < r->height ; h++)
-	{	get_colour_map_value (magfloor * (r->height - h) / (r->height + 1), colour) ;
+	{	get_colour_map_value (magfloor * (r->height - h) / (r->height + 1), magfloor, colour) ;
 
 		for (w = 0 ; w < r->width ; w ++)
 		{	int x, y ;
@@ -453,7 +464,7 @@ interp_spec (float * mag, int maglen, const double *spec, int speclen)
 } /* interp_spec */
 
 static void
-render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
+render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
 	static double time_domain [10 * MAX_HEIGHT] ;
 	static double freq_domain [10 * MAX_HEIGHT] ;
@@ -463,7 +474,7 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 	RECT heat_rect ;
 
 	fftw_plan plan ;
-	double max_mag = 0.0, spec_floor = -180.0 ;
+	double max_mag = 0.0 ;
 	int width, height, w, speclen ;
 
 	width = lrint (cairo_image_surface_get_width (surface) - LEFT_BORDER - RIGHT_BORDER) ;
@@ -510,17 +521,17 @@ render_to_surface (SNDFILE *infile, const char * filename, int samplerate, sf_co
 	heat_rect.width = 12 ;
 	heat_rect.height = height - TOP_BORDER / 2 ;
 
-	render_spectrogram (surface, mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height) ;
-	render_heat_map (surface, spec_floor, &heat_rect) ;
+	render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height) ;
+	render_heat_map (surface, render->spec_floor_db, &heat_rect) ;
 
-	render_spect_border (surface, filename, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, 0.5 * samplerate) ;
-	render_heat_border (surface, spec_floor, &heat_rect) ;
+	render_spect_border (surface, render->filename, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, 0.5 * samplerate) ;
+	render_heat_border (surface, render->spec_floor_db, &heat_rect) ;
 
 	return ;
 } /* render_to_surface */
 
 static void
-render_cairo_surface (SNDFILE *infile, const char * filename, int samplerate, sf_count_t filelen, double width, double height, const char * pngfilename)
+render_cairo_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_count_t filelen)
 {
 	cairo_surface_t * surface = NULL ;
 	cairo_status_t status ;
@@ -530,7 +541,7 @@ render_cairo_surface (SNDFILE *infile, const char * filename, int samplerate, sf
 	**	unused. Red, Green, and Blue are stored in the remaining 24 bits in that order.
 	*/
 
-	surface = cairo_image_surface_create (CAIRO_FORMAT_RGB24, width, height) ;
+	surface = cairo_image_surface_create (CAIRO_FORMAT_RGB24, render->width, render->height) ;
 	if (surface == NULL || cairo_surface_status (surface) != CAIRO_STATUS_SUCCESS)
 	{	status = cairo_surface_status (surface) ;
 		printf ("Error while creating surface : %s\n", cairo_status_to_string (status)) ;
@@ -539,9 +550,9 @@ render_cairo_surface (SNDFILE *infile, const char * filename, int samplerate, sf
 
 	cairo_surface_flush (surface) ;
 
-	render_to_surface (infile, filename, samplerate, filelen, surface) ;
+	render_to_surface (render, infile, samplerate, filelen, surface) ;
 
-	status = cairo_surface_write_to_png (surface, pngfilename) ;
+	status = cairo_surface_write_to_png (surface, render->pngfilepath) ;
 	if (status != CAIRO_STATUS_SUCCESS)
 		printf ("Error while creating PNG file : %s\n", cairo_status_to_string (status)) ;
 
@@ -551,24 +562,20 @@ render_cairo_surface (SNDFILE *infile, const char * filename, int samplerate, sf
 } /* render_cairo_surface */
 
 static void
-render_sndfile (const char *sndfilename, int width, int height, const char * pngfilename)
+render_sndfile (const RENDER * render)
 {
-	const char * filename ;
 	SNDFILE *infile ;
 	SF_INFO info ;
 
 	memset (&info, 0, sizeof (info)) ;
 
-	infile = sf_open (sndfilename, SFM_READ, &info) ;
+	infile = sf_open (render->sndfilepath, SFM_READ, &info) ;
 	if (infile == NULL)
-	{	printf ("Error : failed to open file '%s' : \n%s\n", sndfilename, sf_strerror (NULL)) ;
+	{	printf ("Error : failed to open file '%s' : \n%s\n", render->sndfilepath, sf_strerror (NULL)) ;
 		return ;
 		} ;
 
-	filename = strrchr (sndfilename, '/') ;
-	filename = (filename != NULL) ? filename + 1 : sndfilename ;
-
-	render_cairo_surface (infile, filename, info.samplerate, info.frames, width, height, pngfilename) ;
+	render_cairo_surface (render, infile, info.samplerate, info.frames) ;
 
 	sf_close (infile) ;
 
@@ -585,38 +592,65 @@ check_int_range (const char * name, int value, int lower, int upper)
 } /* check_int_range */
 
 static void
-usage_exit (const char * argv0)
+usage_exit (const char * argv0, int error)
 {
 	const char * progname ;
 
 	progname = strrchr (argv0, '/') ;
 	progname = (progname == NULL) ? argv0 : progname + 1 ;
 
-	printf ("\nUsage :\n\n    %s <sound file> <img width> <img height> <png name>\n\n", progname) ;
+	printf ("\nUsage :\n\n    %s [options] <sound file> <img width> <img height> <png name>\n\n", progname) ;
 
 	puts (
 		"    Create a spectrogram as a PNG file from a given sound file. The\n"
 		"    spectrogram image will be of the given width and height.\n"
 		) ;
 
-	exit (0) ;
+	puts (
+		"    Options:\n"
+		"        --dyn-range=<number>   : Dynamic range (ie 100 for 100dB range)\n"
+		) ;
+
+	exit (error) ;
 } /* usage_exit */
 
 int
 main (int argc, char * argv [])
-{
-	int width, height ;
+{	RENDER render =
+	{	NULL, NULL, NULL,
+		0, 0,
+		SPEC_FLOOR_DB
+		} ;
+	int k ;
 
-	if (argc != 5)
-		usage_exit (argv [0]) ;
+	if (argc < 5)
+		usage_exit (argv [0], 0) ;
 
-	width = atoi (argv [2]) ;
-	height = atoi (argv [3]) ;
+	for (k = 1 ; k < argc - 4 ; k++)
+	{	double fval ;
 
-	check_int_range ("width", width, 1, MAX_WIDTH) ;
-	check_int_range ("height", height, 1, MAX_HEIGHT) ;
+		if (sscanf (argv [k], "--dyn-range=%lf", &fval) == 1)
+		{	render.spec_floor_db = -1.0 * fabs (fval) ;
+			continue ;
+			}
 
-	render_sndfile (argv [1], width, height, argv [4]) ;
+		printf ("\nError : Bad command line argument '%s'\n", argv [k]) ;
+		usage_exit (argv [0], 1) ;
+		} ;
+
+	render.sndfilepath = argv [k] ;
+	render.width = atoi (argv [k + 1]) ;
+	render.height = atoi (argv [k + 2]) ;
+	render.pngfilepath = argv [k + 3] ;
+
+	check_int_range ("width", render.width, MIN_WIDTH, MAX_WIDTH) ;
+	check_int_range ("height", render.height, MIN_HEIGHT, MAX_HEIGHT) ;
+
+
+	render.filename = strrchr (render.sndfilepath, '/') ;
+	render.filename = (render.filename != NULL) ? render.filename + 1 : render.sndfilepath ;
+
+	render_sndfile (&render) ;
 
 	return 0 ;
 } /* main */
