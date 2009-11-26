@@ -4,6 +4,8 @@
     Initialize colour to black so it writes black instead of random values from
     the stack.
     Add a --dyn-range=XXX command line option to set spectrogram dynamic range.
+    Add --no-border command line option to disable rendering of border, scales,
+    heat map and title.
 
     * src/sndfile-merge.c
     New program contributed by Jonatan Liljedahl that takes two mono files and

@@ -62,7 +62,7 @@
 
 typedef struct
 {	const char *sndfilepath, *pngfilepath, *filename ;
-	int width, height ;
+	int width, height, border ;
 	double spec_floor_db ;
 } RENDER ;
 
@@ -471,14 +471,18 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 	static double single_mag_spec [5 * MAX_HEIGHT] ;
 	static float mag_spec [MAX_WIDTH][MAX_HEIGHT] ;
 
-	RECT heat_rect ;
-
 	fftw_plan plan ;
 	double max_mag = 0.0 ;
 	int width, height, w, speclen ;
 
-	width = lrint (cairo_image_surface_get_width (surface) - LEFT_BORDER - RIGHT_BORDER) ;
-	height = lrint (cairo_image_surface_get_height (surface) - TOP_BORDER - BOTTOM_BORDER) ;
+	if (render->border)
+	{	width = lrint (cairo_image_surface_get_width (surface) - LEFT_BORDER - RIGHT_BORDER) ;
+		height = lrint (cairo_image_surface_get_height (surface) - TOP_BORDER - BOTTOM_BORDER) ;
+		}
+	else
+	{	width = render->width ;
+		height = render->height ;
+		}
 
 	/*
 	**	Choose a speclen value that is long enough to represent frequencies down
@@ -516,16 +520,23 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 
 	fftw_destroy_plan (plan) ;
 
-	heat_rect.left = 12 ;
-	heat_rect.top = TOP_BORDER + TOP_BORDER / 2 ;
-	heat_rect.width = 12 ;
-	heat_rect.height = height - TOP_BORDER / 2 ;
+	if (render->border)
+	{	RECT heat_rect ;
 
-	render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height) ;
-	render_heat_map (surface, render->spec_floor_db, &heat_rect) ;
+		heat_rect.left = 12 ;
+		heat_rect.top = TOP_BORDER + TOP_BORDER / 2 ;
+		heat_rect.width = 12 ;
+		heat_rect.height = height - TOP_BORDER / 2 ;
 
-	render_spect_border (surface, render->filename, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, 0.5 * samplerate) ;
-	render_heat_border (surface, render->spec_floor_db, &heat_rect) ;
+		render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height) ;
+
+		render_heat_map (surface, render->spec_floor_db, &heat_rect) ;
+
+		render_spect_border (surface, render->filename, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, 0.5 * samplerate) ;
+		render_heat_border (surface, render->spec_floor_db, &heat_rect) ;
+		}
+	else
+		render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, 0, 0, width, height) ;
 
 	return ;
 } /* render_to_surface */
@@ -609,6 +620,7 @@ usage_exit (const char * argv0, int error)
 	puts (
 		"    Options:\n"
 		"        --dyn-range=<number>   : Dynamic range (ie 100 for 100dB range)\n"
+		"        --no-border            : Drop the border, scales, heat map and title\n"
 		) ;
 
 	exit (error) ;
@@ -618,7 +630,7 @@ int
 main (int argc, char * argv [])
 {	RENDER render =
 	{	NULL, NULL, NULL,
-		0, 0,
+		0, 0, 1,
 		SPEC_FLOOR_DB
 		} ;
 	int k ;
@@ -633,6 +645,12 @@ main (int argc, char * argv [])
 		{	render.spec_floor_db = -1.0 * fabs (fval) ;
 			continue ;
 			}
+
+		if (strcmp (argv [k], "--no-border") == 0)
+		{	render.border = 0 ;
+			continue ;
+			}
+
 
 		printf ("\nError : Bad command line argument '%s'\n", argv [k]) ;
 		usage_exit (argv [0], 1) ;
