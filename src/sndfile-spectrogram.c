@@ -75,7 +75,7 @@ static const char font_family [] = "Terminus" ;
 static void
 get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3])
 {	static unsigned char map [][3] =
-	{	/* These values were originally calculated for a range of 180dB. */
+	{	/* These values were originally calculated for a dynamic range of 180dB. */
 		{	255, 255, 255 },  /* -0dB */
 		{	240, 254, 216 },  /* -10dB */
 		{	242, 251, 185 },  /* -20dB */
@@ -486,10 +486,10 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 
 	/*
 	**	Choose a speclen value that is long enough to represent frequencies down
-	**	to 60Hz, and then increase it slightly so it is a multiple of 0x40 so that
+	**	to 20Hz, and then increase it slightly so it is a multiple of 0x40 so that
 	**	FFTW calculations will be quicker.
 	*/
-	speclen = height * (samplerate / 60 / height + 1) ;
+	speclen = height * (samplerate / 20 / height + 1) ;
 	speclen += 0x40 - (speclen & 0x3f) ;
 
 	if (2 * speclen > ARRAY_LEN (time_domain))
