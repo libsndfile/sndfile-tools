@@ -448,19 +448,26 @@ render_heat_border (cairo_surface_t * surface, double magfloor, const RECT *r)
 
 static void
 interp_spec (float * mag, int maglen, const double *spec, int speclen)
-{	int k ;
+{
+	int k, lastspec = 0 ;
 
 	mag [0] = spec [0] ;
+
 	for (k = 1 ; k < maglen ; k++)
-	{	double partial ;
-		int indx ;
+	{	double sum = 0.0 ;
+		int count = 0 ;
 
-		indx = (k * speclen) / maglen ;
-		partial = fmod ((1.0 * k * speclen) / maglen, 1.0) ;
+		do
+		{	sum += spec [lastspec] ;
+			lastspec ++ ;
+			count ++ ;
+			}
+		while (lastspec <= ceil ((k * speclen) / maglen)) ;
 
-		mag [k] = spec [indx] + (spec [indx + 1] - spec [indx]) * partial ;
+		mag [k] = sum / count ;
 		} ;
 
+	return ;
 } /* interp_spec */
 
 static void
