@@ -3,7 +3,7 @@
 dnl Require autoconf version >= 2.54)
 AC_PREREQ(2.54)
 
-AC_INIT([sndfile-tools],[1.02],[erikd@mega-nerd.com])
+AC_INIT([sndfile-tools],[1.03],[erikd@mega-nerd.com])
 
 # Put config stuff in Cfg.
 AC_CONFIG_AUX_DIR(Cfg)
@@ -52,6 +52,9 @@ AC_ARG_ENABLE(fftw,
 		AC_HELP_STRING([--disable-fftw], [disable usage of FFTW ]),
 		ac_arg_fftw="N", ac_arg_fftw="Y")
 
+AC_ARG_ENABLE(jack,
+	AC_HELP_STRING([--disable-jack], [disable use of JACK]))
+
 AC_ARG_ENABLE(debug,
 		AC_HELP_STRING([--enable-debug], [enable debugging ]),
 		ac_arg_debug=yes, ac_arg_debug=no)
@@ -88,7 +91,7 @@ case "x$ac_cv_c99_lrint$ac_cv_c99_lrintf" in
 #====================================================================================
 # Check for libsndfile.
 
-PKG_CHECK_MODULES(SNDFILE, sndfile >= 1.0.18, ac_cv_sndfile=1, ac_cv_sndfile=0)
+PKG_CHECK_MODULES(SNDFILE, sndfile >= 1.0.19, ac_cv_sndfile=1, ac_cv_sndfile=0)
 
 AC_DEFINE_UNQUOTED([HAVE_SNDFILE],$ac_cv_sndfile,[Set to 1 if you have libsndfile.])
 
@@ -101,7 +104,7 @@ else
 	fi
 
 #====================================================================================
-# Check for libfftw3 which is required for the test and example programs.
+# Check for libfftw3 which is required for src/sndfile-spectrogram.c).
 
 if test $ac_arg_fftw = "Y" ; then
 	PKG_CHECK_MODULES(FFTW3, fftw3 >= 0.15.0, ac_cv_fftw3=1, ac_cv_fftw3=0)
@@ -119,7 +122,7 @@ if test x$ac_cv_fftw3 != xyes ; then
 	fi
 
 #====================================================================================
-# Check for libcairo.
+# Check for libcairo which is required for src/sndfile-jackplay.c.
 
 PKG_CHECK_MODULES(CAIRO, cairo >= 1.4.0, ac_cv_cairo=1, ac_cv_cairo=0)
 
@@ -133,30 +136,22 @@ else
 	HAVE_CAIRO=0
 	fi
 
-
 #====================================================================================
-# The function sf_get_info was in a number of 1.0.18 pre-releases but was removed
-# before 1.0.18 final and replaced with the SFC_GET_CURRENT_SF_INFO command.
+# Check for JACK which is required for src/sndfile-jackplay.c.
 
-HAVE_SF_GET_INFO=0
-HAVE_SFC_GET_CURRENT_SF_INFO=0
-
-if test x$HAVE_SNDFILE = x1 ; then
-	save_CFLAGS=$CFLAGS
-	CFLAGS="$SNDFILE_CFLAGS"
-
-	SF_CHECK_DECL(sf_get_info,[HAVE_SF_GET_INFO=1],[HAVE_SF_GET_INFO=0],[#include <sndfile.h>])
-	SF_CHECK_DECL(SFC_GET_CURRENT_SF_INFO,[HAVE_SFC_GET_CURRENT_SF_INFO=1],[HAVE_SFC_GET_CURRENT_SF_INFO=0],[#include <sndfile.h>])
-
-	CFLAGS=$save_CFLAGS
+ac_cv_jack=no
+if test x$enable_jack != xno ; then
+	PKG_CHECK_MOD_VERSION(JACK, jack >= 0.100, ac_cv_jack=yes, ac_cv_jack=no)
 	fi
 
-AC_DEFINE_UNQUOTED([HAVE_SF_GET_INFO],${HAVE_SF_GET_INFO}, [Define to 1 if libsndfile as sf_get_info.])
-AC_DEFINE_UNQUOTED([HAVE_SFC_GET_CURRENT_SF_INFO],${HAVE_SFC_GET_CURRENT_SF_INFO}, [Define to 1 if libsndfile as SFC_GET_CURRENT_SF_INFO.])
 
-if test x$HAVE_SF_GET_INFO$HAVE_SFC_GET_CURRENT_SF_INFO = x00 ; then
-	AC_MSG_WARN([*** Both sf_get_info() and SFC_GET_CURRENT_SF_INFO are missing. ***])
+if test x$ac_cv_jack = "xyes" ; then
+	HAVE_JACK=1
+else
+	HAVE_JACK=0
 	fi
+
+AC_DEFINE_UNQUOTED([HAVE_JACK],$HAVE_JACK,[Set to 1 if you have JACK.])
 
 #====================================================================================
 # GCC stuff.
@@ -192,6 +187,10 @@ AC_SUBST(FFTW3_LIBS)
 AC_SUBST(HAVE_CAIRO)
 AC_SUBST(CAIRO_CFLAGS)
 AC_SUBST(CAIRO_LIBS)
+
+AC_SUBST(HAVE_JACK)
+AC_SUBST(JACK_CFLAGS)
+AC_SUBST(JACK_LIBS)
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT

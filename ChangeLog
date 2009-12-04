@@ -1,3 +1,14 @@
+2009-12-04  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
+
+    * src/sndfile-merge.c
+    Remove this (moved to libsndfile source distribution).
+
+    * src/sndfile-jackplay.c
+    Add file originally from the libsndfile source distribution.
+
+    * M4/extra_pkg.m4 configure.ac
+    Add M4 macro for using in configure.ac to find the JACK library.
+
 2009-11-28  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * src/sndfile-spectrogram.c
