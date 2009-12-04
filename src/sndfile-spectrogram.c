@@ -31,6 +31,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <math.h>
 
 #include <cairo.h>
@@ -62,7 +63,8 @@
 
 typedef struct
 {	const char *sndfilepath, *pngfilepath, *filename ;
-	int width, height, border ;
+	int width, height ;
+	bool border, log_freq ;
 	double spec_floor_db ;
 } RENDER ;
 
@@ -585,6 +587,11 @@ render_sndfile (const RENDER * render)
 	SNDFILE *infile ;
 	SF_INFO info ;
 
+	if (render->log_freq)
+	{	printf ("Error : --log-freq option not working yet.\n\n") ;
+		return ;
+		} ;
+
 	memset (&info, 0, sizeof (info)) ;
 
 	infile = sf_open (render->sndfilepath, SFM_READ, &info) ;
@@ -627,7 +634,8 @@ usage_exit (const char * argv0, int error)
 	puts (
 		"    Options:\n"
 		"        --dyn-range=<number>   : Dynamic range (ie 100 for 100dB range)\n"
-		"        --no-border            : Drop the border, scales, heat map and title\n"
+		"        --no-border            : Drop the border, scales, heat map and title\n" 
+		"        --log-freq             : Use a logarithmic frquency scale\n" 
 		) ;
 
 	exit (error) ;
@@ -637,7 +645,8 @@ int
 main (int argc, char * argv [])
 {	RENDER render =
 	{	NULL, NULL, NULL,
-		0, 0, 1,
+		0, 0,
+		true, false,
 		SPEC_FLOOR_DB
 		} ;
 	int k ;
@@ -654,10 +663,14 @@ main (int argc, char * argv [])
 			}
 
 		if (strcmp (argv [k], "--no-border") == 0)
-		{	render.border = 0 ;
+		{	render.border = false ;
 			continue ;
-			}
+			} ;
 
+		if (strcmp (argv [k], "--log-freq") == 0)
+		{	render.log_freq = true ;
+			continue ;
+			} ;
 
 		printf ("\nError : Bad command line argument '%s'\n", argv [k]) ;
 		usage_exit (argv [0], 1) ;
