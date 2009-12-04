@@ -5,7 +5,7 @@ AUTOMAKE_OPTIONS := subdir-objects
 EXTRA_DIST = M4/lrint.m4 M4/lrintf.m4 doc/index.html doc/sweep.png
 
 bin_PROGRAMS = src/sndfile-generate-chirp src/sndfile-spectrogram \
-	src/sndfile-mix-to-mono src/sndfile-merge
+	src/sndfile-mix-to-mono src/sndfile-jackplay
 
 noinst_PROGRAMS = src/kaiser_window_test
 
@@ -26,8 +26,9 @@ src_sndfile_spectrogram_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS) $(CAIRO_LIBS)
 src_sndfile_mix_to_mono_SOURCES = src/sndfile-mix-to-mono.c src/common.h src/common.c
 src_sndfile_mix_to_mono_LDADD = $(SNDFILE_LIBS)
 
-src_sndfile_merge_SOURCES = src/sndfile-merge.c src/common.h src/common.c
-src_sndfile_merge_LDADD = $(SNDFILE_LIBS)
+src_sndfile_jackplay_SOURCES = src/sndfile-jackplay.c
+src_sndfile_jackplay_CFLAGS = $(JACK_CFLAGS)
+src_sndfile_jackplay_LDADD = $(SNDFILE_LIBS) $(JACK_LIBS)
 
 #=========================================================================================
 # The make check targets.
