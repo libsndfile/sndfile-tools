@@ -75,8 +75,8 @@ else
 AC_CHECK_LIB([m],floor)
 AC_CHECK_FUNCS(floor ceil fmod)
 
-AC_C99_FUNC_LRINT
-AC_C99_FUNC_LRINTF
+MN_C99_FUNC_LRINT
+MN_C99_FUNC_LRINTF
 # AC_C99_FUNC_LLRINT  Don't need this (yet?).
 
 case "x$ac_cv_c99_lrint$ac_cv_c99_lrintf" in
@@ -122,7 +122,7 @@ if test x$ac_cv_fftw3 != xyes ; then
 	fi
 
 #====================================================================================
-# Check for libcairo which is required for src/sndfile-jackplay.c.
+# Check for libcairo which is required for src/sndfile-spectrogram.c.
 
 PKG_CHECK_MODULES(CAIRO, cairo >= 1.4.0, ac_cv_cairo=1, ac_cv_cairo=0)
 
@@ -219,9 +219,10 @@ AC_MSG_RESULT([
     Found SNDFILE ................. ${ac_cv_sndfile}
     Found FFTW .................... ${ac_cv_fftw3}
     Found CAIRO ................... ${ac_cv_cairo}
+    Found JACK .................... ${ac_cv_jack}
 ])
 
-if test "x$ac_cv_sndfile$ac_cv_fftw3$ac_cv_cairo" != "xyesyesyes" ; then
+if test "x$ac_cv_sndfile$ac_cv_fftw3$ac_cv_cairo$ac_cv_jack" != "xyesyesyesyes" ; then
 	AC_MSG_RESULT([**** Error : You will need to install the missing libaries. ****])
 	echo
 	exit 1
