@@ -9,7 +9,7 @@ bin_PROGRAMS = src/sndfile-generate-chirp src/sndfile-spectrogram \
 
 noinst_PROGRAMS = src/kaiser_window_test
 
-INCLUDES = $(SNDFILE_CFLAGS) $(FFTW3_CFLAGS) $(CAIRO_CFLAGS)
+INCLUDES = $(SNDFILE_CFLAGS) $(FFTW3_CFLAGS) $(CAIRO_CFLAGS) $(JACK_CFLAGS)
 
 CLEANFILES = src/*~
 
@@ -29,7 +29,6 @@ src_sndfile_mix_to_mono_SOURCES = src/sndfile-mix-to-mono.c src/common.h src/com
 src_sndfile_mix_to_mono_LDADD = $(SNDFILE_LIBS)
 
 src_sndfile_jackplay_SOURCES = src/sndfile-jackplay.c
-src_sndfile_jackplay_CFLAGS = $(JACK_CFLAGS)
 src_sndfile_jackplay_LDADD = $(SNDFILE_LIBS) $(JACK_LIBS)
 
 #=========================================================================================
