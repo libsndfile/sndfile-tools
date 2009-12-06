@@ -1,8 +1,8 @@
 
 # Tell automake to put the object file in the same dir as the source file.
-AUTOMAKE_OPTIONS := subdir-objects
+AUTOMAKE_OPTIONS = subdir-objects
 
-EXTRA_DIST = M4/lrint.m4 M4/lrintf.m4 doc/index.html doc/sweep.png
+EXTRA_DIST = M4/lrint.m4 M4/lrintf.m4 doc/index.html doc/sweep.png $(man_MANS)
 
 bin_PROGRAMS = src/sndfile-generate-chirp src/sndfile-spectrogram \
 	src/sndfile-mix-to-mono src/sndfile-jackplay
@@ -12,6 +12,8 @@ noinst_PROGRAMS = src/kaiser_window_test
 INCLUDES = $(SNDFILE_CFLAGS) $(FFTW3_CFLAGS) $(CAIRO_CFLAGS)
 
 CLEANFILES = src/*~
+
+man_MANS = man/sndfile-jackplay.1
 
 #=========================================================================================
 # The bin targets.

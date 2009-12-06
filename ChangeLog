@@ -3,6 +3,9 @@
     * M4/*.m4 configure.ac
     Rename custom M4 macros to MN_*.
 
+    * man/sndfile-jackplay.1 Makefile.am
+    Add man page for sndfile-jackplay.
+
 2009-12-04  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * src/sndfile-merge.c
