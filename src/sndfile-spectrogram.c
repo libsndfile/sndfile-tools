@@ -635,7 +635,7 @@ usage_exit (const char * argv0, int error)
 		"    Options:\n"
 		"        --dyn-range=<number>   : Dynamic range (ie 100 for 100dB range)\n"
 		"        --no-border            : Drop the border, scales, heat map and title\n" 
-		"        --log-freq             : Use a logarithmic frquency scale\n" 
+		/*-"        --log-freq             : Use a logarithmic frquency scale\n" -*/
 		) ;
 
 	exit (error) ;
