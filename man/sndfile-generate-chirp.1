@@ -1,0 +1,22 @@
+.TH SNDFILE-GENERATE-CHIRP 1 "December 14, 2009"
+.SH NAME
+sndfile-generate-chirp \- generate a sound file containing a chirp
+.SH SYNOPSIS
+.B sndfile-generate-chirp
+.RI "[options] <sample rate> <length in seconds> <sound file>"
+
+.SH DESCRIPTION
+sndfile-generate-chirp generates a sound file containing a sine wave that
+sweeps from a low starting frequency to a higher ending frequency (ie a chirp).
+The file is written using libsndfile (http://www.mega-nerd.com/libsndfile/).
+.LP
+The parameters allows the start and end sine wave frequencies to be set as well
+as specifying the shape of the sweep (ie linear, quadratic or logarithmic).
+Run "sndfile\-generate-chirp \-\-help" for more information.
+.LP
+The format of the output file is determined by the filename extension
+of the output file.
+
+.SH AUTHOR
+This manual page was written by Erik de Castro Lopo <erikd@mega-nerd.com>.
+

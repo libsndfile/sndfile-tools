@@ -3,6 +3,10 @@
     * configure.ac
     Don't test for a fortran compiler.
 
+    * man/sndfile-generate-chirp.1 man/sndfile-mix-to-mono.1
+	    man/sndfile-spectrogram.1
+    New man pages.
+
 2009-12-07  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * M4/*.m4 configure.ac

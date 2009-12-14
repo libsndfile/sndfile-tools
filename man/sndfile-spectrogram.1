@@ -1,0 +1,24 @@
+.TH SNDFILE-SPECTROGRAM 1 "December 14, 2009"
+.SH NAME
+sndfile-spectrogram \- generate a spectrogram from an input sound file
+.SH SYNOPSIS
+.B sndfile-spectrogram
+.RI "[options] <sound file> <img width> <img height> <png name>"
+
+.SH DESCRIPTION
+sndfile\-spectrogram reads a single channel sound file and generates a
+spectrogram which is written to a PNG file with specified imahe height
+and width.
+.LP
+The optional parameters allow the user to specify the dynamic range of
+the spectrogram plot and/or to disable the darwing of borders, scales,
+heat map and title.
+Run "sndfile\-spectrogram \-\-help" for more information.
+.LP
+The input file is read using libsndfile (http://www.mega\-nerd.com/libsndfile/),
+the spectrogram is calculated with the help of libfftw and the spectrogram is
+rendered and written to the output file using libcairo.
+
+.SH AUTHOR
+This manual page was written by Erik de Castro Lopo <erikd@mega-nerd.com>.
+

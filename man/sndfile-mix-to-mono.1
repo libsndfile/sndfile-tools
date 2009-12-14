@@ -1,0 +1,20 @@
+.TH SNDFILE-MIX-TO-MONO 1 "December 14, 2009"
+.SH NAME
+sndfile-mix-to-mono \- mix a multi\-channel sound file to mono
+.SH SYNOPSIS
+.B sndfile-mix-to-mono
+.RI "<multi-channel input file> <mono output file>"
+
+.SH DESCRIPTION
+sndfile\-mix\-to\-mono reads a multi\-channel input file and writes a single
+channel output file consisting of all of the input channels mixed together
+(like a audio mixing desk would do).
+The input and output files are read/written using libsndfile
+(http://www.mega\-nerd.com/libsndfile/).
+.LP
+The format of the output file is determined by the filename extension
+of the output file.
+
+.SH AUTHOR
+This manual page was written by Erik de Castro Lopo <erikd@mega-nerd.com>.
+
