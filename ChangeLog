@@ -7,6 +7,9 @@
 	    man/sndfile-spectrogram.1
     New man pages.
 
+    * Makefile.am
+    Hook new man pages into build.
+
 2009-12-07  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * M4/*.m4 configure.ac

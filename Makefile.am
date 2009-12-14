@@ -13,7 +13,8 @@ INCLUDES = $(SNDFILE_CFLAGS) $(FFTW3_CFLAGS) $(CAIRO_CFLAGS) $(JACK_CFLAGS)
 
 CLEANFILES = src/*~
 
-man_MANS = man/sndfile-jackplay.1
+man_MANS = man/sndfile-generate-chirp.1 man/sndfile-spectrogram.1 \
+	man/sndfile-mix-to-mono.1 man/sndfile-jackplay.1
 
 #=========================================================================================
 # The bin targets.
@@ -21,8 +22,8 @@ man_MANS = man/sndfile-jackplay.1
 src_sndfile_generate_chirp_SOURCES = src/sndfile-generate-chirp.c
 src_sndfile_generate_chirp_LDADD = $(SNDFILE_LIBS)
 
-src_sndfile_spectrogram_SOURCES = src/sndfile-spectrogram.c src/window.h src/common.h \
-	src/window.c src/common.c
+src_sndfile_spectrogram_SOURCES = src/sndfile-spectrogram.c src/window.c src/common.c \
+	src/window.h src/common.h
 src_sndfile_spectrogram_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS) $(CAIRO_LIBS)
 
 src_sndfile_mix_to_mono_SOURCES = src/sndfile-mix-to-mono.c src/common.h src/common.c
