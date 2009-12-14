@@ -1,3 +1,8 @@
+2009-12-14  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
+
+    * configure.ac
+    Don't test for a fortran compiler.
+
 2009-12-07  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * M4/*.m4 configure.ac
