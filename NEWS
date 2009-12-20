@@ -1,3 +1,8 @@
+Version 1.03 (2009-12-14)
+  * Add prgram sndfile-jackplay.
+  * sndfile-spectrogram : Add --no-border option, improve frequency access
+    interpolation.
+
 Version 1.02 (2007-10-21)
   * sndfile-spectrogram : Calculate longer FFTs and then interpolate to the
     image height.

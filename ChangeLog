@@ -10,6 +10,9 @@
     * Makefile.am
     Hook new man pages into build.
 
+    * NEWS doc/index.html
+    Update for 1.03 release.
+
 2009-12-07  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * M4/*.m4 configure.ac
