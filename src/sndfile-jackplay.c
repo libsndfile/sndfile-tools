@@ -48,13 +48,13 @@ typedef struct _thread_info
 	volatile int play_done ;
 } thread_info_t ;
 
-pthread_mutex_t disk_thread_lock = PTHREAD_MUTEX_INITIALIZER ;
-pthread_cond_t data_ready = PTHREAD_COND_INITIALIZER ;
+static pthread_mutex_t disk_thread_lock = PTHREAD_MUTEX_INITIALIZER ;
+static pthread_cond_t data_ready = PTHREAD_COND_INITIALIZER ;
 
 static jack_ringbuffer_t *ringbuf ;
 static jack_port_t **output_port ;
 static jack_default_audio_sample_t ** outs ;
-const size_t sample_size = sizeof (jack_default_audio_sample_t) ;
+static const size_t sample_size = sizeof (jack_default_audio_sample_t) ;
 
 static int
 process (jack_nframes_t nframes, void * arg)
