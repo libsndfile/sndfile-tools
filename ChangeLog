@@ -1,3 +1,11 @@
+2009-12-21  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
+
+    * src/*c
+    Remove 'sndfile-' parts of file names.
+
+    * src/jackplay.c
+    Reorder JACK initialisation calls to remove click at start of playback.
+
 2009-12-14  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * configure.ac

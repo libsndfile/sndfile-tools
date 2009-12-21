@@ -204,10 +204,6 @@ main (int narg, char * args [])
 	info.client = client ;
 	info.pos = 0 ;
 
-	/* Set up callbacks. */
-	jack_set_process_callback (client, process, &info) ;
-	jack_on_shutdown (client, jack_shutdown, 0) ;
-
 	/* Allocate output ports. */
 	output_port = calloc (sndfileinfo.channels, sizeof (jack_port_t *)) ;
 	outs = calloc (sndfileinfo.channels, sizeof (jack_default_audio_sample_t *)) ;
@@ -221,6 +217,13 @@ main (int narg, char * args [])
 	/* Allocate and clear ringbuffer. */
 	ringbuf = jack_ringbuffer_create (sizeof (jack_default_audio_sample_t) * RB_SIZE) ;
 	memset (ringbuf->buf, 0, ringbuf->size) ;
+
+	/* Set up callbacks. */
+	jack_set_process_callback (client, process, &info) ;
+	jack_on_shutdown (client, jack_shutdown, 0) ;
+
+	/* Start the disk thread. */
+	pthread_create (&info.thread_id, NULL, disk_thread, &info) ;
 
 	/* Activate client. */
 	if (jack_activate (client))
@@ -237,9 +240,6 @@ main (int narg, char * args [])
 		if (jack_connect (client, jack_port_name (output_port [i]), name))
 			fprintf (stderr, "Cannot connect output port %d (%s).\n", i, name) ;
 		} ;
-
-	/* Start the disk thread. */
-	pthread_create (&info.thread_id, NULL, disk_thread, &info) ;
 
 	/* Sit in a loop, displaying the current play position. */
 	while (! info.play_done)
