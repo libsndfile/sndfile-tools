@@ -3,6 +3,10 @@
     * configure.ac
     Detect presence of libsamplerate.
 
+    * src/resample.c Makefile.am
+    Add file originally from the libsamplerate source distribution and hook
+    into build.
+
 2009-12-21  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * src/*c
