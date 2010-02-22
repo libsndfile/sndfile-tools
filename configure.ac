@@ -3,12 +3,12 @@
 dnl Require autoconf version >= 2.54)
 AC_PREREQ(2.54)
 
-AC_INIT([sndfile-tools],[1.03],[erikd@mega-nerd.com])
+AC_INIT([sndfile-tools],[1.04],[erikd@mega-nerd.com])
 
 # Put config stuff in Cfg.
 AC_CONFIG_AUX_DIR(Cfg)
 
-AC_CONFIG_SRCDIR([src/sndfile-spectrogram.c])
+AC_CONFIG_SRCDIR([src/spectrogram.c])
 AC_CANONICAL_TARGET([])
 
 AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION)
@@ -103,6 +103,21 @@ if test x$ac_cv_sndfile = x1 ; then
 else
 	ac_cv_sndfile=no
 	HAVE_SNDFILE=0
+	fi
+
+#====================================================================================
+# Check for libsamplerate.
+
+PKG_CHECK_MODULES(SAMPLERATE, samplerate >= 0.1.5, ac_cv_samplerate=1, ac_cv_samplerate=0)
+
+AC_DEFINE_UNQUOTED([HAVE_SAMPLERATE],$ac_cv_samplerate,[Set to 1 if you have libsamplerate.])
+
+if test x$ac_cv_samplerate = x1 ; then
+	ac_cv_samplerate=yes
+	HAVE_SAMPLERATE=1
+else
+	ac_cv_samplerate=no
+	HAVE_SAMPLERATE=0
 	fi
 
 #====================================================================================
@@ -219,12 +234,13 @@ AC_MSG_RESULT([
   Extra tools required for testing and examples :
 
     Found SNDFILE ................. ${ac_cv_sndfile}
+    Found SAMPLERATE .............. ${ac_cv_samplerate}
     Found FFTW .................... ${ac_cv_fftw3}
     Found CAIRO ................... ${ac_cv_cairo}
     Found JACK .................... ${ac_cv_jack}
 ])
 
-if test "x$ac_cv_sndfile$ac_cv_fftw3$ac_cv_cairo$ac_cv_jack" != "xyesyesyesyes" ; then
+if test "x$ac_cv_sndfile$ac_cv_samplerate$ac_cv_fftw3$ac_cv_cairo$ac_cv_jack" != "xyesyesyesyesyes" ; then
 	AC_MSG_RESULT([**** Error : You will need to install the missing libaries. ****])
 	echo
 	exit 1
