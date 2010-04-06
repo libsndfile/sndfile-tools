@@ -1,3 +1,8 @@
+2010-04-07  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
+
+    * src/jackplay.c
+    Use jack_client_open() instead of deprecated jack_client_new().
+
 2010-02-22  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * configure.ac
