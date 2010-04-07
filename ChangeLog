@@ -3,6 +3,9 @@
     * src/jackplay.c
     Use jack_client_open() instead of deprecated jack_client_new().
 
+    * man/sndfile-spectrogram.1
+    Fix two typos reported by Igor Murzov.
+
 2010-02-22  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * configure.ac
