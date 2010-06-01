@@ -27,6 +27,7 @@ src/config.h.in
 src/sndfile-generate-chirp
 src/sndfile-jackplay
 src/sndfile-mix-to-mono
+src/sndfile-pitch-guess
 src/sndfile-resample
 src/sndfile-spectrogram
 src/stamp-h1
