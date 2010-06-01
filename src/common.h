@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2010 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -19,7 +19,30 @@
 #include <sndfile.h>
 
 #define ARRAY_LEN(x)	((int) (sizeof (x) / sizeof (x [0])))
+
 #define MAX(x,y)		((x) > (y) ? (x) : (y))
 #define MIN(x,y)		((x) < (y) ? (x) : (y))
+
+
+
+/*
+** Inspiration : http://sourcefrog.net/weblog/software/languages/C/unused.html
+*/
+#ifdef UNUSED
+#elif defined (__GNUC__)
+#	define UNUSED(x) UNUSED_ ## x __attribute__ ((unused))
+#elif defined (__LCLINT__)
+#	define UNUSED(x) /*@unused@*/ x
+#else
+#	define UNUSED(x) x
+#endif
+
+#ifdef __GNUC__
+#	define WARN_UNUSED	__attribute__ ((warn_unused_result))
+#else
+#	define WARN_UNUSED
+#endif
+
+
 
 sf_count_t sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen) ;
