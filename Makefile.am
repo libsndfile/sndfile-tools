@@ -37,7 +37,7 @@ src_sndfile_jackplay_LDADD = $(SNDFILE_LIBS) $(JACK_LIBS)
 src_sndfile_resample_SOURCES = src/resample.c
 src_sndfile_resample_LDADD = $(SNDFILE_LIBS) $(SAMPLERATE_LIBS)
 
-src_sndfile_pitch_guess_SOURCES = src/pitch-guess.c src/window.c
+src_sndfile_pitch_guess_SOURCES = src/pitch-guess.c src/window.c src/common.c
 src_sndfile_pitch_guess_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS)
 
 #=========================================================================================

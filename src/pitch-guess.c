@@ -39,15 +39,38 @@
 
 #define ARRAY_LEN(x)	((int) (sizeof (x) / sizeof (x [0])))
 
-#define LOG_FLOOR		40.0
+#define LOG_FLOOR		10.0	/* decibels */
 
 static void usage_exit (const char *progname) ;
-static void pitch_guess (SNDFILE * file, const SF_INFO * sfinfo) ;
+static void pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length) ;
+
+typedef struct
+{	const char* note ;
+	char octave ;
+	double freq ;
+} pitch_t ;
+
+static const pitch_t pitch_table [] =
+{	{ "C",	4, 261.6255653006 },
+	{ "C#", 4, 277.1826309769 },
+	{ "D",	4, 293.6647679174 },
+	{ "D#", 4, 311.1269837221 },
+	{ "E",	4, 329.6275569129 },
+	{ "F",	4, 349.2282314330 },
+	{ "F#", 4, 369.9944227116 },
+	{ "G",	4, 391.9954359817 },
+	{ "G#", 4, 415.3046975799 },
+	{ "A",	4, 440.0000000000 },
+	{ "A#", 4, 466.1637615181 },
+	{ "B",	4, 493.8833012561 },
+	{ "C",	5, 523.2511306012 },
+} ;
 
 int
 main (int argc, char *argv [])
 {	SNDFILE	*file = NULL ;
 	SF_INFO sfinfo ;
+	int analysis_length ;
 
 	if (argc != 2)
 		usage_exit (argv [0]) ;
@@ -57,13 +80,16 @@ main (int argc, char *argv [])
 		exit (1) ;
 		} ;
 
+	/* Want at least 6 cycles of 40Hz at current sample rate. */
+	analysis_length = 6 * sfinfo.samplerate / 40 ;
+
 	if (sfinfo.channels != 1)
 		puts ("\nSorry, this only works with monophonic files.\n") ;
-	else if (sfinfo.frames < FFT_LEN)
+	else if (sfinfo.frames < analysis_length)
 		printf ("\nSorry, this file only has %" PRId64 " frames and we need at least %d frames.\n",
-				sfinfo.frames, FFT_LEN) ;
+				sfinfo.frames, analysis_length) ;
 	else
-		pitch_guess (file, &sfinfo) ;
+		pitch_guess (file, &sfinfo, analysis_length) ;
 
 	sf_close (file) ;
 
@@ -96,24 +122,9 @@ usage_exit (const char *progname)
 	exit (1) ;
 } /* usage_exit */
 
-static double
-calc_magnitude (const double * freq, int freqlen, double * magnitude)
-{
-	int k ;
-	double max = 0.0 ;
-
-	for (k = 1 ; k < freqlen / 2 ; k++)
-	{	magnitude [k] = sqrt (freq [k] * freq [k] + freq [freqlen - k - 1] * freq [freqlen - k - 1]) ;
-		max = MAX (max, magnitude [k]) ;
-		} ;
-	magnitude [0] = 0.0 ;
-
-	return max ;
-} /* calc_magnitude */
-
 
 static void
-read_with_window (SNDFILE * file, double * data, int datalen)
+read_dc_block_and_window (SNDFILE * file, double * data, int datalen)
 {
 	static double window [FFT_LEN] ;
 	static int window_len = 0 ;
@@ -126,7 +137,7 @@ read_with_window (SNDFILE * file, double * data, int datalen)
 		window_len = datalen ;
 		if (datalen > ARRAY_LEN (window))
 		{
-			printf ("%s : datalen >  MAX_HEIGHT\n", __func__) ;
+			printf ("%s : datalen > ARRAY_LEN (window)\n", __func__) ;
 			exit (1) ;
 		} ;
 
@@ -135,10 +146,37 @@ read_with_window (SNDFILE * file, double * data, int datalen)
 
 	for (k = 0 ; k < datalen ; k++)
 		data [k] *= window [k] ;
-} /* read_with_window */
+} /* read_dc_block_and_window */
+
+static inline int
+is_power2 (int x)
+{	return (x > 0 && (x & (x - 1)) == 0) ;
+} /* is_power2 */
+
+static inline double
+freq_of_fft_bin (int bin, int fftlen, int samplerate)
+{	return (bin * samplerate) / (1.0 * fftlen) ;
+} /* freq_of_fft_bin */
 
 static void
-pitch_guess (SNDFILE * file, const SF_INFO * sfinfo)
+check_peaks (const double * mag, int mlen)
+{	int k ;
+	int greater = 0, less = 0 ;
+
+	for (k = 1 ; k < mlen ; k++)
+	{	if (mag [k] >= 0.5)
+			greater ++ ;
+		else
+			less ++ ;
+
+		if (k >= 128 && is_power2 (k) && 3 * greater > less)
+			fprintf (stderr, "is_power2 %d  (%d, %d)\n", k, greater, less) ;
+		} ;
+
+} /* check_peaks */
+
+static void
+pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
 {	const double log_floor = LOG_FLOOR ;
 	const double noise_floor = pow (10.0, -LOG_FLOOR / 20.0) ;
 
@@ -147,7 +185,7 @@ pitch_guess (SNDFILE * file, const SF_INFO * sfinfo)
 	static double mag [FFT_LEN / 2] ;
 	fftw_plan plan ;
 	double max ;
-	int k, analysis_length ;
+	int k ;
 
 	memset (audio, 0, sizeof (audio)) ;
 
@@ -157,11 +195,8 @@ pitch_guess (SNDFILE * file, const SF_INFO * sfinfo)
 		exit (1) ;
 		} ;
 
-	/* Want at least 4 cycles of 40Hz at current sample rate. */
-	analysis_length = 4 * sfinfo->samplerate / 40 ;
-
-	sf_seek (file, sfinfo->frames / 5, SEEK_CUR) ;
-	read_with_window (file, audio, ARRAY_LEN (audio) / 16) ;
+	sf_seek (file, sfinfo->frames / 8, SEEK_CUR) ;
+	read_dc_block_and_window (file, audio, analysis_length) ;
 
 	fftw_execute (plan) ;
 	max = calc_magnitude (freq, ARRAY_LEN (freq), mag) ;
@@ -172,6 +207,8 @@ pitch_guess (SNDFILE * file, const SF_INFO * sfinfo)
 		mag [k] = (log_floor + mag [k]) / log_floor ;
 		printf ("% 10.8f\n", mag [k]) ;
 		} ;
+
+	check_peaks (mag, ARRAY_LEN (mag)) ;
 
 } /* pitch_guess */
 
