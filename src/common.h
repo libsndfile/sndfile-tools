@@ -46,3 +46,5 @@
 
 
 sf_count_t sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen) ;
+
+double calc_magnitude (const double * freq, int freqlen, double * magnitude) ;

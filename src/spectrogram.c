@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2010 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -178,21 +178,6 @@ apply_window (double * data, int datalen)
 
 	return ;
 } /* apply_window */
-
-static double
-calc_magnitude (const double * freq, int freqlen, double * magnitude)
-{
-	int k ;
-	double max = 0.0 ;
-
-	for (k = 1 ; k < freqlen / 2 ; k++)
-	{	magnitude [k] = sqrt (freq [k] * freq [k] + freq [freqlen - k - 1] * freq [freqlen - k - 1]) ;
-		max = MAX (max, magnitude [k]) ;
-		} ;
-	magnitude [0] = 0.0 ;
-
-	return max ;
-} /* calc_magnitude */
 
 static void
 render_spectrogram (cairo_surface_t * surface, double spec_floor_db, float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, double left, double top, double width, double height)

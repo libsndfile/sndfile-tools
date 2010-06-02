@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2010 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -18,6 +18,7 @@
 #include "config.h"
 
 #include <string.h>
+#include <math.h>
 
 #include "common.h"
 
@@ -65,4 +66,20 @@ sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen)
 
 	return dataout ;
 } /* sfx_mix_mono_read_double */
+
+
+double
+calc_magnitude (const double * freq, int freqlen, double * magnitude)
+{
+	int k ;
+	double max = 0.0 ;
+
+	for (k = 1 ; k < freqlen / 2 ; k++)
+	{	magnitude [k] = sqrt (freq [k] * freq [k] + freq [freqlen - k - 1] * freq [freqlen - k - 1]) ;
+		max = MAX (max, magnitude [k]) ;
+		} ;
+	magnitude [0] = 0.0 ;
+
+	return max ;
+} /* calc_magnitude */
 
