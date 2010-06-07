@@ -6,7 +6,7 @@ EXTRA_DIST = M4/lrint.m4 M4/lrintf.m4 doc/index.html doc/sweep.png $(man_MANS)
 
 bin_PROGRAMS = src/sndfile-generate-chirp src/sndfile-spectrogram \
 	src/sndfile-mix-to-mono src/sndfile-jackplay src/sndfile-resample \
-	src/sndfile-pitch-guess
+	src/sndfile-pitch-infer
 
 noinst_PROGRAMS = src/kaiser_window_test
 
@@ -37,8 +37,8 @@ src_sndfile_jackplay_LDADD = $(SNDFILE_LIBS) $(JACK_LIBS)
 src_sndfile_resample_SOURCES = src/resample.c
 src_sndfile_resample_LDADD = $(SNDFILE_LIBS) $(SAMPLERATE_LIBS)
 
-src_sndfile_pitch_guess_SOURCES = src/pitch-guess.c src/window.c src/common.c
-src_sndfile_pitch_guess_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS)
+src_sndfile_pitch_infer_SOURCES = src/pitch-infer.c src/window.c src/common.c
+src_sndfile_pitch_infer_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS)
 
 #=========================================================================================
 # The make check targets.
