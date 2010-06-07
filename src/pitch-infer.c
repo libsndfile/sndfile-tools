@@ -185,10 +185,20 @@ check_peaks (const double * mag, int mlen)
 } /* check_peaks */
 
 typedef struct
-{	int start, end ;
+{	int start, end, width ;
 	double bin_mean ;
 	double freq ;
+	double mag_max ;
+	double freq_mult ;
 } peak_t ;
+
+typedef struct
+{	peak_t	peaks [12] ;
+
+	int		samplerate ;
+	int		fft_len ;
+	double	fundamental ;
+} peak_data_t ;
 
 enum
 {	STATE_TROUGH = 1,
@@ -214,13 +224,13 @@ str_of_state (int state)
 	return "BAD_STATE" ;
 } /* str_of_state */
 
-#define	THRESHOLD 0.5
+#define	MAG_THRESHOLD 0.5
 
 static inline int
 mag_func (double mag)
 {	if (mag < 0.01)
 		return MAG_ZERO ;
-	if (mag >= THRESHOLD)
+	if (mag >= MAG_THRESHOLD)
 		return MAG_ABOVE ;
 	return MAG_BELOW ;
 } /* mag_func */
@@ -238,9 +248,7 @@ calc_freq (const double * mag, int mlen, peak_t * peak)
 	for (k = peak->start ; k <= peak->end ; k++)
 	{	sum += mag [k] ;
 		wsum += k * mag [k] ;
-		}
-
-	// sum (x' .* a (x)) / mean (a (x)) / length (x)
+		} ;
 
 	mean = sum / (1.0 * length) ;
 
@@ -275,12 +283,28 @@ find_peaks (const double * mag, int mlen, peak_t * peaks, int plen)
 
 			case PEAK_FUNC (STATE_PEAK, MAG_ZERO) :
 				peaks [pcount].end = k ;
-				while (peaks [pcount].end > peaks [pcount].start && mag [peaks [pcount].end] < THRESHOLD)
+				while (peaks [pcount].end > peaks [pcount].start && mag [peaks [pcount].end] < MAG_THRESHOLD)
 					peaks [pcount].end -- ;
+
+				peaks [pcount].width = peaks [pcount].end - peaks [pcount].start + 1 ;
+
 				if (peaks [pcount].end - peaks [pcount].start > 1)
-				{	calc_freq (mag, mlen, peaks + pcount) ;
-					pcount ++ ;
+				{	int m ;
+
+					calc_freq (mag, mlen, peaks + pcount) ;
+
+					for (m = peaks [pcount].start ; m <= peaks [pcount].end ; m++)
+						peaks [pcount].mag_max = MAX (peaks [pcount].mag_max, mag [m]) ;
+
+					/* Throw away peaks that are too wide */
+					if (pcount >= 1 && peaks [pcount].width < 2 * peaks [0].width)
+						pcount ++ ;
+
+					/* Always accept the first peak. */
+					if (pcount < 1)
+						pcount ++ ;
 					} ;
+
 				state = STATE_TROUGH ;
 				break ;
 
@@ -293,6 +317,48 @@ find_peaks (const double * mag, int mlen, peak_t * peaks, int plen)
 	return pcount ;
 } /* find_peaks */
 
+
+static void
+find_fundamental (peak_data_t * pdata, int plen)
+{	int k, multiplier = 1 ;
+
+	pdata->peaks [0].freq = pdata->peaks [0].bin_mean * pdata->samplerate / (1.0 * pdata->fft_len) ;
+	pdata->peaks [0].freq_mult = 1.0 ;
+
+	if (plen <= 1)
+	{	pdata->fundamental = pdata->peaks [0].freq ;
+		return ;
+		} ;
+
+	for (k = 1 ; k < plen ; k++)
+	{	pdata->peaks [k].freq = pdata->peaks [k].bin_mean * pdata->samplerate / (1.0 * pdata->fft_len) ;
+		pdata->peaks [k].freq_mult = pdata->peaks [k].freq / pdata->peaks [0].freq ;
+		} ;
+
+	for (k = 1 ; multiplier == 1 && k < plen ; k++)
+	{	double fa = pdata->peaks [k].freq_mult ;
+		double fb = round (fa) ;
+		int m ;
+
+		if (fabs (fa - fb) < 0.01)
+			continue ;
+
+		for (m = 2 ; multiplier == 1 && m <= 3 ; m++)
+		{	fa = pdata->peaks [k].freq_mult * m ;
+			fb = round (fa) ;
+
+			if (fabs (fa - fb) < 0.01)
+				multiplier = m ;
+			} ;
+		} ;
+
+	if (multiplier > 1)
+		for (k = 0 ; k < plen ; k++)
+			pdata->peaks [k].freq_mult *= multiplier ;
+
+	return ;
+} /* find_fundamental */
+
 static void
 pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
 {	const double log_floor = LOG_FLOOR ;
@@ -302,12 +368,14 @@ pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
 	static double freq [FFT_LEN] ;
 	static double mag [FFT_LEN / 2] ;
 	fftw_plan plan ;
-	peak_t peaks [10] ;
+	peak_data_t peak_data ;
 	double max = 0.0, mult = 1.0 ;
 	int k, zero_bins, pcount ;
 
 	memset (audio, 0, sizeof (audio)) ;
-	memset (peaks, 0, sizeof (peaks)) ;
+	memset (&peak_data, 0, sizeof (peak_data)) ;
+	peak_data.samplerate = sfinfo->samplerate ;
+	peak_data.fft_len = FFT_LEN ;
 
 	plan = fftw_plan_r2r_1d (FFT_LEN, audio, freq, FFTW_R2HC, FFTW_MEASURE | FFTW_PRESERVE_INPUT) ;
 	if (plan == NULL)
@@ -340,13 +408,16 @@ pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
 		} ;
 
 	check_peaks (mag, ARRAY_LEN (mag)) ;
-	pcount = find_peaks (mag, ARRAY_LEN (mag), peaks, ARRAY_LEN (peaks)) ;
+	pcount = find_peaks (mag, ARRAY_LEN (mag), peak_data.peaks, ARRAY_LEN (peak_data.peaks)) ;
 
 	fprintf (stderr, "\npeaks : %d\n", pcount) ;
+
+	find_fundamental (&peak_data, pcount) ;
+
 	for (k = 0 ; k < pcount ; k++)
-	{	peaks [k].freq = (peaks [k].bin_mean * sfinfo->samplerate) / (1.0 * FFT_LEN) ;
-		fprintf (stderr, "%2d    %4d - %4d    %12.6f  ->  %12.6f\n",
-				k, peaks [k].start, peaks [k].end, peaks [k].bin_mean, peaks [k].freq) ;
+	{	fprintf (stderr, "%2d    %4d - %4d       %12.6f  ->  %12.6f       %f    %15.12f\n", k,
+				peak_data.peaks [k].start, peak_data.peaks [k].end, peak_data.peaks [k].bin_mean,
+				peak_data.peaks [k].freq, peak_data.peaks [k].mag_max, peak_data.peaks [k].freq_mult) ;
 		} ;
 
 } /* pitch_guess */
