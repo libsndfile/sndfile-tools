@@ -27,6 +27,7 @@
 #include <string.h>
 #include <inttypes.h>
 #include <math.h>
+#include <assert.h>
 
 #if (HAVE_FFTW3)
 
@@ -39,7 +40,7 @@
 
 #define ARRAY_LEN(x)	((int) (sizeof (x) / sizeof (x [0])))
 
-#define LOG_FLOOR		10.0	/* decibels */
+#define LOG_FLOOR		15.0	/* decibels */
 
 static void usage_exit (const char *progname) ;
 static void pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length) ;
@@ -146,6 +147,8 @@ read_dc_block_and_window (SNDFILE * file, double * data, int datalen)
 
 	for (k = 0 ; k < datalen ; k++)
 		data [k] *= window [k] ;
+
+	return ;
 } /* read_dc_block_and_window */
 
 static inline int
@@ -157,6 +160,12 @@ static inline double
 freq_of_fft_bin (int bin, int fftlen, int samplerate)
 {	return (bin * samplerate) / (1.0 * fftlen) ;
 } /* freq_of_fft_bin */
+
+static inline int
+fft_bin_of_freq (double freq, int fftlen, int samplerate)
+{	return lrint ((freq * fftlen) / (1.0 * samplerate)) ;
+} /* fft_bin_of_freq */
+
 
 static void
 check_peaks (const double * mag, int mlen)
@@ -175,6 +184,115 @@ check_peaks (const double * mag, int mlen)
 
 } /* check_peaks */
 
+typedef struct
+{	int start, end ;
+	double bin_mean ;
+	double freq ;
+} peak_t ;
+
+enum
+{	STATE_TROUGH = 1,
+	STATE_PEAK
+} ;
+
+enum
+{	MAG_ZERO,
+	MAG_BELOW,
+	MAG_ABOVE
+} ;
+
+
+static const char *
+str_of_state (int state)
+{
+#define	CASE_NAME(x)	case x : return #x ; break ;
+	switch (state)
+	{	CASE_NAME (STATE_TROUGH) ;
+		CASE_NAME (STATE_PEAK) ;
+		default : break ;
+		} ;
+	return "BAD_STATE" ;
+} /* str_of_state */
+
+#define	THRESHOLD 0.5
+
+static inline int
+mag_func (double mag)
+{	if (mag < 0.01)
+		return MAG_ZERO ;
+	if (mag >= THRESHOLD)
+		return MAG_ABOVE ;
+	return MAG_BELOW ;
+} /* mag_func */
+
+
+static void
+calc_freq (const double * mag, int mlen, peak_t * peak)
+{	double sum = 0.0, wsum = 0.0, mean ;
+	int k, length ;
+
+	assert (peak->end < mlen) ;
+	assert (peak->start < peak->end) ;
+
+	length = peak->end - peak->start + 1 ;
+	for (k = peak->start ; k <= peak->end ; k++)
+	{	sum += mag [k] ;
+		wsum += k * mag [k] ;
+		}
+
+	// sum (x' .* a (x)) / mean (a (x)) / length (x)
+
+	mean = sum / (1.0 * length) ;
+
+	peak->bin_mean = wsum / mean / length ;
+} /* calc_freq */
+
+
+#define	PEAK_FUNC(state,mag)	((state) + ((mag) << 8))
+
+
+static int
+find_peaks (const double * mag, int mlen, peak_t * peaks, int plen)
+{	int k, pcount = 0, state = STATE_TROUGH ;
+
+	peaks [0].start = 0 ;
+
+	for (k = 0 ; k < mlen && pcount < plen ; k++)
+	{	switch (PEAK_FUNC (state, mag_func (mag [k])))
+		{
+			case PEAK_FUNC (STATE_TROUGH, MAG_BELOW) :
+			case PEAK_FUNC (STATE_TROUGH, MAG_ZERO) :
+				break ;
+
+			case PEAK_FUNC (STATE_TROUGH, MAG_ABOVE) :
+				peaks [pcount].start = k ;
+				state = STATE_PEAK ;
+				break ;
+
+			case PEAK_FUNC (STATE_PEAK, MAG_ABOVE) :
+			case PEAK_FUNC (STATE_PEAK, MAG_BELOW) :
+				break ;
+
+			case PEAK_FUNC (STATE_PEAK, MAG_ZERO) :
+				peaks [pcount].end = k ;
+				while (peaks [pcount].end > peaks [pcount].start && mag [peaks [pcount].end] < THRESHOLD)
+					peaks [pcount].end -- ;
+				if (peaks [pcount].end - peaks [pcount].start > 1)
+				{	calc_freq (mag, mlen, peaks + pcount) ;
+					pcount ++ ;
+					} ;
+				state = STATE_TROUGH ;
+				break ;
+
+			default :
+				printf ("%s : bad state (%s, %f)\n", __func__, str_of_state (state), mag [k]) ;
+				exit (1) ;
+			} ;
+		} ;
+
+	return pcount ;
+} /* find_peaks */
+
 static void
 pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
 {	const double log_floor = LOG_FLOOR ;
@@ -184,10 +302,12 @@ pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
 	static double freq [FFT_LEN] ;
 	static double mag [FFT_LEN / 2] ;
 	fftw_plan plan ;
-	double max ;
-	int k ;
+	peak_t peaks [10] ;
+	double max = 0.0, mult = 1.0 ;
+	int k, zero_bins, pcount ;
 
 	memset (audio, 0, sizeof (audio)) ;
+	memset (peaks, 0, sizeof (peaks)) ;
 
 	plan = fftw_plan_r2r_1d (FFT_LEN, audio, freq, FFTW_R2HC, FFTW_MEASURE | FFTW_PRESERVE_INPUT) ;
 	if (plan == NULL)
@@ -199,7 +319,18 @@ pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
 	read_dc_block_and_window (file, audio, analysis_length) ;
 
 	fftw_execute (plan) ;
-	max = calc_magnitude (freq, ARRAY_LEN (freq), mag) ;
+	calc_magnitude (freq, ARRAY_LEN (freq), mag) ;
+
+	zero_bins = fft_bin_of_freq (20.0, FFT_LEN, sfinfo->samplerate) ;
+	for (k = 0 ; k < ARRAY_LEN (mag) ; k++)
+	{	if (k < zero_bins)
+			mag [k] = 0.0 ;
+		else
+		{	mag [k] *= mult ;
+			mult *= 0.9998 ;
+			} ;
+		max = MAX (max, mag [k]) ;
+		} ;
 
 	for (k = 0 ; k < ARRAY_LEN (mag) ; k++)
 	{	mag [k] /= max ;
@@ -209,6 +340,14 @@ pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
 		} ;
 
 	check_peaks (mag, ARRAY_LEN (mag)) ;
+	pcount = find_peaks (mag, ARRAY_LEN (mag), peaks, ARRAY_LEN (peaks)) ;
+
+	fprintf (stderr, "\npeaks : %d\n", pcount) ;
+	for (k = 0 ; k < pcount ; k++)
+	{	peaks [k].freq = (peaks [k].bin_mean * sfinfo->samplerate) / (1.0 * FFT_LEN) ;
+		fprintf (stderr, "%2d    %4d - %4d    %12.6f  ->  %12.6f\n",
+				k, peaks [k].start, peaks [k].end, peaks [k].bin_mean, peaks [k].freq) ;
+		} ;
 
 } /* pitch_guess */
 
