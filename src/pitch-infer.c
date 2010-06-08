@@ -36,7 +36,7 @@
 #include "common.h"
 #include "window.h"
 
-#define	FFT_LEN			(1 << 16)
+#define	FFT_LEN			(1 << 15)
 
 #define ARRAY_LEN(x)	((int) (sizeof (x) / sizeof (x [0])))
 
@@ -198,6 +198,7 @@ typedef struct
 	int		samplerate ;
 	int		fft_len ;
 	double	fundamental ;
+	double	std_dev ;
 } peak_data_t ;
 
 enum
@@ -320,7 +321,8 @@ find_peaks (const double * mag, int mlen, peak_t * peaks, int plen)
 
 static void
 find_fundamental (peak_data_t * pdata, int plen)
-{	int k, multiplier = 1 ;
+{	double min, max, divisor ;
+	int k, multiplier = 1 ;
 
 	pdata->peaks [0].freq = pdata->peaks [0].bin_mean * pdata->samplerate / (1.0 * pdata->fft_len) ;
 	pdata->peaks [0].freq_mult = 1.0 ;
@@ -355,6 +357,26 @@ find_fundamental (peak_data_t * pdata, int plen)
 	if (multiplier > 1)
 		for (k = 0 ; k < plen ; k++)
 			pdata->peaks [k].freq_mult *= multiplier ;
+
+	pdata->fundamental = 0.0 ;
+	min = max = pdata->peaks [0].freq / pdata->peaks [0].freq_mult ;
+	divisor = 0 ;
+	for (k = 0 ; k < plen ; k++)
+	{	double freq = pdata->peaks [k].freq / round (pdata->peaks [k].freq_mult) ;
+		min = MIN (min, freq) ;
+		max = MIN (max, freq) ;
+		pdata->fundamental += freq * pdata->peaks [k].mag_max ;
+		divisor += pdata->peaks [k].mag_max ;
+		} ;
+
+	pdata->fundamental /= divisor ;
+
+	for (k = 0 ; k < plen ; k++)
+	{	double diff = pdata->fundamental - pdata->peaks [k].freq / round (pdata->peaks [k].freq_mult) ;
+		pdata->std_dev += diff * diff ;
+		} ;
+
+	pdata->std_dev = sqrt (pdata->std_dev) ;
 
 	return ;
 } /* find_fundamental */
@@ -415,10 +437,13 @@ pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
 	find_fundamental (&peak_data, pcount) ;
 
 	for (k = 0 ; k < pcount ; k++)
-	{	fprintf (stderr, "%2d    %4d - %4d       %12.6f  ->  %12.6f       %f    %15.12f\n", k,
+	{	fprintf (stderr, "%2d : %4d - %4d       %12.6f  ->  %12.6f       %f    %15.12f  ->  %12.8f\n", k,
 				peak_data.peaks [k].start, peak_data.peaks [k].end, peak_data.peaks [k].bin_mean,
-				peak_data.peaks [k].freq, peak_data.peaks [k].mag_max, peak_data.peaks [k].freq_mult) ;
+				peak_data.peaks [k].freq, peak_data.peaks [k].mag_max, peak_data.peaks [k].freq_mult,
+				peak_data.peaks [k].freq / round (peak_data.peaks [k].freq_mult)) ;
 		} ;
+
+	fprintf (stderr, "fundamental : %f  (std. dev. = %f)\n\n", peak_data.fundamental, peak_data.std_dev) ;
 
 } /* pitch_guess */
 
