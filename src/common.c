@@ -53,7 +53,7 @@ sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen)
 			data [dataout + k] = mix / info.channels ;
 			} ;
 
-		dataout += this_read ;
+		dataout += frames_read ;
 		} ;
 
 	return dataout ;

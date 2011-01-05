@@ -1,3 +1,13 @@
+2011-01-11  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
+
+    * configure.ac
+    Add AM_SILENT_RULES and other tweaks.
+
+    * src/common.c
+    Fix bug in sfx_mix_mono_read_double() where a bunch of crap got appended to
+    the end of the mixed down file. Thanks to Tom Szilagyi for the bug report.
+    Remove cruft.
+
 2010-04-07  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * src/jackplay.c
