@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2010 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -27,15 +27,7 @@ sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen)
 {
 	SF_INFO info ;
 
-#if HAVE_SF_GET_INFO
-	/*
-	**	The function sf_get_info was in a number of 1.0.18 pre-releases but was removed
-	**	before 1.0.18 final and replaced with the SFC_GET_CURRENT_SF_INFO command.
-	*/
-	sf_get_info (file, &info) ;
-#else
 	sf_command (file, SFC_GET_CURRENT_SF_INFO, &info, sizeof (info)) ;
-#endif
 
 	if (info.channels == 1)
 		return sf_read_double (file, data, datalen) ;
@@ -46,7 +38,7 @@ sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen)
 
 	while (dataout < datalen)
 	{	int this_read ;
-		
+
 		this_read = MIN (ARRAY_LEN (multi_data) / info.channels, datalen) ;
 
 		frames_read = sf_readf_double (file, multi_data, this_read) ;
