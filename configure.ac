@@ -1,9 +1,10 @@
-# Copyright (C) 2002-2004 Erik de Castro Lopo (erikd AT mega-nerd DOT com).
+# Copyright (C) 2002-2011 Erik de Castro Lopo (erikd AT mega-nerd DOT com).
 
 dnl Require autoconf version >= 2.54)
 AC_PREREQ(2.54)
 
-AC_INIT([sndfile-tools],[1.04],[erikd@mega-nerd.com])
+AC_INIT([sndfile-tools],[1.04],[sndfile@mega-nerd.com],
+		[sndfile-tools],[http://www.mega-nerd.com/libsndfile/tools/])
 
 # Put config stuff in Cfg.
 AC_CONFIG_AUX_DIR(Cfg)
@@ -11,8 +12,11 @@ AC_CONFIG_AUX_DIR(Cfg)
 AC_CONFIG_SRCDIR([src/spectrogram.c])
 AC_CANONICAL_TARGET([])
 
+AC_CONFIG_MACRO_DIR([M4])
+AM_CONFIG_HEADER([src/config.h])
+
 AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION)
-AM_CONFIG_HEADER(src/config.h)
+AM_SILENT_RULES([yes])
 
 dnl Add parameters for aclocal
 AC_SUBST(ACLOCAL_AMFLAGS, "-I M4")
