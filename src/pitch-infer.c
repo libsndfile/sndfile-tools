@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2010 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2010-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -342,14 +342,14 @@ find_fundamental (peak_data_t * pdata, int plen)
 		double fb = round (fa) ;
 		int m ;
 
-		if (fabs (fa - fb) < 0.01)
+		if (fabs (fa - fb) / fa < 0.05)
 			continue ;
 
 		for (m = 2 ; multiplier == 1 && m <= 3 ; m++)
 		{	fa = pdata->peaks [k].freq_mult * m ;
 			fb = round (fa) ;
 
-			if (fabs (fa - fb) < 0.01)
+			if (fabs (fa - fb) / fa < 0.05)
 				multiplier = m ;
 			} ;
 		} ;
@@ -382,7 +382,7 @@ find_fundamental (peak_data_t * pdata, int plen)
 } /* find_fundamental */
 
 static void
-pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
+pitch_guess_frame (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
 {	const double log_floor = LOG_FLOOR ;
 	const double noise_floor = pow (10.0, -LOG_FLOOR / 20.0) ;
 
@@ -405,7 +405,6 @@ pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
 		exit (1) ;
 		} ;
 
-	sf_seek (file, sfinfo->frames / 8, SEEK_CUR) ;
 	read_dc_block_and_window (file, audio, analysis_length) ;
 
 	fftw_execute (plan) ;
@@ -445,8 +444,20 @@ pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
 
 	fprintf (stderr, "fundamental : %f  (std. dev. = %f)\n\n", peak_data.fundamental, peak_data.std_dev) ;
 
-} /* pitch_guess */
+} /* pitch_guess_frame */
 
+static void
+pitch_guess (SNDFILE * file, const SF_INFO * sfinfo, int analysis_length)
+{	int k, frame_count = 12 ;
+
+	fputs ("--------------------------------", stderr) ;
+
+	for (k = 1 ; k <= frame_count ; k++)
+	{	sf_seek (file, (k * sfinfo->frames) / (frame_count + 2) , SEEK_SET) ;
+		pitch_guess_frame (file, sfinfo, analysis_length) ;
+		} ;
+
+} /* pitch_guess */
 /*==============================================================================
 */
 
