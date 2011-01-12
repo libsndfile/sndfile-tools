@@ -1,3 +1,8 @@
+2011-01-12  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
+
+    * src/*.[ch]
+    Update copyright years.
+
 2011-01-11  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * configure.ac

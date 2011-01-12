@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -76,7 +76,7 @@ static void
 mix_to_mono (SNDFILE * infile, SNDFILE * outfile)
 {	double buffer [1024] ;
 	sf_count_t count ;
-	
+
 	while ((count = sfx_mix_mono_read_double (infile, buffer, ARRAY_LEN (buffer))) > 0)
 		sf_write_double (outfile, buffer, count) ;
 

@@ -5,10 +5,10 @@ AUTOMAKE_OPTIONS = subdir-objects
 EXTRA_DIST = M4/lrint.m4 M4/lrintf.m4 doc/index.html doc/sweep.png $(man_MANS)
 
 bin_PROGRAMS = src/sndfile-generate-chirp src/sndfile-spectrogram \
-	src/sndfile-mix-to-mono src/sndfile-jackplay src/sndfile-resample \
-	src/sndfile-pitch-infer
+	src/sndfile-mix-to-mono src/sndfile-jackplay src/sndfile-resample
 
-noinst_PROGRAMS = src/kaiser_window_test
+# Test programs or programs not yet working.
+noinst_PROGRAMS = src/kaiser_window_test src/sndfile-pitch-infer
 
 INCLUDES = $(SNDFILE_CFLAGS) $(FFTW3_CFLAGS) $(CAIRO_CFLAGS) $(JACK_CFLAGS) \
 			$(SAMPLERATE_CFLAGS)

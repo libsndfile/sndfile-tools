@@ -1,5 +1,5 @@
 /*
-** Copyright (c) 2007-2010 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (c) 2007-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2007 Jonatan Liljedahl <lijon@kymatica.com>
 **
 ** This program is free software ; you can redistribute it and/or modify

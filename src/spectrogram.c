@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2010 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -619,7 +619,7 @@ usage_exit (const char * argv0, int error)
 	puts (
 		"    Options:\n"
 		"        --dyn-range=<number>   : Dynamic range (ie 100 for 100dB range)\n"
-		"        --no-border            : Drop the border, scales, heat map and title\n" 
+		"        --no-border            : Drop the border, scales, heat map and title\n"
 		/*-"        --log-freq             : Use a logarithmic frquency scale\n" -*/
 		) ;
 
