@@ -3,6 +3,9 @@
     * src/*.[ch]
     Update copyright years.
 
+    * src/jackplay.c
+    Add ability to play a file in a loop.
+
 2011-01-11  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * configure.ac

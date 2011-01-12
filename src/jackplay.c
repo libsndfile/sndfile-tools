@@ -46,6 +46,9 @@ typedef struct _thread_info
 	volatile int can_process ;
 	volatile int read_done ;
 	volatile int play_done ;
+
+	volatile int loop_count ;
+	volatile int current_loop ;
 } thread_info_t ;
 
 static pthread_mutex_t disk_thread_lock = PTHREAD_MUTEX_INITIALIZER ;
@@ -124,7 +127,13 @@ disk_thread (void *arg)
 			} ;
 
 		if (read_frames == 0)
-			break ; /* end of file? */
+		{	info->current_loop ++ ;
+
+			if (info->loop_count >= 1 && info->current_loop >= info->loop_count)
+				break ; /* end of file? */
+
+			sf_seek (info->sndfile, 0, SEEK_SET) ;
+			}
 
 		jack_ringbuffer_write_advance (ringbuf, read_frames * bytes_per_frame) ;
 
@@ -156,20 +165,44 @@ print_time (jack_nframes_t pos, int jack_sr)
 } /* print_time */
 
 int
-main (int narg, char * args [])
+main (int argc, char * argv [])
 {
 	SNDFILE *sndfile ;
 	SF_INFO sndfileinfo ;
+	const char * filename ;
 	jack_client_t *client ;
 	thread_info_t info ;
-	int i, jack_sr ;
+	int i, jack_sr, loop_count = 1 ;
 
-	if (narg < 2)
-	{	fprintf (stderr, "no soundfile given\n") ;
+	if (argc < 2 || strcmp (argv [0], "--help") == 0)
+	{	const char *progname = argv [0], *cptr ;
+
+		if ((cptr = strrchr (progname, '/')) != NULL)
+			progname = cptr + 1 ;
+
+		fprintf (stderr, "\n"
+			"Usage : %s [options] <input sound file>\n"
+			"\n"
+			"  Where [options] is one of:\n"
+			"\n"
+			"    --loop=<count>   : Loop the file <count> times (0 for infinite).\n"
+			"    --help           : This help message.\n"
+			"\n"
+			"Using %s.\n"
+			"\n",
+			progname, sf_version_string ()) ;
+
 		return 1 ;
 		} ;
 
-	// create jack client
+	if (argc == 3 && strstr (argv [1], "--loop=") == argv [1])
+	{	loop_count = strtol (argv [1] + 7, NULL, 10) ;
+		filename = argv [2] ;
+		}
+	else
+		filename = argv [1] ;
+
+	/* Create jack client */
 	if ((client = jack_client_open ("jackplay", JackNullOption | JackNoStartServer, NULL)) == 0)
 	{
 		fprintf (stderr, "Jack server not running?\n") ;
@@ -180,16 +213,20 @@ main (int narg, char * args [])
 
 	/* Open the soundfile. */
 	sndfileinfo.format = 0 ;
-	sndfile = sf_open (args [1], SFM_READ, &sndfileinfo) ;
+	sndfile = sf_open (filename, SFM_READ, &sndfileinfo) ;
 	if (sndfile == NULL)
-	{	fprintf (stderr, "Could not open soundfile '%s'\n", args [1]) ;
+	{	fprintf (stderr, "Could not open soundfile '%s'\n", filename) ;
 		return 1 ;
 		} ;
 
 	fprintf (stderr, "Channels    : %d\nSample rate : %d Hz\nDuration    : ", sndfileinfo.channels, sndfileinfo.samplerate) ;
-
 	print_time (sndfileinfo.frames, sndfileinfo.samplerate) ;
 	fprintf (stderr, "\n") ;
+
+	if (loop_count < 1)
+		fprintf (stderr, "Loop count  : infinite\n") ;
+	else if (loop_count > 1)
+		fprintf (stderr, "Loop count  : %d\n", loop_count) ;
 
 	if (sndfileinfo.samplerate != jack_sr)
 		fprintf (stderr, "Warning: samplerate of soundfile (%d Hz) does not match jack server (%d Hz).\n", sndfileinfo.samplerate, jack_sr) ;
@@ -203,6 +240,9 @@ main (int narg, char * args [])
 	info.channels = sndfileinfo.channels ;
 	info.client = client ;
 	info.pos = 0 ;
+
+	info.current_loop = 0 ;
+	info.loop_count = loop_count ;
 
 	/* Allocate output ports. */
 	output_port = calloc (sndfileinfo.channels, sizeof (jack_port_t *)) ;
