@@ -37,18 +37,22 @@
 
 #define RB_SIZE (1 << 16)
 
+#define	NOT(x)	(!(x))
+
 typedef struct _thread_info
 {	pthread_t thread_id ;
 	SNDFILE *sndfile ;
 	jack_nframes_t pos ;
 	jack_client_t *client ;
 	unsigned int channels ;
+	unsigned int samplerate ;
+
 	volatile int can_process ;
 	volatile int read_done ;
 	volatile int play_done ;
 
-	volatile int loop_count ;
-	volatile int current_loop ;
+	volatile unsigned int loop_count ;
+	volatile unsigned int current_loop ;
 } thread_info_t ;
 
 static pthread_mutex_t disk_thread_lock = PTHREAD_MUTEX_INITIALIZER ;
@@ -66,7 +70,7 @@ process (jack_nframes_t nframes, void * arg)
 	jack_default_audio_sample_t buf [info->channels] ;
 	unsigned i, n ;
 
-	if (! info->can_process)
+	if (NOT (info->can_process))
 		return 0 ;
 
 	for (n = 0 ; n < info->channels ; n++)
@@ -157,12 +161,20 @@ jack_shutdown (void *arg)
 	exit (1) ;
 } /* jack_shutdown */
 
-static void
+static inline void
 print_time (jack_nframes_t pos, int jack_sr)
 {	float sec = pos / (1.0 * jack_sr) ;
 	int min = sec / 60.0 ;
 	fprintf (stderr, "%02d:%05.2f", min, fmod (sec, 60.0)) ;
 } /* print_time */
+
+static inline void
+print_status (const thread_info_t * info)
+{
+	fprintf (stderr, "\r-> %6d/%d     ", info->current_loop, info->loop_count) ;
+	print_time (info->pos, info->samplerate) ;
+	fflush (stdout) ;
+} /* print_status */
 
 int
 main (int argc, char * argv [])
@@ -220,7 +232,7 @@ main (int argc, char * argv [])
 		} ;
 
 	fprintf (stderr, "Channels    : %d\nSample rate : %d Hz\nDuration    : ", sndfileinfo.channels, sndfileinfo.samplerate) ;
-	print_time (sndfileinfo.frames, sndfileinfo.samplerate) ;
+	print_time (loop_count * sndfileinfo.frames, sndfileinfo.samplerate) ;
 	fprintf (stderr, "\n") ;
 
 	if (loop_count < 1)
@@ -238,6 +250,7 @@ main (int argc, char * argv [])
 	info.play_done = 0 ;
 	info.sndfile = sndfile ;
 	info.channels = sndfileinfo.channels ;
+	info.samplerate = jack_sr ;
 	info.client = client ;
 	info.pos = 0 ;
 
@@ -282,12 +295,12 @@ main (int argc, char * argv [])
 		} ;
 
 	/* Sit in a loop, displaying the current play position. */
-	while (! info.play_done)
-	{	fprintf (stderr, "\r-> ") ;
-		print_time (info.pos, jack_sr) ;
-		fflush (stdout) ;
-		usleep (50000) ;
+	while (NOT (info.play_done))
+	{	print_status (&info) ;
+		usleep (10000) ;
 		} ;
+
+	print_status (&info) ;
 
 	/* Clean up. */
 	jack_client_close (client) ;
