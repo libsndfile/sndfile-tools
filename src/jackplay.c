@@ -171,7 +171,13 @@ print_time (jack_nframes_t pos, int jack_sr)
 static inline void
 print_status (const thread_info_t * info)
 {
-	fprintf (stderr, "\r-> %6d/%d     ", info->current_loop, info->loop_count) ;
+	if (info->loop_count == 0)
+		fprintf (stderr, "\r-> %6d     ", info->current_loop) ;
+	else if (info->loop_count > 1)
+		fprintf (stderr, "\r-> %6d/%d     ", info->current_loop, info->loop_count) ;
+	else
+		fprintf (stderr, "\r->     ") ;
+
 	print_time (info->pos, info->samplerate) ;
 	fflush (stdout) ;
 } /* print_status */
