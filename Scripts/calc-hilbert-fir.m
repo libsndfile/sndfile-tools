@@ -65,7 +65,7 @@ modulator = exp (factor * pi * i * linspace (-(len-1)/2, (len-1)/2, len)) ;
 
 # plot (real (modulator)) ; pause ; exit (0) ;
 
-bc = b' .* modulator ;
+bc = 2 * (b' .* modulator) ;
 
 # plot (1:len, real (bc), 1:len, imag (bc)) ; pause ; exit (0) ;
 
