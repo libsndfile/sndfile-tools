@@ -71,6 +71,8 @@ bc = b' .* modulator ;
 
 magspec = abs (fft ([bc zeros(1,1000-length(b))])) ;
 
+# plot (real (magspec)) ; pause ; exit (0) ;
+
 bchalf = bc (1:half_len) ;
 
 error = abs (bchalf - conj (fliplr (bc (half_len+1:len)))) ;
@@ -91,7 +93,9 @@ for coeff = bchalf
 
 fprintf (file, "} ; \n") ;
 
-fclose (file) ;
+if file != stdout,
+	fclose (file) ;
+	endif
 
 # fprintf (stderr, "\nPress any key to exit.\n") ;
 # plot (20 * log10 (magspec)) ; grid ; pause
