@@ -87,7 +87,7 @@ fprintf (file, "#define FIR_HILBERT_HALF_LEN %d\n\n", half_len) ;
 
 fprintf (file, "static complex_t half_hilbert_coeffs [FIR_HILBERT_HALF_LEN] =\n{") ;
 
-for coeff = bchalf
+for coeff = fliplr (bchalf)
 	fprintf (file, "\t{\t%22.18f, %22.18f },\n", real (coeff), imag (coeff)) ;
 	endfor
 
