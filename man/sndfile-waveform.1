@@ -1,0 +1,16 @@
+.TH SNDFILE-WAVEFORM 1 "January 11, 2012"
+.SH NAME
+sndfile-waveform \- generate a waveform from an input sound file
+.SH SYNOPSIS
+.B sndfile-waveform
+.RI "[options] <sound file> <img width> <img height> <png name>"
+
+.SH DESCRIPTION
+sndfile\-waveform reads a sound file and generates a
+waveform which is written to a PNG file.
+.LP
+The input file is read using libsndfile (http://www.mega\-nerd.com/libsndfile/),
+the waveform rendered and written to the output file using libcairo.
+
+.SH AUTHOR
+This manual page was written by Robin Gareus <robin@gareus.org>.
