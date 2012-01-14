@@ -48,10 +48,12 @@ src_sndfile_pitch_infer_SOURCES = src/pitch-infer.c src/window.c src/common.c
 src_sndfile_pitch_infer_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS)
 
 #=========================================================================================
-# The bin targets.
+# Generated header file.
 
 src/fir_hilbert_coeffs.h : Scripts/calc-hilbert-fir.m
-	$+ $@
+	$+ > $@
+
+src/beat-detect.o : src/fir_hilbert_coeffs.h
 
 #=========================================================================================
 # The make check targets.
