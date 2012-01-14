@@ -38,4 +38,5 @@ src/sndfile-mix-to-mono
 src/sndfile-pitch-infer
 src/sndfile-resample
 src/sndfile-spectrogram
+src/sndfile-waveform
 src/stamp-h1
