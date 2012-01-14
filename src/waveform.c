@@ -39,6 +39,7 @@
 #define	MAX_HEIGHT		(4096)
 
 #define TICK_LEN		(6)
+#define TXT_TICK_LEN	(8)
 #define	BORDER_LINE_WIDTH	(1.8)
 
 #define	TITLE_FONT_SIZE		(20.0)
@@ -70,11 +71,16 @@ typedef struct COLOUR
 	double a ;
 } COLOUR ;
 
+typedef struct AGC
+{	float min, max, rms ;
+} AGC ;
+
 typedef struct
 {	const char *sndfilepath, *pngfilepath, *filename ;
 	int width, height, channel_separation ;
 	int channel ;
 	int what ;
+	bool autogain ;
 	bool border, geometry_no_border, logscale, rectified ;
 	COLOUR c_fg, c_rms, c_bg, c_ann, c_bbg, c_cl ;
 	int tc_num, tc_den ;
@@ -151,7 +157,66 @@ draw_cairo_line (cairo_t* cr, DRECT *pts, const COLOUR *c)
 }
 
 static void
-render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infile, SF_INFO *info, double left, double top, double width, double height, int channel)
+calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
+{
+	long frames_per_buf = info->frames / width ;
+	long buffer_len = frames_per_buf * info->channels ;
+	float* data = malloc (sizeof (float) * buffer_len) ;
+
+	if (!data) {
+		printf ("out of memory.\n") ;
+		return ;
+	}
+	if (channel <0 || channel > info->channels) {
+		printf ("invalid channel\n") ;
+		return ;
+	}
+
+	sf_seek (infile, 0, SEEK_SET) ;
+
+	int x = 0 ;
+	int channels = (channel > 0) ? 1 : info->channels ;
+	float s_min, s_max, s_rms ;
+	s_min = 1.0 ; s_max = -1.0 ; s_rms=0 ;
+
+	while ((sf_read_float (infile, data, buffer_len)) > 0)
+	{	int frame ;
+		float min, max, rms ;
+		min = 1.0 ; max = -1.0 ; rms=0 ;
+		for (frame = 0 ; frame < frames_per_buf ; frame++)
+		{	int ch ;
+			for (ch = 0 ; ch < info->channels ; ch++)
+			{	if (channel > 0 && ch + 1 != channel)
+					continue ;
+				if (frame * info->channels + ch > buffer_len)
+				{	fprintf (stderr, "index error!\n") ;
+					break ;
+					} ;
+				const float sample_val = data [frame * info->channels + ch] ;
+				max = MAX (max, sample_val) ;
+				min = MIN (min, sample_val) ;
+				rms += (sample_val * sample_val) ;
+				} ;
+			} ;
+
+		rms /= (frames_per_buf * channels) ;
+		rms = sqrt (rms) ;
+
+		if (min < s_min) s_min=min ;
+		if (max > s_max) s_max=max ;
+		if (rms > s_rms) s_rms=rms ;
+
+		x++ ;
+		if (x > width + BORDER_LINE_WIDTH) break ;
+		} ;
+	
+	agc->min = s_min ;
+	agc->max = s_max ;
+	agc->rms = s_rms ;
+} /* calc_peak */
+
+static void
+render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infile, SF_INFO *info, double left, double top, double width, double height, int channel, float gain)
 {
 	long frames_per_buf = info->frames / width ;
 	long buffer_len = frames_per_buf * info->channels ;
@@ -181,18 +246,13 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 	cairo_set_line_width (cr, 2.0) ;
 
 	int x = 0 ;
-	float min ;				// negative peak value for each pixel.
-	float max ;				// positive peak value for each pixel.
-	float rms ;
 	int channels = (channel > 0) ? 1 : info->channels ;
 
 	while ((sf_read_float (infile, data, buffer_len)) > 0)
 	{	int frame ;
-		const int srcidx_start	= 0 ;
-		const int srcidx_stop	= frames_per_buf ;
-
+		float min, max, rms ;
 		min = 1.0 ; max = -1.0 ; rms=0 ;
-		for (frame = srcidx_start ; frame < srcidx_stop ; frame++)
+		for (frame = 0 ; frame < frames_per_buf ; frame++)
 		{	int ch ;
 			for (ch = 0 ; ch < info->channels ; ch++)
 			{	if (channel > 0 && ch + 1 != channel)
@@ -210,6 +270,11 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 
 		rms /= (frames_per_buf * channels) ;
 		rms = sqrt (rms) ;
+		if (gain != 1.0) 
+		{	min*=gain ;
+			max*=gain ;
+			rms*=gain ;
+		}
 
 		if (render->logscale) {
 			if (max>0) {
@@ -327,7 +392,7 @@ calculate_ticks (double max, double distance, TICKS * ticks)
 } /* calculate_ticks */
 
 static inline int
-calculate_log_ticks (bool rect, double distance, TICKS * ticks)
+calculate_log_ticks (bool rect, double distance, float gain, TICKS * ticks)
 {	int cnt, i ;
 #ifdef EQUAL_VSPACE_LOG_TICKS // equally spaced ticks, log values.
 	cnt = calculate_ticks (rect ? 1.0 : 2.0, distance, ticks) ;
@@ -338,8 +403,8 @@ calculate_log_ticks (bool rect, double distance, TICKS * ticks)
 			v = (dB_to_coefficient (inv_log_meter (v))) ;
 		else
 			v = - (dB_to_coefficient (inv_log_meter (-v))) ;
-		if (!rect) v += 1.0 ;
-		ticks->value [i] = v ;
+		if (!rect) v += gain ;
+		ticks->value [i] = v / gain ;
 		} ;
 #else // log spaced ticks,
 	cnt = calculate_ticks (rect ? 1.0 : 2.0, distance, ticks) ;
@@ -349,6 +414,7 @@ calculate_log_ticks (bool rect, double distance, TICKS * ticks)
 
 	for (i=0 ;i<cnt ;i++) {
 		double d = (ticks->distance [i] - dd) / dx ;
+		d*=gain ;
 		if (d>0) {
 			d = alt_log_meter (coefficient_to_dB (d)) ;
 		} else {
@@ -513,7 +579,7 @@ render_timecode (cairo_surface_t * surface, const RENDER * render, double left, 
 } /* render_timecode */
 
 static void
-render_wav_border (cairo_surface_t * surface, const RENDER * render, double left, double width, double top, double height)
+render_wav_border (cairo_surface_t * surface, const RENDER * render, double left, double width, double top, double height, float gain)
 {
 	char text [8] ;
 	cairo_t * cr ;
@@ -534,12 +600,14 @@ render_wav_border (cairo_surface_t * surface, const RENDER * render, double left
 	if (render->logscale) {
 		TICKS ticks ;
 		int k, tick_count ;
-		tick_count = calculate_log_ticks ( render->rectified, height, &ticks) ;
+		tick_count = calculate_log_ticks ( render->rectified, height, gain, &ticks) ;
 		for (k = 0 ; k < tick_count ; k++)
-		{	x_line (cr, left + width, top + height - ticks.distance [k], TICK_LEN) ;
+		{	if (ticks.distance[k] < 0) continue ;
+			if (ticks.distance[k] > height) continue ;
+			x_line (cr, left + width, top + height - ticks.distance [k], (k % 2) ? TICK_LEN : TXT_TICK_LEN) ;
 			if (k % 2 == 1)
 				continue ;
-			str_print_value (text, sizeof (text), ticks.value [k] - (render->rectified?0.0 :1.0)) ;
+			str_print_value (text, sizeof (text), ticks.value [k] - (render->rectified ? 0.0 : 1.0)) ;
 			cairo_text_extents (cr, text, &extents) ;
 			cairo_move_to (cr, left + width + 12, top + height - ticks.distance [k] + extents.height / 4.5) ;
 			cairo_show_text (cr, text) ;
@@ -548,12 +616,12 @@ render_wav_border (cairo_surface_t * surface, const RENDER * render, double left
 	} else {
 		TICKS ticks ;
 		int k, tick_count ;
-		tick_count = calculate_ticks ( (render->rectified?1.0 :2.0), height, &ticks) ;
+		tick_count = calculate_ticks ( (render->rectified ? 1.0 : 2.0), height, &ticks) ;
 		for (k = 0 ; k < tick_count ; k++)
-		{	x_line (cr, left + width, top + height - ticks.distance [k], TICK_LEN) ;
+		{	x_line (cr, left + width, top + height - ticks.distance [k], (k % 2) ? TICK_LEN : TXT_TICK_LEN) ;
 			if (k % 2 == 1)
 				continue ;
-			str_print_value (text, sizeof (text), ticks.value [k] - (render->rectified?0.0 :1.0)) ;
+			str_print_value (text, sizeof (text), (ticks.value [k] - (render->rectified ? 0.0 : 1.0))/gain) ;
 			cairo_text_extents (cr, text, &extents) ;
 			cairo_move_to (cr, left + width + 12, top + height - ticks.distance [k] + extents.height / 4.5) ;
 			cairo_show_text (cr, text) ;
@@ -606,16 +674,34 @@ render_to_surface (const RENDER * render, SNDFILE *infile, SF_INFO *info, cairo_
 	{	const double chnsep = render->channel_separation ;
 		const double mheight = (height - (info->channels - 1) * chnsep) / (1.0 * info->channels) ;
 		int ch ;
+		float gain = 1.0 ;
+		/* calc gain of all channels */
+		if (render->autogain) {
+			float mxv = 0.0 ;
+			for (ch = 0 ; ch < info->channels ; ch++)
+			{	
+				AGC agc ;
+				calc_peak(infile, info, width, ch + 1, &agc) ;
+				if (render->what & PEAK)
+					mxv = MAX (mxv, MAX (agc.max, -agc.min)) ;
+				if (render->what & RMS)
+					mxv = MAX (mxv, agc.rms) ;
+				}
+			if (mxv != 0) 
+				gain = 1.0 / mxv ;
+			}
+
 		for (ch = 0 ; ch < info->channels ; ch++)
-		{	render_waveform (surface, render, infile, info,
+		{	
+			render_waveform (surface, render, infile, info,
 					(render->border ? LEFT_BORDER : 0),
 					(render->border ? TOP_BORDER : 0) + ((mheight + chnsep) * (1.0 * ch)),
-					width, mheight, ch + 1) ;
+					width, mheight, ch + 1, gain) ;
 
 			if (render->border)
 				render_wav_border (surface, render,
 						LEFT_BORDER, width,
-						TOP_BORDER + (mheight + chnsep) * (1.0 * ch), mheight) ;
+						TOP_BORDER + (mheight + chnsep) * (1.0 * ch), mheight, gain) ;
 			else if (ch > 0 && chnsep > 0)
 			{	cairo_rectangle (cr, 0, ((mheight + chnsep) * (1.0 * ch)) - chnsep, render->width, chnsep) ;
 				cairo_stroke_preserve (cr) ;
@@ -624,11 +710,23 @@ render_to_surface (const RENDER * render, SNDFILE *infile, SF_INFO *info, cairo_
 				} ;
 		}
 	} else
-	{	render_waveform (surface, render, infile, info,
+	{	float gain = 1.0 ;
+		if (render->autogain) {
+			AGC agc ;
+			calc_peak(infile, info, width, render->channel, &agc) ;
+			float mxv = 0.0;
+				if (render->what & PEAK)
+					mxv = MAX (mxv, MAX (agc.max, -agc.min)) ;
+				if (render->what & RMS)
+					mxv = MAX (mxv, agc.rms) ;
+			if (mxv != 0) 
+				gain = 1.0 / mxv ;
+		}
+		render_waveform (surface, render, infile, info,
 			(render->border ? LEFT_BORDER : 0.0), (render->border ? TOP_BORDER : 0.0),
-			width, height, render->channel) ;
+			width, height, render->channel, gain) ;
 		if (render->border)
-			render_wav_border (surface, render, LEFT_BORDER, width, TOP_BORDER, height) ;
+			render_wav_border (surface, render, LEFT_BORDER, width, TOP_BORDER, height, gain) ;
 		} ;
 
 	if (render->border)
@@ -787,6 +885,7 @@ usage_exit (char * argv0, int status)
 		"  --no-rms                  only draw signal peaks (exclusive with --no-peak).\n"
 		"  -r, --rectified           rectify waveform\n"
 		"  -R, --rmscolour  <COL>    specify background colour ; default 0xffb3b3b3\n"
+		"  -s, --gainscale           zoom into y-axis, map max signal to height.\n"
 		"  -S, --separator <px>      vertically separate channels by N pixels\n"
 		"                            (default : 12) - only used with -c -1\n"
 		"  -t <NUM>[/<DEN>], --timecode <NUM>[/<DEN>]\n"
@@ -821,6 +920,7 @@ static struct option const long_options [] =
 	{"geometry", required_argument, 0, 'g'},
 	{"separator", required_argument, 0, 'S'},
 	{"wavesize", no_argument, 0, 'W'},
+	{"gainscale", no_argument, 0, 's'},
 
 	{"channel", required_argument, 0, 'c'},
 
@@ -847,6 +947,7 @@ main (int argc, char * argv [])
 		/*channel_separation*/ NORMAL_FONT_SIZE,
 		/*channel*/ 0,
 		/*what*/ PEAK|RMS,
+		/*autogain*/ false,
 		/*border*/ false,
 		/*geometry_no_border*/ false,
 		/*logscale*/ false, /*rectified*/ false,
@@ -875,6 +976,7 @@ main (int argc, char * argv [])
 				"r"		/*	--rectified	*/
 				"R:"	/*	--rmscolour	*/
 				"t:"	/*	--timecode	*/
+				"s"		/*	--gainscale	*/
 				"S:"	/*	--separator	*/
 				"T:"	/*	--timeoffset	*/
 				"W"		/*	--wavesize	*/
@@ -926,6 +1028,9 @@ main (int argc, char * argv [])
 				break ;
 			case 'R' :		/* --rmscolour */
 				set_colour (&render.c_rms, strtoll (optarg, NULL, 16)) ;
+				break ;
+			case 's' :		/* --gainscale */
+				render.autogain = true ;
 				break ;
 			case 'S' :		/* --separator */
 				render.channel_separation = atoi (optarg) ;
