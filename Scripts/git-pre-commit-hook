@@ -39,6 +39,25 @@ if test -n "$missing_copyright_year" ; then
 	fi
 
 #-------------------------------------------------------------------------------
+# Check the formatting of all C files.
+
+cfiles=""
+for f in $files ; do
+	if test `echo $f | grep -c "\.[ch]$"` -gt 0 ; then
+		cfiles="$cfiles $f"
+		fi
+	done
+
+if test -n "$cfiles" ; then
+	Scripts/cstyle.py $cfiles
+	if test $? -ne 0 ; then
+		echo
+		echo "Commit aborted. Fix the above error before trying again."
+		exit 1
+		fi
+	fi
+
+#-------------------------------------------------------------------------------
 # Prevent files with non-ascii filenames from being committed.
 
 if test $(git diff --cached --name-only --diff-filter=A -z $against | LC_ALL=C tr -d '[ -~]\0' | wc -c) != 0 ; then
