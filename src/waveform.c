@@ -2,18 +2,18 @@
 ** Copyright (C) 2007-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Written 2012 by Robin Gareus <robin@gareus.org>
 **
-** This program is free software : you can redistribute it and/or modify
+** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
 ** the Free Software Foundation, either version 2 or version 3 of the
 ** License.
 **
 ** This program is distributed in the hope that it will be useful,
-** but WITHOUT ANY WARRANTY ; without even the implied warranty of
+** but WITHOUT ANY WARRANTY; without even the implied warranty of
 ** MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 ** GNU General Public License for more details.
 **
 ** You should have received a copy of the GNU General Public License
-** along with this program.  If not, see <http ://www.gnu.org/licenses/>.
+** along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
 /*
@@ -59,12 +59,12 @@ static const char font_family [] = "Terminus" ;
 
 #define C_COLOUR(X)	(X)->r, (X)->g, (X)->b, (X)->a
 
-typedef struct colour
-{	float r ;
-	float g ;
-	float b ;
-	float a ;
-} colour ;
+typedef struct COLOUR
+{	double r ;
+	double g ;
+	double b ;
+	double a ;
+} COLOUR ;
 
 typedef struct
 {	const char *sndfilepath, *pngfilepath, *filename ;
@@ -72,7 +72,7 @@ typedef struct
 	int channel ;
 	int what ;
 	bool border, geometry_no_border, logscale, rectified ;
-	colour c_fg, c_rms, c_bg, c_ann, c_bbg ;
+	COLOUR c_fg, c_rms, c_bg, c_ann, c_bbg ;
 	int tc_num, tc_den ;
 	double tc_off ;
 	bool parse_bwf ;
@@ -80,10 +80,10 @@ typedef struct
 
 enum WHAT { PEAK = 1, RMS = 2} ;
 
-typedef struct drect
+typedef struct DRECT
 {	double x1, y1 ;
 	double x2, y2 ;
-} drect ;
+} DRECT ;
 
 
 #ifndef SF_BROADCAST_INFO_2K
@@ -91,7 +91,7 @@ typedef SF_BROADCAST_INFO_VAR (2048) SF_BROADCAST_INFO_2K ;
 #endif
 
 static inline void
-set_colour (colour * c, int h)
+set_colour (COLOUR * c, int h)
 {	c->a = ((h >> 24) & 0xff) / 255.0 ;
 	c->r = ((h >> 16) & 0xff) / 255.0 ;
 	c->g = ((h >> 8) & 0xff) / 255.0 ;
@@ -129,7 +129,7 @@ inv_log_meter (float power)
 #endif
 
 static void
-draw_cairo_line (cairo_t* cr, drect *pts, const colour *c)
+draw_cairo_line (cairo_t* cr, DRECT *pts, const COLOUR *c)
 {
 	cairo_set_source_rgba (cr, C_COLOUR (c)) ;
 #if 0
@@ -175,7 +175,7 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 	}
 
 	if (!render->rectified)		// center line
-	{	drect pts = { left, top + (0.5 * height) - 0.5, left + width, top + (0.5 * height) + 0.5 } ;
+	{	DRECT pts = { left, top + (0.5 * height) - 0.5, left + width, top + (0.5 * height) + 0.5 } ;
 		cairo_set_line_width (cr, BORDER_LINE_WIDTH) ;
 		draw_cairo_line (cr, &pts, &render->c_ann) ;
 		} ;
@@ -242,12 +242,12 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 			} ;
 
 		if (render->what & PEAK)	// peak
-		{	drect pts = {left + x, top + yoff - min, left + x, top + yoff - max} ;
+		{	DRECT pts = {left + x, top + yoff - min, left + x, top + yoff - max} ;
 			draw_cairo_line (cr, &pts, &render->c_fg) ;
 			} ;
 
 		if (render->what & RMS)		// RMS
-		{	drect pts = { left + x, top + yoff - rms, left + x, top + yoff + ((yoff != height) ? rms : 0) } ;
+		{	DRECT pts = { left + x, top + yoff - rms, left + x, top + yoff + ((yoff != height) ? rms : 0) } ;
 			draw_cairo_line (cr, &pts, &render->c_rms) ;
 			} ;
 
@@ -935,7 +935,7 @@ main (int argc, char * argv [])
 				render.tc_off = strtod (optarg, NULL) ;
 				break ;
 			case 1 :
-				memcpy (&render.c_rms, &render.c_fg, sizeof (colour)) ;
+				memcpy (&render.c_rms, &render.c_fg, sizeof (COLOUR)) ;
 				render.what &= ~PEAK ;
 				break ;
 			case 2 :
