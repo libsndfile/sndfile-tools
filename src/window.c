@@ -59,7 +59,7 @@ calc_kaiser_window (double * data, int datalen, double beta)
 void
 calc_nuttall_window (double * data, int datalen)
 {
-    const double a [4] = { 0.355768, 0.487396, 0.144232, 0.012604 } ;
+	const double a [4] = { 0.355768, 0.487396, 0.144232, 0.012604 } ;
 	int k ;
 
 	/*

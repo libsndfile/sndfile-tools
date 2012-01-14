@@ -37,7 +37,7 @@
 
 #define RB_SIZE (1 << 16)
 
-#define	NOT(x)	(!(x))
+#define	NOT(x)	(! (x))
 
 typedef struct _thread_info
 {	pthread_t thread_id ;

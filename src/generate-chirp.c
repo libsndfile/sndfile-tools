@@ -207,7 +207,7 @@ generate_file (const char * filename, const PARAMS * params)
 
 	sf_set_string (file, SF_STR_TITLE, "Logarithmic chirp signal") ;
 
-	snprintf (buffer, sizeof (buffer), "start_freq : %d Hz   end_freq : %d Hz   amplitude : %g", params->start_freq, params->end_freq,  params->amplitude) ;
+	snprintf (buffer, sizeof (buffer), "start_freq : %d Hz   end_freq : %d Hz   amplitude : %g", params->start_freq, params->end_freq, params->amplitude) ;
 	sf_set_string (file, SF_STR_COMMENT, buffer) ;
 
 	sf_set_string (file, SF_STR_SOFTWARE, "sndfile-generate-chirp") ;

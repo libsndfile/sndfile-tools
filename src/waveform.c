@@ -153,26 +153,25 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 	long buffer_len = frames_per_buf * info->channels ;
 	float* data = malloc (sizeof (float) * buffer_len) ;
 
-	if (!data) {
-		printf ("out of memory.\n") ;
+	if (!data)
+	{	printf ("out of memory.\n") ;
 		return ;
-	}
-	if (channel <0 || channel > info->channels) {
-		printf ("invalid channel\n") ;
+		} ;
+
+	if (channel <0 || channel > info->channels)
+	{	printf ("invalid channel\n") ;
 		return ;
-	}
+		} ;
 
 	sf_seek (infile, 0, SEEK_SET) ;
 
 	cairo_t * cr ;
 	cr = cairo_create (surface) ;
 
-	if (1) { // background
-		cairo_rectangle (cr, left, top, width, height) ;
-		cairo_stroke_preserve (cr) ;
-		cairo_set_source_rgba (cr, C_COLOUR (&render->c_bg)) ;
-		cairo_fill (cr) ;
-	}
+	cairo_rectangle (cr, left, top, width, height) ;
+	cairo_stroke_preserve (cr) ;
+	cairo_set_source_rgba (cr, C_COLOUR (&render->c_bg)) ;
+	cairo_fill (cr) ;
 
 	if (!render->rectified)		// center line
 	{	drect pts = { left, top + (0.5 * height) - 0.5, left + width, top + (0.5 * height) + 0.5 } ;
@@ -193,7 +192,7 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 		const int srcidx_start	= 0 ;
 		const int srcidx_stop	= frames_per_buf ;
 
-		min = 1.0 ; max = -1.0 ; rms=0 ;
+		min = 1.0 ; max = -1.0 ; rms = 0.0 ;
 		for (frame = srcidx_start ; frame < srcidx_stop ; frame++)
 		{	int ch ;
 			for (ch = 0 ; ch < info->channels ; ch++)
@@ -210,22 +209,22 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 				} ;
 			} ;
 
-		rms /= (frames_per_buf * channels) ;
+		rms /= frames_per_buf * channels ;
 		rms = sqrt (rms) ;
 
-		if (render->logscale) {
-			if (max>0) {
+		if (render->logscale)
+		{	if (max > 0)
 				max = alt_log_meter (coefficient_to_dB (max)) ;
-			} else {
+			else
 				max = -alt_log_meter (coefficient_to_dB (-max)) ;
-			}
-			if (min>0) {
+
+			if (min > 0)
 				min = alt_log_meter (coefficient_to_dB (min)) ;
-			} else {
+			else
 				min = -alt_log_meter (coefficient_to_dB (-min)) ;
-			}
+
 			rms = alt_log_meter (coefficient_to_dB (rms)) ;
-		}
+			} ;
 
 		double yoff ;
 		if (render->rectified)
@@ -343,15 +342,16 @@ calculate_log_ticks (bool rect, double distance, TICKS * ticks)
 	const double dx = rect ? distance : 0.5 * distance ;
 	const double dd = rect ? 0.0 : 0.5 * distance ;
 
-	for (i=0 ;i<cnt ;i++) {
-		double d = (ticks->distance [i] - dd) / dx ;
-		if (d>0) {
+	for (i = 0 ; i < cnt ; i++)
+	{	double d = (ticks->distance [i] - dd) / dx ;
+
+		if (d > 0)
 			d = alt_log_meter (coefficient_to_dB (d)) ;
-		} else {
+		else
 			d = -alt_log_meter (coefficient_to_dB (-d)) ;
-		}
+
 		ticks->distance [i] = d*dx+dd ;
-	}
+		} ;
 #endif
 	return cnt ;
 } /* calculate_log_ticks */
@@ -528,10 +528,12 @@ render_wav_border (cairo_surface_t * surface, const RENDER * render, double left
 	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL) ;
 	cairo_set_font_size (cr, 1.0 * NORMAL_FONT_SIZE) ;
 
-	if (render->logscale) {
-		TICKS ticks ;
+	if (render->logscale)
+	{	TICKS ticks ;
 		int k, tick_count ;
+
 		tick_count = calculate_log_ticks ( render->rectified, height, &ticks) ;
+
 		for (k = 0 ; k < tick_count ; k++)
 		{	x_line (cr, left + width, top + height - ticks.distance [k], TICK_LEN) ;
 			if (k % 2 == 1)
@@ -541,9 +543,9 @@ render_wav_border (cairo_surface_t * surface, const RENDER * render, double left
 			cairo_move_to (cr, left + width + 12, top + height - ticks.distance [k] + extents.height / 4.5) ;
 			cairo_show_text (cr, text) ;
 			} ;
-
-	} else {
-		TICKS ticks ;
+		}
+	else
+	{	TICKS ticks ;
 		int k, tick_count ;
 		tick_count = calculate_ticks ( (render->rectified?1.0 :2.0), height, &ticks) ;
 		for (k = 0 ; k < tick_count ; k++)
@@ -555,7 +557,7 @@ render_wav_border (cairo_surface_t * surface, const RENDER * render, double left
 			cairo_move_to (cr, left + width + 12, top + height - ticks.distance [k] + extents.height / 4.5) ;
 			cairo_show_text (cr, text) ;
 			} ;
-	}
+		} ;
 
 	cairo_set_font_size (cr, 1.0 * NORMAL_FONT_SIZE) ;
 
@@ -687,21 +689,21 @@ render_sndfile (RENDER * render)
 	if (render->border)
 		max_width += LEFT_BORDER + RIGHT_BORDER ;
 
-	if (render->width > max_width) {
-		printf ("Error : soundfile is too short. Decrease image width below %ld.\n", (long int) max_width) ;
+	if (render->width > max_width)
+	{	printf ("Error : soundfile is too short. Decrease image width below %ld.\n", (long int) max_width) ;
 		sf_close (infile) ;
 		exit (EXIT_FAILURE) ;
-	}
+		} ;
 
-	if (render->geometry_no_border) { // given geometry applies to wave-form (per channel) without border.
-		if (render->channel <0 ) {
+	if (render->geometry_no_border)	// given geometry applies to wave-form (per channel) without border.
+	{	if (render->channel <0 )
 			render->height = render->height * info.channels + (info.channels-1) * render->channel_separation ;
-		}
-		if (render->border) {
-			render->width += LEFT_BORDER + RIGHT_BORDER ;
+
+		if (render->border)
+		{	render->width += LEFT_BORDER + RIGHT_BORDER ;
 			render->height += TOP_BORDER + BOTTOM_BORDER ;
-		}
-	}
+			} ;
+		} ;
 
 
 	if (render->tc_den > 0 && render->parse_bwf)	/* use BWF timecode offset */
@@ -903,7 +905,7 @@ main (int argc, char * argv [])
 					render.width = atoi (optarg) ;
 					char *b = strdup (optarg) ;
 					if (strtok (b, "x :/"))
-					{	char *tmp=strtok (NULL, "x :/") ;
+					{	char *tmp = strtok (NULL, "x :/") ;
 						if (tmp) render.height = atoi (tmp) ;
 						} ;
 					free (b) ;
