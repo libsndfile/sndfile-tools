@@ -4,9 +4,9 @@ AUTOMAKE_OPTIONS = subdir-objects
 
 EXTRA_DIST = M4/lrint.m4 M4/lrintf.m4 doc/index.html doc/sweep.png $(man_MANS)
 
-bin_PROGRAMS = bin/sndfile-generate-chirp bin/sndfile-spectrogram \
-	bin/sndfile-mix-to-mono bin/sndfile-jackplay bin/sndfile-resample \
-	bin/sndfile-waveform
+bin_PROGRAMS = src/sndfile-generate-chirp src/sndfile-spectrogram \
+	src/sndfile-mix-to-mono src/sndfile-jackplay src/sndfile-resample \
+	bin/sndfile-waveform src/sndfile-beat-detect
 
 # Test programs or programs not yet working.
 noinst_PROGRAMS = tests/kaiser_window_test tests/common_tests src/sndfile-pitch-infer
@@ -41,8 +41,17 @@ bin_sndfile_jackplay_LDADD = $(SNDFILE_LIBS) $(JACK_LIBS)
 bin_sndfile_resample_SOURCES = src/resample.c src/common.c src/common.h
 bin_sndfile_resample_LDADD = $(SNDFILE_LIBS) $(SAMPLERATE_LIBS)
 
+src_sndfile_beat_detect_SOURCES = src/beat-detect.c src/common.h src/fir_hilbert_coeffs.h
+src_sndfile_beat_detect_LDADD = $(SNDFILE_LIBS)
+
 src_sndfile_pitch_infer_SOURCES = src/pitch-infer.c src/window.c src/common.c
 src_sndfile_pitch_infer_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS)
+
+#=========================================================================================
+# The bin targets.
+
+src/fir_hilbert_coeffs.h : Scripts/calc-hilbert-fir.m
+	$+ $@
 
 #=========================================================================================
 # The make check targets.
