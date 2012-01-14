@@ -901,8 +901,8 @@ usage_exit (char * argv0, int status)
 		"                            border-sizes are added to width and height.\n"
 		"\n"
 		"Report bugs to <robin@gareus.org>.\n"
-		"Website and manual : <http ://www.mega-nerd.com/libsndfile/tools/>\n"
-		"Example images : <http ://gareus.org/wiki/sndfile-waveform/>\n"
+		"Website and manual: <http://www.mega-nerd.com/libsndfile/tools/>\n"
+		"Example images: <http://gareus.org/wiki/sndfile-waveform/>\n"
 		"\n") ;
 	exit (status) ;
 } /* usage_exit */
