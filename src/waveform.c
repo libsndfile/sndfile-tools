@@ -469,6 +469,7 @@ str_print_timecode (char * text, int text_len, double sec, int fps_num, int fps_
 static void
 render_title (cairo_surface_t * surface, const RENDER * render, double left, double top)
 {
+	int cxoffset = 0 ;
 	char text [512] ;
 	cairo_t * cr ;
 	cairo_text_extents_t extents ;
@@ -482,15 +483,27 @@ render_title (cairo_surface_t * surface, const RENDER * render, double left, dou
 	cairo_select_font_face (cr, font_family, CAIRO_FONT_SLANT_NORMAL, CAIRO_FONT_WEIGHT_NORMAL) ;
 	cairo_set_font_size (cr, 1.0 * TITLE_FONT_SIZE) ;
 
-	if (render->channel <0)
-		snprintf (text, sizeof (text), "Waveform : %s", render->filename) ;
-	else if (render->channel == 0)
-		snprintf (text, sizeof (text), "Waveform : %s (downmixed to mono)", render->filename) ;
-	else
-		snprintf (text, sizeof (text), "Waveform : %s - channel : %d", render->filename, render->channel) ;
+
+	snprintf (text, sizeof (text), "Waveform: %s", render->filename) ;
 	cairo_text_extents (cr, text, &extents) ;
 	cairo_move_to (cr, left + 2, top - extents.height / 2) ;
 	cairo_show_text (cr, text) ;
+
+	if (render->channel > 0)
+	{	snprintf (text, sizeof (text), " - channel : %d", render->channel) ;
+		cxoffset = extents.width ;
+		}
+	else if (render->channel == 0)
+	{	snprintf (text, sizeof (text), " (downmixed to mono)") ;
+		cxoffset = extents.width ;
+		}
+
+	if (cxoffset > 0)
+	{	cairo_set_font_size (cr, 1.0 * NORMAL_FONT_SIZE) ;
+		cairo_text_extents (cr, text, &extents) ;
+		cairo_move_to (cr, left + 2 + cxoffset, top - extents.height / 2) ;
+		cairo_show_text (cr, text) ;
+		}
 
 	cairo_destroy (cr) ;
 } /* render_title */
