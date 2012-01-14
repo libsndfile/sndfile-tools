@@ -22,6 +22,7 @@ dnl Add parameters for aclocal
 AC_SUBST(ACLOCAL_AMFLAGS, "-I M4")
 
 AC_LANG([C])
+AC_LANG_SOURCE([C])
 
 #------------------------------------------------------------------------------------
 
