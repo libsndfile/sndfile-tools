@@ -46,7 +46,11 @@
 
 #define	LEFT_BORDER			(10.0)
 #define	TOP_BORDER			(30.0)
+#if WITH_Y_LABEL
 #define	RIGHT_BORDER		(75.0)
+#else
+#define	RIGHT_BORDER		(50.0)
+#endif
 #define	BOTTOM_BORDER		(40.0)
 
 #ifdef FONTFAMILY
@@ -72,7 +76,7 @@ typedef struct
 	int channel ;
 	int what ;
 	bool border, geometry_no_border, logscale, rectified ;
-	COLOUR c_fg, c_rms, c_bg, c_ann, c_bbg ;
+	COLOUR c_fg, c_rms, c_bg, c_ann, c_bbg, c_cl ;
 	int tc_num, tc_den ;
 	double tc_off ;
 	bool parse_bwf ;
@@ -174,13 +178,7 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 		cairo_fill (cr) ;
 	}
 
-	if (!render->rectified)		// center line
-	{	DRECT pts = { left, top + (0.5 * height) - 0.5, left + width, top + (0.5 * height) + 0.5 } ;
-		cairo_set_line_width (cr, BORDER_LINE_WIDTH) ;
-		draw_cairo_line (cr, &pts, &render->c_ann) ;
-		} ;
-
-	cairo_set_line_width (cr, 1.0) ;
+	cairo_set_line_width (cr, 2.0) ;
 
 	int x = 0 ;
 	float min ;				// negative peak value for each pixel.
@@ -257,6 +255,12 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 			/* this can happen with very short audio-files */
 			break ;
 			} ;
+		} ;
+
+	if (!render->rectified)		// center line
+	{	DRECT pts = { left, top + (0.5 * height) - 0.5, left + width, top + (0.5 * height) + 0.5 } ;
+		cairo_set_line_width (cr, BORDER_LINE_WIDTH) ;
+		draw_cairo_line (cr, &pts, &render->c_cl) ;
 		} ;
 
 	cairo_surface_mark_dirty (surface) ;
@@ -514,7 +518,6 @@ render_wav_border (cairo_surface_t * surface, const RENDER * render, double left
 	char text [8] ;
 	cairo_t * cr ;
 	cairo_text_extents_t extents ;
-	cairo_matrix_t matrix ;
 
 	cr = cairo_create (surface) ;
 
@@ -557,6 +560,8 @@ render_wav_border (cairo_surface_t * surface, const RENDER * render, double left
 			} ;
 	}
 
+#if WITH_Y_LABEL
+	cairo_matrix_t matrix ;
 	cairo_set_font_size (cr, 1.0 * NORMAL_FONT_SIZE) ;
 
 	/* Label Y axis (rotated). */
@@ -569,6 +574,7 @@ render_wav_border (cairo_surface_t * surface, const RENDER * render, double left
 
 	cairo_move_to (cr, cairo_image_surface_get_width (surface) - 12, top + (height + extents.width) / 2) ;
 	cairo_show_text (cr, text) ;
+#endif
 
 	cairo_destroy (cr) ;
 } /* render_wav_border */
@@ -764,22 +770,23 @@ usage_exit (char * argv0, int status)
 		"  -A, --textcolour <COL>    specify text and border colour ; default 0xffffffff\n"
 		"                            all colours as hexadecimal AA RR GG BB values\n"
 		"  -b, --border              display a border with annotations\n"
-		"  -B, --background <COL>    specify background colour ; default 0xb2ffffff\n"
+		"  -B, --background <COL>    specify background colour ; default 0x8099999f\n"
 		"  -c, --channel             choose channel (s) to plot, 0 : merge to mono ;\n"
 		"                            < 0 : render all channels vertically separated ;\n"
 		"                            > 0 : render only specified channel. (default : 0)\n"
-		"  -F, --foreground <COL>    specify background colour ; default 0xb2000000\n"
+		"  -C, --centerline <COL>    set colour of zero/center line (default 0x4cffffff)\n"
+		"  -F, --foreground <COL>    specify background colour ; default 0xff333333\n"
 		"  -g <w>x<h>, --geometry <w>x<h>\n"
 		"                            specify the size of the image to create\n"
 		"                            default : 800x192\n"
 		"  -G, --borderbg <COL>      specify border/annotation background colour ;\n"
-		"                            default 0xb2ffffff\n"
+		"                            default 0xb3ffffff\n"
 		"  -h, --help                display this help and exit\n"
 		"  -l, --logscale            use logarithmic scale\n"
 		"  --no-peak                 only draw RMS signal using foreground colour\n"
 		"  --no-rms                  only draw signal peaks (exclusive with --no-peak).\n"
 		"  -r, --rectified           rectify waveform\n"
-		"  -R, --rmscolour  <COL>    specify background colour ; default 0xb2ffffff\n"
+		"  -R, --rmscolour  <COL>    specify background colour ; default 0xffb3b3b3\n"
 		"  -S, --separator <px>      vertically separate channels by N pixels\n"
 		"                            (default : 12) - only used with -c -1\n"
 		"  -t <NUM>[/<DEN>], --timecode <NUM>[/<DEN>]\n"
@@ -843,11 +850,12 @@ main (int argc, char * argv [])
 		/*border*/ false,
 		/*geometry_no_border*/ false,
 		/*logscale*/ false, /*rectified*/ false,
-		/*foreground*/	{ 0.0, 0.0, 0.0, 0.7},
-		/*wave-rms*/	{ 1.0, 1.0, 1.0, 0.7},	// same as background
-		/*background*/	{ 1.0, 1.0, 1.0, 0.7},
+		/*foreground*/	{ 0.2, 0.2, 0.2, 1.0},
+		/*wave-rms*/	{ 0.7, 0.7, 0.7, 1.0},
+		/*background*/	{ 0.6, 0.6, 0.6, 0.5},
 		/*annotation*/	{ 1.0, 1.0, 1.0, 1.0},
-		/*border-bg*/	{ 0.0, 0.0, 0.0, 0.7},	// same as foreground
+		/*border-bg*/	{ 0.0, 0.0, 0.0, 0.7},
+		/*center-line*/	{ 1.0, 1.0, 1.0, 0.3},
 		/*timecode num*/ 0, /*den*/ 0, /*offset*/ 0.0,
 		/*parse BWF*/ true
 		} ;
@@ -858,6 +866,7 @@ main (int argc, char * argv [])
 				"b"		/*	--border	*/
 				"B:"	/*	--background	*/
 				"c:"	/*	--channel	*/
+				"C:"	/*	--centerline	*/
 				"F:"	/*	--foreground	*/
 				"G:"	/*	--borderbg	*/
 				"g:"	/*	--geometry	*/
@@ -885,6 +894,9 @@ main (int argc, char * argv [])
 				break ;
 			case 'c' :		/* --channel */
 				render.channel = atoi (optarg) ;
+				break ;
+			case 'C' :		/* --centerline */
+				set_colour (&render.c_cl, strtoll (optarg, NULL, 16)) ;
 				break ;
 			case 'F' :		/* --foreground */
 				set_colour (&render.c_fg, strtoll (optarg, NULL, 16)) ;
