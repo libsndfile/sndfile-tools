@@ -13,14 +13,17 @@ test -z "$srcdir" && srcdir=.
 cd "$srcdir"
 DIE=0
 
-echo "checking for autoconf... "
+echo -n "checking for autoconf... "
+result="yes"
 (autoconf --version) < /dev/null > /dev/null 2>&1 || {
         echo
         echo "You must have autoconf installed to compile $package."
         echo "Download the appropriate package for your distribution,"
         echo "or get the source tarball at ftp://ftp.gnu.org/pub/gnu/"
+        result="no"
         DIE=1
 }
+echo $result
 
 VERSIONGREP="sed -e s/.*[^0-9\.]\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/"
 VERSIONMKMAJ="sed -e s/\([0-9][0-9]*\)[^0-9].*/\\1/"
@@ -103,6 +106,18 @@ fi
 	DIE=1
 }
 
+echo -n "checking for pkg-config ... "
+result="yes"
+(pkg-config --version) < /dev/null > /dev/null 2>&1 || {
+        echo
+        echo "You must have pkg-config installed to compile $package."
+        echo "Download the appropriate package for your distribution."
+		result="no"
+        DIE=1
+}
+echo $result
+
+
 if test "$DIE" -eq 1; then
         exit 1
 fi
@@ -112,12 +127,18 @@ if test -z "$*"; then
         echo "to pass any to it, please specify them on the $0 command line."
 fi
 
-echo "Generating configuration files for $package, please wait...."
+if test ! -d Cfg ; then
+	echo "Createing 'Cfg' directory."
+	mkdir Cfg
+fi
+
+echo "Generating configuration files for $package, please wait ... "
 
 echo "  $ACLOCAL $ACLOCAL_FLAGS"
 $ACLOCAL $ACLOCAL_FLAGS || exit 1
-echo "  $LIBTOOLIZE --automake"
-$LIBTOOLIZE --copy --force --automake || exit 1
+echo "  $LIBTOOLIZE --automake --force"
+$LIBTOOLIZE --automake --force || exit 1
+
 echo "  autoheader"
 autoheader || exit 1
 echo "  $AUTOMAKE --add-missing $AUTOMAKE_FLAGS"
@@ -128,3 +149,13 @@ autoconf || exit 1
 cd $olddir
 $srcdir/configure -enable-gcc-werror "$@" && echo
 
+fprecommit=.git/hooks/pre-commit
+if test ! -f $fprecommit ; then
+	echo "Installing git pre-commit hook for this project."
+	cat > $fprecommit << 'foobar'
+#!/bin/sh
+exec Scripts/git-pre-commit-hook
+foobar
+	chmod u+x $fprecommit
+	echo
+	fi
