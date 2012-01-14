@@ -59,13 +59,6 @@ static const char font_family [] = "Terminus" ;
 
 #define C_COLOUR(X)	(X)->r, (X)->g, (X)->b, (X)->a
 
-#define X_TO_COL(C, H) {              \
-	(C)->a = ((H>>24)&0xff) / 255.0 ; \
-	(C)->r = ((H>>16)&0xff) / 255.0 ; \
-	(C)->g = ((H>> 8)&0xff) / 255.0 ; \
-	(C)->b = ((H    )&0xff) / 255.0 ; \
-}
-
 typedef struct colour
 {	float r ;
 	float g ;
@@ -96,6 +89,14 @@ typedef struct drect
 #ifndef SF_BROADCAST_INFO_2K
 typedef SF_BROADCAST_INFO_VAR (2048) SF_BROADCAST_INFO_2K ;
 #endif
+
+static inline void
+set_colour (colour * c, int h)
+{	c->a = ((h >> 24) & 0xff) / 255.0 ;
+	c->r = ((h >> 16) & 0xff) / 255.0 ;
+	c->g = ((h >> 8) & 0xff) / 255.0 ;
+	c->b = ((h) & 0xff) / 255.0 ;
+} /* set_colour */
 
 /* copied from ardour3 */
 static inline float
@@ -874,10 +875,10 @@ main (int argc, char * argv [])
 				long_options,	NULL))	!=	EOF)
 		switch (c)
 		{	case 'A' :		/* --annotation */
-				X_TO_COL (&render.c_ann, strtoll (optarg, NULL, 16))
+				set_colour (&render.c_ann, strtoll (optarg, NULL, 16)) ;
 				break ;
 			case 'B' :		/* --background */
-				X_TO_COL (&render.c_bg, strtoll (optarg, NULL, 16))
+				set_colour (&render.c_bg, strtoll (optarg, NULL, 16)) ;
 				break ;
 			case 'b' :		/* --border */
 				render.border = true ;
@@ -886,10 +887,10 @@ main (int argc, char * argv [])
 				render.channel = atoi (optarg) ;
 				break ;
 			case 'F' :		/* --foreground */
-				X_TO_COL (&render.c_fg, strtoll (optarg, NULL, 16))
+				set_colour (&render.c_fg, strtoll (optarg, NULL, 16)) ;
 				break ;
 			case 'G' :		/* --borderbg */
-				X_TO_COL (&render.c_bbg, strtoll (optarg, NULL, 16))
+				set_colour (&render.c_bbg, strtoll (optarg, NULL, 16)) ;
 				break ;
 			case 'W' :		/* --borderbg */
 				render.geometry_no_border = true ;
@@ -912,7 +913,7 @@ main (int argc, char * argv [])
 				render.rectified = true ;
 				break ;
 			case 'R' :		/* --rmscolour */
-				X_TO_COL (&render.c_rms, strtoll (optarg, NULL, 16))
+				set_colour (&render.c_rms, strtoll (optarg, NULL, 16)) ;
 				break ;
 			case 'S' :		/* --separator */
 				render.channel_separation = atoi (optarg) ;
