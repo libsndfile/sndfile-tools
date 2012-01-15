@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -21,6 +21,9 @@
 #include <math.h>
 
 #include "common.h"
+
+/* Global. */
+const char *font_family = "DejaVu Sans Mono" ;
 
 sf_count_t
 sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen)

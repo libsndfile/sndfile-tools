@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -53,7 +53,7 @@
 #define	TITLE_FONT_SIZE		20.0
 #define	NORMAL_FONT_SIZE	12.0
 
-#define	LEFT_BORDER			65.0
+#define	LEFT_BORDER			70.0
 #define	TOP_BORDER			30.0
 #define	RIGHT_BORDER		75.0
 #define	BOTTOM_BORDER		40.0
@@ -71,8 +71,6 @@ typedef struct
 typedef struct
 {	int left, top, width, height ;
 } RECT ;
-
-static const char font_family [] = "Terminus" ;
 
 static void
 get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3])
@@ -350,7 +348,11 @@ render_spect_border (cairo_surface_t * surface, const char * filename, double le
 
 	tick_count = calculate_ticks (seconds, width, &ticks) ;
 	for (k = 0 ; k < tick_count ; k++)
-	{	y_line (cr, left + ticks.distance [k], top + height, TICK_LEN) ;
+	{	/* Don't draw the tick if its further left than the right border. */
+		if (left + ticks.distance [k] > width)
+			continue ;
+
+		y_line (cr, left + ticks.distance [k], top + height, TICK_LEN) ;
 		if (k % 2 == 1)
 			continue ;
 		str_print_value (text, sizeof (text), ticks.value [k]) ;
