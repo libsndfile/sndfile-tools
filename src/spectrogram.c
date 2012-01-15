@@ -348,7 +348,11 @@ render_spect_border (cairo_surface_t * surface, const char * filename, double le
 
 	tick_count = calculate_ticks (seconds, width, &ticks) ;
 	for (k = 0 ; k < tick_count ; k++)
-	{	y_line (cr, left + ticks.distance [k], top + height, TICK_LEN) ;
+	{	/* Don't draw the tick if its further left than the right border. */
+		if (left + ticks.distance [k] > width)
+			continue ;
+
+		y_line (cr, left + ticks.distance [k], top + height, TICK_LEN) ;
 		if (k % 2 == 1)
 			continue ;
 		str_print_value (text, sizeof (text), ticks.value [k]) ;
