@@ -53,7 +53,7 @@
 #define	TITLE_FONT_SIZE		20.0
 #define	NORMAL_FONT_SIZE	12.0
 
-#define	LEFT_BORDER			65.0
+#define	LEFT_BORDER			70.0
 #define	TOP_BORDER			30.0
 #define	RIGHT_BORDER		75.0
 #define	BOTTOM_BORDER		40.0
