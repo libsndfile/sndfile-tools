@@ -1,6 +1,6 @@
 /*
-** Copyright (C) 2007-2009 Erik de Castro Lopo <erikd@mega-nerd.com>
-** Written 2012 by Robin Gareus <robin@gareus.org>
+** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2012 Robin Gareus <robin@gareus.org>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -53,12 +53,6 @@
 #define	RIGHT_BORDER		(50.0)
 #endif
 #define	BOTTOM_BORDER		(40.0)
-
-#ifdef FONTFAMILY
-static const char font_family [] = FONTFAMILY ;
-#else
-static const char font_family [] = "Terminus" ;
-#endif
 
 #define EXIT_FAILURE 1
 

@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -71,8 +71,6 @@ typedef struct
 typedef struct
 {	int left, top, width, height ;
 } RECT ;
-
-static const char font_family [] = "Terminus" ;
 
 static void
 get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3])
