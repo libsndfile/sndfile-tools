@@ -47,11 +47,7 @@
 
 #define	LEFT_BORDER			(10.0)
 #define	TOP_BORDER			(30.0)
-#if WITH_Y_LABEL
 #define	RIGHT_BORDER		(75.0)
-#else
-#define	RIGHT_BORDER		(50.0)
-#endif
 #define	BOTTOM_BORDER		(40.0)
 
 #define EXIT_FAILURE 1
