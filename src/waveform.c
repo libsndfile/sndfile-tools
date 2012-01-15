@@ -470,6 +470,7 @@ static void
 render_title (cairo_surface_t * surface, const RENDER * render, double left, double top)
 {
 	int cxoffset = 0 ;
+	int cyoffset = 0 ;
 	char text [512] ;
 	cairo_t * cr ;
 	cairo_text_extents_t extents ;
@@ -490,18 +491,20 @@ render_title (cairo_surface_t * surface, const RENDER * render, double left, dou
 	cairo_show_text (cr, text) ;
 
 	if (render->channel > 0)
-	{	snprintf (text, sizeof (text), " - channel: %d", render->channel) ;
+	{	snprintf (text, sizeof (text), " (channel: %d)", render->channel) ;
 		cxoffset = extents.width ;
+		cyoffset = extents.height ;
 		}
 	else if (render->channel == 0)
 	{	snprintf (text, sizeof (text), " (downmixed to mono)") ;
 		cxoffset = extents.width ;
+		cyoffset = extents.height ;
 		}
 
 	if (cxoffset > 0)
 	{	cairo_set_font_size (cr, 1.0 * NORMAL_FONT_SIZE) ;
 		cairo_text_extents (cr, text, &extents) ;
-		cairo_move_to (cr, left + 2 + cxoffset, top - extents.height / 2) ;
+		cairo_move_to (cr, left + 2 + cxoffset, top - cyoffset / 2) ;
 		cairo_show_text (cr, text) ;
 		}
 
