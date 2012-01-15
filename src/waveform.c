@@ -318,7 +318,7 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 
 		x++ ;
 		if (x > width + BORDER_LINE_WIDTH)
-		{	printf ("Warning : right end of wave-form is incomplete\n") ;
+		{	printf ("Warning: right end of wave-form is incomplete\n") ;
 			/* this can happen with very short audio-files */
 			break ;
 			} ;
@@ -363,7 +363,7 @@ calculate_ticks (double max, double distance, TICKS * ticks)
 	int k, leading, divisions ;
 
 	if (max < 0)
-	{	printf ("\nError in %s : max < 0\n\n", __func__) ;
+	{	printf ("\nError in %s: max < 0\n\n", __func__) ;
 		exit (EXIT_FAILURE) ;
 		} ;
 
@@ -381,7 +381,7 @@ calculate_ticks (double max, double distance, TICKS * ticks)
 	scale = scale_max / divisions ;
 
 	if (divisions > ARRAY_LEN (ticks->value) - 1)
-	{	printf ("Error : divisions (%d) > ARRAY_LEN (ticks->value) (%d)\n", divisions, ARRAY_LEN (ticks->value)) ;
+	{	printf ("Error: divisions (%d) > ARRAY_LEN (ticks->value) (%d)\n", divisions, ARRAY_LEN (ticks->value)) ;
 		exit (EXIT_FAILURE) ;
 		} ;
 
@@ -457,13 +457,13 @@ str_print_timecode (char * text, int text_len, double sec, int fps_num, int fps_
 	int frame	= (int) floor ((sec - floor (sec)) * (1.0 * fps_num) / (1.0 * fps_den)) ;
 
 	if (flen <= 1.0)
-		snprintf (text, text_len, "%02d :%02d :%02d", hours, mins, secs) ;
+		snprintf (text, text_len, "%02d:%02d:%02d", hours, mins, secs) ;
 	else if (flen <= 10.0)
-		snprintf (text, text_len, "%02d :%02d :%02d.%01d", hours, mins, secs, frame) ;
+		snprintf (text, text_len, "%02d:%02d:%02d.%01d", hours, mins, secs, frame) ;
 	else if (flen <=100.0)
-		snprintf (text, text_len, "%02d :%02d :%02d.%02d", hours, mins, secs, frame) ;
+		snprintf (text, text_len, "%02d:%02d:%02d.%02d", hours, mins, secs, frame) ;
 	else
-		snprintf (text, text_len, "%02d :%02d :%02d.%03d", hours, mins, secs, frame) ;
+		snprintf (text, text_len, "%02d:%02d:%02d.%03d", hours, mins, secs, frame) ;
 } /* str_print_timecode */
 
 static void
@@ -490,7 +490,7 @@ render_title (cairo_surface_t * surface, const RENDER * render, double left, dou
 	cairo_show_text (cr, text) ;
 
 	if (render->channel > 0)
-	{	snprintf (text, sizeof (text), " - channel : %d", render->channel) ;
+	{	snprintf (text, sizeof (text), " - channel: %d", render->channel) ;
 		cxoffset = extents.width ;
 		}
 	else if (render->channel == 0)
@@ -767,7 +767,7 @@ render_cairo_surface (const RENDER * render, SNDFILE *infile, SF_INFO *info )
 	surface = cairo_image_surface_create (CAIRO_FORMAT_ARGB32, render->width, render->height) ;
 	if (surface == NULL || cairo_surface_status (surface) != CAIRO_STATUS_SUCCESS)
 	{	status = cairo_surface_status (surface) ;
-		printf ("Error while creating surface : %s\n", cairo_status_to_string (status)) ;
+		printf ("Error while creating surface: %s\n", cairo_status_to_string (status)) ;
 		return ;
 		} ;
 
@@ -777,7 +777,7 @@ render_cairo_surface (const RENDER * render, SNDFILE *infile, SF_INFO *info )
 
 	status = cairo_surface_write_to_png (surface, render->pngfilepath) ;
 	if (status != CAIRO_STATUS_SUCCESS)
-		printf ("Error while creating PNG file : %s\n", cairo_status_to_string (status)) ;
+		printf ("Error while creating PNG file: %s\n", cairo_status_to_string (status)) ;
 
 	cairo_surface_destroy (surface) ;
 
@@ -794,12 +794,12 @@ render_sndfile (RENDER * render)
 
 	infile = sf_open (render->sndfilepath, SFM_READ, &info) ;
 	if (infile == NULL)
-	{	printf ("Error : failed to open file '%s' : \n%s\n", render->sndfilepath, sf_strerror (NULL)) ;
+	{	printf ("Error: failed to open file '%s': \n%s\n", render->sndfilepath, sf_strerror (NULL)) ;
 		exit (EXIT_FAILURE) ;
 		} ;
 
 	if (render->channel > info.channels)
-	{	printf ("Error : channel parameter must be in range [%d, %d]\n", -1, info.channels) ;
+	{	printf ("Error: channel parameter must be in range [%d, %d]\n", -1, info.channels) ;
 		sf_close (infile) ;
 		exit (EXIT_FAILURE) ;
 		} ;
@@ -809,7 +809,7 @@ render_sndfile (RENDER * render)
 		max_width += LEFT_BORDER + RIGHT_BORDER ;
 
 	if (render->width > max_width)
-	{	printf ("Error : soundfile is too short. Decrease image width below %ld.\n", (long int) max_width) ;
+	{	printf ("Error: soundfile is too short. Decrease image width below %ld.\n", (long int) max_width) ;
 		sf_close (infile) ;
 		exit (EXIT_FAILURE) ;
 		} ;
@@ -849,13 +849,13 @@ static void
 check_int_range (const char * name, int value, int lower, int upper)
 {
 	if (value < lower || value > upper)
-	{	printf ("Error : '%s' parameter must be in range [%d, %d]\n", name, lower, upper) ;
+	{	printf ("Error: '%s' parameter must be in range [%d, %d]\n", name, lower, upper) ;
 		exit (EXIT_FAILURE) ;
 		} ;
 } /* check_int_range */
 
 
-/* NOTE : after editing this, run
+/* NOTE: after editing this, run
  * make && help2man -N -n 'waveform image generator' ./src/sndfile-waveform -o man/sndfile-waveform.1
  */
 static void
@@ -879,37 +879,37 @@ usage_exit (char * argv0, int status)
 		"Colours (ARGB) and image- or waveform geometry can be freely specified.\n"
 		"\n") ;
 
-	printf ("Usage : %s [OPTION]  <sound-file> <png-file>\n", argv0) ;
+	printf ("Usage: %s [OPTION]  <sound-file> <png-file>\n", argv0) ;
 	printf ("\n"
-		"Options :\n"
-		"  -A, --textcolour <COL>    specify text and border colour ; default 0xffffffff\n"
+		"Options:\n"
+		"  -A, --textcolour <COL>    specify text and border colour; default 0xffffffff\n"
 		"                            all colours as hexadecimal AA RR GG BB values\n"
 		"  -b, --border              display a border with annotations\n"
-		"  -B, --background <COL>    specify background colour ; default 0x8099999f\n"
-		"  -c, --channel             choose channel (s) to plot, 0 : merge to mono ;\n"
-		"                            < 0 : render all channels vertically separated ;\n"
-		"                            > 0 : render only specified channel. (default : 0)\n"
+		"  -B, --background <COL>    specify background colour; default 0x8099999f\n"
+		"  -c, --channel             choose channel (s) to plot, 0: merge to mono;\n"
+		"                            < 0: render all channels vertically separated;\n"
+		"                            > 0: render only specified channel. (default: 0)\n"
 		"  -C, --centerline <COL>    set colour of zero/center line (default 0x4cffffff)\n"
-		"  -F, --foreground <COL>    specify background colour ; default 0xff333333\n"
+		"  -F, --foreground <COL>    specify background colour; default 0xff333333\n"
 		"  -g <w>x<h>, --geometry <w>x<h>\n"
 		"                            specify the size of the image to create\n"
-		"                            default : 800x192\n"
-		"  -G, --borderbg <COL>      specify border/annotation background colour ;\n"
+		"                            default: 800x192\n"
+		"  -G, --borderbg <COL>      specify border/annotation background colour;\n"
 		"                            default 0xb3ffffff\n"
 		"  -h, --help                display this help and exit\n"
 		"  -l, --logscale            use logarithmic scale\n"
 		"  --no-peak                 only draw RMS signal using foreground colour\n"
 		"  --no-rms                  only draw signal peaks (exclusive with --no-peak).\n"
 		"  -r, --rectified           rectify waveform\n"
-		"  -R, --rmscolour  <COL>    specify background colour ; default 0xffb3b3b3\n"
+		"  -R, --rmscolour  <COL>    specify background colour; default 0xffb3b3b3\n"
 		"  -s, --gainscale           zoom into y-axis, map max signal to height.\n"
 		"  -S, --separator <px>      vertically separate channels by N pixels\n"
-		"                            (default : 12) - only used with -c -1\n"
+		"                            (default: 12) - only used with -c -1\n"
 		"  -t <NUM>[/<DEN>], --timecode <NUM>[/<DEN>]\n"
-		"                            use timecode instead of seconds for x-axis ;\n"
+		"                            use timecode instead of seconds for x-axis;\n"
 		"                            The numerator must be set, the denominator\n"
 		"                            defaults to 1 if omitted.\n"
-		"  -T <offset>               override the BWF time-reference (if any) ;\n"
+		"  -T <offset>               override the BWF time-reference (if any);\n"
 		"                            the offset is specified in audio-frames\n"
 		"                            and only used with timecode (-t) annotation.\n"
 		"  -V, --version             output version information and exit\n"
@@ -1033,8 +1033,8 @@ main (int argc, char * argv [])
 				{
 					render.width = atoi (optarg) ;
 					char *b = strdup (optarg) ;
-					if (strtok (b, "x :/"))
-					{	char *tmp = strtok (NULL, "x :/") ;
+					if (strtok (b, "x:/"))
+					{	char *tmp = strtok (NULL, "x:/") ;
 						if (tmp) render.height = atoi (tmp) ;
 						} ;
 					free (b) ;
@@ -1080,8 +1080,8 @@ main (int argc, char * argv [])
 				printf (
 					"Copyright (C) 2007-2009 Erik de Castro Lopo <erikd@mega-nerd.com>\n"
 					"Written 2011 by Robin Gareus <robin@gareus.org>\n\n"
-					"This is free software ; see the source for copying conditions.  There is NO\n"
-					"warranty ; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
+					"This is free software; see the source for copying conditions.  There is NO\n"
+					"warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 					) ;
 				exit (0) ;
 			case 'h' :
@@ -1097,7 +1097,7 @@ main (int argc, char * argv [])
 	render.pngfilepath = argv [optind + 1] ;
 
 	if ((render.what& (RMS | PEAK)) == 0)
-	{	printf ("Error : at least one of RMS or PEAK must be rendered\n") ;
+	{	printf ("Error: at least one of RMS or PEAK must be rendered\n") ;
 		exit (EXIT_FAILURE) ;
 		} ;
 
