@@ -1,5 +1,5 @@
 /*
-** Copyright (c) 2007-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (c) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2007 Jonatan Liljedahl <lijon@kymatica.com>
 **
 ** This program is free software ; you can redistribute it and/or modify
@@ -294,7 +294,7 @@ main (int argc, char * argv [])
 	for (i = 0 ; i < sndfileinfo.channels ; i++)
 	{	char name [64] ;
 
-		snprintf (name, sizeof (name), "alsa_pcm:playback_%d", i + 1) ;
+		snprintf (name, sizeof (name), "system:playback_%d", i + 1) ;
 
 		if (jack_connect (client, jack_port_name (output_port [i]), name))
 			fprintf (stderr, "Cannot connect output port %d (%s).\n", i, name) ;
