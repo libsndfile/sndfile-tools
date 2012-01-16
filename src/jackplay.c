@@ -77,18 +77,18 @@ process (jack_nframes_t nframes, void * arg)
 		outs [n] = jack_port_get_buffer (output_port [n], nframes) ;
 
 	for (i = 0 ; i < nframes ; i++)
-	{	size_t read_cnt ;
+	{	size_t read_count ;
 
 		/* Read one frame of audio. */
-		read_cnt = jack_ringbuffer_read (ringbuf, (void*) buf, sample_size*info->channels) ;
-		if (read_cnt == 0 && info->read_done)
+		read_count = jack_ringbuffer_read (ringbuf, (void *) buf, sample_size * info->channels) ;
+		if (read_count == 0 && info->read_done)
 		{	/* File is done, so stop the main loop. */
 			info->play_done = 1 ;
 			return 0 ;
 			} ;
 
 		/* Update play-position counter. */
-		info->pos += read_cnt / (sample_size*info->channels) ;
+		info->pos += read_count / (sample_size * info->channels) ;
 
 		/* Output each channel of the frame. */
 		for (n = 0 ; n < info->channels ; n++)
@@ -109,7 +109,7 @@ disk_thread (void *arg)
 {	thread_info_t *info = (thread_info_t *) arg ;
 	sf_count_t buf_avail, read_frames ;
 	jack_ringbuffer_data_t vec [2] ;
-	size_t bytes_per_frame = sample_size*info->channels ;
+	size_t bytes_per_frame = sample_size * info->channels ;
 
 	pthread_setcanceltype (PTHREAD_CANCEL_ASYNCHRONOUS, NULL) ;
 	pthread_mutex_lock (&disk_thread_lock) ;
@@ -189,6 +189,7 @@ main (int argc, char * argv [])
 	SF_INFO sndfileinfo ;
 	const char * filename ;
 	jack_client_t *client ;
+	jack_status_t status ;
 	thread_info_t info ;
 	int i, jack_sr, loop_count = 1 ;
 
@@ -221,13 +222,22 @@ main (int argc, char * argv [])
 		filename = argv [1] ;
 
 	/* Create jack client */
-	if ((client = jack_client_open ("jackplay", JackNullOption | JackNoStartServer, NULL)) == 0)
-	{
-		fprintf (stderr, "Jack server not running?\n") ;
-		return 1 ;
+	if ((client = jack_client_open ("jackplay", JackNullOption | JackNoStartServer, &status)) == 0)
+	{	if (status & JackServerFailed)
+			fprintf (stderr, "Unable to connect to JACK server\n") ;
+		else
+			fprintf (stderr, "jack_client_open () failed, status = 0x%2.0x\n", status) ;
+
+		exit (1) ;
 		} ;
 
-	jack_sr = jack_get_sample_rate (client) ;
+	if (status & JackServerStarted)
+		fprintf (stderr, "JACK server started\n") ;
+
+	if (status & JackNameNotUnique)
+	{	const char * client_name = jack_get_client_name (client) ;
+		fprintf (stderr, "Unique name `%s' assigned\n", client_name) ;
+		} ;
 
 	/* Open the soundfile. */
 	sndfileinfo.format = 0 ;
@@ -245,6 +255,8 @@ main (int argc, char * argv [])
 		fprintf (stderr, "Loop count  : infinite\n") ;
 	else if (loop_count > 1)
 		fprintf (stderr, "Loop count  : %d\n", loop_count) ;
+
+	jack_sr = jack_get_sample_rate (client) ;
 
 	if (sndfileinfo.samplerate != jack_sr)
 		fprintf (stderr, "Warning: samplerate of soundfile (%d Hz) does not match jack server (%d Hz).\n", sndfileinfo.samplerate, jack_sr) ;
