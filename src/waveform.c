@@ -956,7 +956,7 @@ main (int argc, char * argv [])
 		/*width*/ 800, /*height*/ 200,
 		/*channel_separation*/ NORMAL_FONT_SIZE,
 		/*channel*/ 0,
-		/*what*/ PEAK|RMS,
+		/*what*/ PEAK | RMS,
 		/*autogain*/ false,
 		/*border*/ false,
 		/*geometry_no_border*/ false,
