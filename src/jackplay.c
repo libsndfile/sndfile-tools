@@ -35,15 +35,20 @@
 
 #include <sndfile.h>
 
-#define RB_SIZE (1 << 16)
+#define RB_SIZE		(1 << 16)
+#define SAMPLE_SIZE (sizeof (jack_default_audio_sample_t))
 
 #define	NOT(x)	(! (x))
 
-typedef struct _thread_info
-{	pthread_t thread_id ;
-	SNDFILE *sndfile ;
+typedef struct
+{	jack_client_t *client ;
+	jack_ringbuffer_t *ringbuf ;
 	jack_nframes_t pos ;
-	jack_client_t *client ;
+	jack_default_audio_sample_t ** outs ;
+	jack_port_t ** output_port ;
+
+	SNDFILE *sndfile ;
+
 	unsigned int channels ;
 	unsigned int samplerate ;
 
@@ -58,13 +63,8 @@ typedef struct _thread_info
 static pthread_mutex_t disk_thread_lock = PTHREAD_MUTEX_INITIALIZER ;
 static pthread_cond_t data_ready = PTHREAD_COND_INITIALIZER ;
 
-static jack_ringbuffer_t *ringbuf ;
-static jack_port_t **output_port ;
-static jack_default_audio_sample_t ** outs ;
-static const size_t sample_size = sizeof (jack_default_audio_sample_t) ;
-
 static int
-process (jack_nframes_t nframes, void * arg)
+process_callback (jack_nframes_t nframes, void * arg)
 {
 	thread_info_t *info = (thread_info_t *) arg ;
 	jack_default_audio_sample_t buf [info->channels] ;
@@ -74,13 +74,13 @@ process (jack_nframes_t nframes, void * arg)
 		return 0 ;
 
 	for (n = 0 ; n < info->channels ; n++)
-		outs [n] = jack_port_get_buffer (output_port [n], nframes) ;
+		info->outs [n] = jack_port_get_buffer (info->output_port [n], nframes) ;
 
 	for (i = 0 ; i < nframes ; i++)
 	{	size_t read_count ;
 
 		/* Read one frame of audio. */
-		read_count = jack_ringbuffer_read (ringbuf, (void *) buf, sample_size * info->channels) ;
+		read_count = jack_ringbuffer_read (info->ringbuf, (void *) buf, SAMPLE_SIZE * info->channels) ;
 		if (read_count == 0 && info->read_done)
 		{	/* File is done, so stop the main loop. */
 			info->play_done = 1 ;
@@ -88,11 +88,11 @@ process (jack_nframes_t nframes, void * arg)
 			} ;
 
 		/* Update play-position counter. */
-		info->pos += read_count / (sample_size * info->channels) ;
+		info->pos += read_count / (SAMPLE_SIZE * info->channels) ;
 
 		/* Output each channel of the frame. */
 		for (n = 0 ; n < info->channels ; n++)
-			outs [n][i] = buf [n] ;
+			info->outs [n][i] = buf [n] ;
 		} ;
 
 	/* Wake up the disk thread to read more data. */
@@ -102,20 +102,20 @@ process (jack_nframes_t nframes, void * arg)
 		} ;
 
 	return 0 ;
-} /* process */
+} /* process_callback */
 
 static void *
 disk_thread (void *arg)
 {	thread_info_t *info = (thread_info_t *) arg ;
 	sf_count_t buf_avail, read_frames ;
 	jack_ringbuffer_data_t vec [2] ;
-	size_t bytes_per_frame = sample_size * info->channels ;
+	size_t bytes_per_frame = SAMPLE_SIZE * info->channels ;
 
 	pthread_setcanceltype (PTHREAD_CANCEL_ASYNCHRONOUS, NULL) ;
 	pthread_mutex_lock (&disk_thread_lock) ;
 
 	while (1)
-	{	jack_ringbuffer_get_write_vector (ringbuf, vec) ;
+	{	jack_ringbuffer_get_write_vector (info->ringbuf, vec) ;
 
 		read_frames = 0 ;
 
@@ -139,12 +139,12 @@ disk_thread (void *arg)
 			sf_seek (info->sndfile, 0, SEEK_SET) ;
 			}
 
-		jack_ringbuffer_write_advance (ringbuf, read_frames * bytes_per_frame) ;
+		jack_ringbuffer_write_advance (info->ringbuf, read_frames * bytes_per_frame) ;
 
-		/* Tell process that we've filled the ringbuffer. */
+		/* Tell process_callback that we've filled the ringbuffer. */
 		info->can_process = 1 ;
 
-		/* Wait for the process thread to wake us up. */
+		/* Wait for the process_callback thread to wake us up. */
 		pthread_cond_wait (&data_ready, &disk_thread_lock) ;
 		} ;
 
@@ -152,7 +152,7 @@ disk_thread (void *arg)
 	info->read_done = 1 ;
 	pthread_mutex_unlock (&disk_thread_lock) ;
 
-	return 0 ;
+	return NULL ;
 } /* disk_thread */
 
 static void
@@ -184,12 +184,12 @@ print_status (const thread_info_t * info)
 
 int
 main (int argc, char * argv [])
-{
+{	pthread_t thread_id ;
 	SNDFILE *sndfile ;
-	SF_INFO sndfileinfo ;
+	SF_INFO sfinfo ;
 	const char * filename ;
 	jack_client_t *client ;
-	jack_status_t status ;
+	jack_status_t status = 0 ;
 	thread_info_t info ;
 	int i, jack_sr, loop_count = 1 ;
 
@@ -240,15 +240,15 @@ main (int argc, char * argv [])
 		} ;
 
 	/* Open the soundfile. */
-	sndfileinfo.format = 0 ;
-	sndfile = sf_open (filename, SFM_READ, &sndfileinfo) ;
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
+	sndfile = sf_open (filename, SFM_READ, &sfinfo) ;
 	if (sndfile == NULL)
 	{	fprintf (stderr, "Could not open soundfile '%s'\n", filename) ;
 		return 1 ;
 		} ;
 
-	fprintf (stderr, "Channels    : %d\nSample rate : %d Hz\nDuration    : ", sndfileinfo.channels, sndfileinfo.samplerate) ;
-	print_time (loop_count * sndfileinfo.frames, sndfileinfo.samplerate) ;
+	fprintf (stderr, "Channels    : %d\nSample rate : %d Hz\nDuration    : ", sfinfo.channels, sfinfo.samplerate) ;
+	print_time (loop_count * sfinfo.frames, sfinfo.samplerate) ;
 	fprintf (stderr, "\n") ;
 
 	if (loop_count < 1)
@@ -258,8 +258,8 @@ main (int argc, char * argv [])
 
 	jack_sr = jack_get_sample_rate (client) ;
 
-	if (sndfileinfo.samplerate != jack_sr)
-		fprintf (stderr, "Warning: samplerate of soundfile (%d Hz) does not match jack server (%d Hz).\n", sndfileinfo.samplerate, jack_sr) ;
+	if (sfinfo.samplerate != jack_sr)
+		fprintf (stderr, "Warning: samplerate of soundfile (%d Hz) does not match jack server (%d Hz).\n", sfinfo.samplerate, jack_sr) ;
 
 	/* Init the thread info struct. */
 	memset (&info, 0, sizeof (info)) ;
@@ -267,7 +267,7 @@ main (int argc, char * argv [])
 	info.read_done = 0 ;
 	info.play_done = 0 ;
 	info.sndfile = sndfile ;
-	info.channels = sndfileinfo.channels ;
+	info.channels = sfinfo.channels ;
 	info.samplerate = jack_sr ;
 	info.client = client ;
 	info.pos = 0 ;
@@ -276,25 +276,25 @@ main (int argc, char * argv [])
 	info.loop_count = loop_count ;
 
 	/* Allocate output ports. */
-	output_port = calloc (sndfileinfo.channels, sizeof (jack_port_t *)) ;
-	outs = calloc (sndfileinfo.channels, sizeof (jack_default_audio_sample_t *)) ;
-	for (i = 0 ; i < sndfileinfo.channels ; i++)
+	info.output_port = calloc (sfinfo.channels, sizeof (jack_port_t *)) ;
+	info.outs = calloc (sfinfo.channels, sizeof (jack_default_audio_sample_t *)) ;
+	for (i = 0 ; i < sfinfo.channels ; i++)
 	{	char name [16] ;
 
 		snprintf (name, sizeof (name), "out_%d", i + 1) ;
-		output_port [i] = jack_port_register (client, name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0) ;
+		info.output_port [i] = jack_port_register (client, name, JACK_DEFAULT_AUDIO_TYPE, JackPortIsOutput, 0) ;
 		} ;
 
 	/* Allocate and clear ringbuffer. */
-	ringbuf = jack_ringbuffer_create (sizeof (jack_default_audio_sample_t) * RB_SIZE) ;
-	memset (ringbuf->buf, 0, ringbuf->size) ;
+	info.ringbuf = jack_ringbuffer_create (sizeof (jack_default_audio_sample_t) * RB_SIZE) ;
+	memset (info.ringbuf->buf, 0, info.ringbuf->size) ;
 
 	/* Set up callbacks. */
-	jack_set_process_callback (client, process, &info) ;
+	jack_set_process_callback (client, process_callback, &info) ;
 	jack_on_shutdown (client, jack_shutdown, 0) ;
 
 	/* Start the disk thread. */
-	pthread_create (&info.thread_id, NULL, disk_thread, &info) ;
+	pthread_create (&thread_id, NULL, disk_thread, &info) ;
 
 	/* Activate client. */
 	if (jack_activate (client))
@@ -303,12 +303,12 @@ main (int argc, char * argv [])
 		} ;
 
 	/* Auto connect all channels. */
-	for (i = 0 ; i < sndfileinfo.channels ; i++)
+	for (i = 0 ; i < sfinfo.channels ; i++)
 	{	char name [64] ;
 
 		snprintf (name, sizeof (name), "system:playback_%d", i + 1) ;
 
-		if (jack_connect (client, jack_port_name (output_port [i]), name))
+		if (jack_connect (client, jack_port_name (info.output_port [i]), name))
 			fprintf (stderr, "Cannot connect output port %d (%s).\n", i, name) ;
 		} ;
 
@@ -318,14 +318,21 @@ main (int argc, char * argv [])
 		usleep (10000) ;
 		} ;
 
+	pthread_join (thread_id, NULL) ;
+
 	print_status (&info) ;
 
 	/* Clean up. */
+	for (i = 0 ; i < sfinfo.channels ; i++)
+		jack_port_unregister (client, info.output_port [i]) ;
+
+	jack_ringbuffer_free (info.ringbuf) ;
 	jack_client_close (client) ;
-	jack_ringbuffer_free (ringbuf) ;
+
+	free (info.output_port) ;
+	free (info.outs) ;
+
 	sf_close (sndfile) ;
-	free (outs) ;
-	free (output_port) ;
 
 	puts ("") ;
 
