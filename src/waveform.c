@@ -457,7 +457,7 @@ str_print_timecode (char * text, int text_len, double sec, int fps_num, int fps_
 } /* str_print_timecode */
 
 static void
-render_title (cairo_surface_t * surface, const RENDER * render, double left, double top)
+render_title (cairo_surface_t * surface, const RENDER * render, double left, double top, int file_channels)
 {
 	int cxoffset = 0 ;
 	int cyoffset = 0 ;
@@ -485,7 +485,7 @@ render_title (cairo_surface_t * surface, const RENDER * render, double left, dou
 		cxoffset = extents.width ;
 		cyoffset = extents.height ;
 		}
-	else if (render->channel == 0)
+	else if (render->channel == 0 && file_channels > 1)
 	{	snprintf (text, sizeof (text), " (downmixed to mono)") ;
 		cxoffset = extents.width ;
 		cyoffset = extents.height ;
@@ -740,7 +740,7 @@ render_to_surface (const RENDER * render, SNDFILE *infile, SF_INFO *info, cairo_
 		} ;
 
 	if (render->border)
-	{	render_title (surface, render, LEFT_BORDER, TOP_BORDER) ;
+	{	render_title (surface, render, LEFT_BORDER, TOP_BORDER, info->channels) ;
 		if (render->tc_den > 0)
 			render_timecode (surface, render, LEFT_BORDER, width, info->frames / (1.0 * info->samplerate), TOP_BORDER, height) ;
 		else
