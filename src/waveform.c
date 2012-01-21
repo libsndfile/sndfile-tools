@@ -697,10 +697,21 @@ render_wav_border (cairo_surface_t * surface, const RENDER * render, double left
 
 	cairo_move_to (cr, cairo_image_surface_get_width (surface) - 12, top + (height + extents.width) / 2) ;
 	cairo_show_text (cr, text) ;
+#endif
 
-#else // legend
+	cairo_destroy (cr) ;
+} /* render_wav_border */
 
+static void
+render_y_legend (cairo_surface_t * surface, const RENDER * render, double top, double height)
+{
+#ifndef WITH_Y_LABEL
 	double lx, ly, dxy, dh ;
+	cairo_t * cr ;
+	cairo_text_extents_t extents ;
+
+	cr = cairo_create (surface) ;
+
 	dh = 0 ;
 	dxy= NORMAL_FONT_SIZE * 0.65 ;
 
@@ -769,10 +780,10 @@ render_wav_border (cairo_surface_t * surface, const RENDER * render, double left
 		cairo_set_font_matrix (cr, &matrix) ;
 		cairo_show_text (cr, "Peak") ;
 		}
-#endif
 
 	cairo_destroy (cr) ;
-} /* render_wav_border */
+#endif
+} /* render_y_legend */
 
 static void
 render_to_surface (RENDER * render, SNDFILE *infile, SF_INFO *info, cairo_surface_t * surface)
@@ -858,6 +869,7 @@ render_to_surface (RENDER * render, SNDFILE *infile, SF_INFO *info, cairo_surfac
 
 	if (render->border)
 	{	render_title (surface, render, LEFT_BORDER, TOP_BORDER, info->channels) ;
+		render_y_legend (surface, render, TOP_BORDER, height) ;
 		if (render->tc_den > 0)
 			render_timecode (surface, render, LEFT_BORDER, width, info->frames / (1.0 * info->samplerate), TOP_BORDER, height) ;
 		else
