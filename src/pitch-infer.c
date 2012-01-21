@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2010-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2010-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -257,7 +257,7 @@ calc_freq (const double * mag, int mlen, peak_t * peak)
 } /* calc_freq */
 
 
-#define	PEAK_FUNC(state,mag)	((state) + ((mag) << 8))
+#define	PEAK_FUNC(state, mag)	((state) + ((mag) << 8))
 
 
 static int

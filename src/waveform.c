@@ -78,7 +78,7 @@ typedef struct
 	bool parse_bwf ;
 } RENDER ;
 
-enum WHAT { PEAK = 1, RMS = 2} ;
+enum WHAT { PEAK = 1, RMS = 2 } ;
 
 typedef struct DRECT
 {	double x1, y1 ;
@@ -297,7 +297,7 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 			} ;
 
 		if (render->what & PEAK)	// peak
-		{	DRECT pts = {left + x, top + yoff - min, left + x, top + yoff - max} ;
+		{	DRECT pts = { left + x, top + yoff - min, left + x, top + yoff - max } ;
 			draw_cairo_line (cr, &pts, &render->c_fg) ;
 			} ;
 
@@ -450,7 +450,7 @@ str_print_timecode (char * text, int text_len, double sec, int fps_num, int fps_
 		snprintf (text, text_len, "%02d:%02d:%02d", hours, mins, secs) ;
 	else if (flen <= 10.0)
 		snprintf (text, text_len, "%02d:%02d:%02d.%01d", hours, mins, secs, frame) ;
-	else if (flen <=100.0)
+	else if (flen <= 100.0)
 		snprintf (text, text_len, "%02d:%02d:%02d.%02d", hours, mins, secs, frame) ;
 	else
 		snprintf (text, text_len, "%02d:%02d:%02d.%03d", hours, mins, secs, frame) ;
@@ -919,33 +919,33 @@ usage_exit (char * argv0, int status)
 
 static struct option const long_options [] =
 {
-	{"help", no_argument, 0, 'h'},
-	{"version", no_argument, 0, 'V'},
+	{ "help", no_argument, 0, 'h' },
+	{ "version", no_argument, 0, 'V' },
 
-	{"border", no_argument, 0, 'b'},
-	{"logscale", no_argument, 0, 'l'},
-	{"rectified", no_argument, 0, 'r'},
-	{"rectify", no_argument, 0, 'r'},
+	{ "border", no_argument, 0, 'b' },
+	{ "logscale", no_argument, 0, 'l' },
+	{ "rectified", no_argument, 0, 'r' },
+	{ "rectify", no_argument, 0, 'r' },
 
-	{"geometry", required_argument, 0, 'g'},
-	{"separator", required_argument, 0, 'S'},
-	{"wavesize", no_argument, 0, 'W'},
-	{"gainscale", no_argument, 0, 's'},
+	{ "geometry", required_argument, 0, 'g' },
+	{ "separator", required_argument, 0, 'S' },
+	{ "wavesize", no_argument, 0, 'W' },
+	{ "gainscale", no_argument, 0, 's' },
 
-	{"channel", required_argument, 0, 'c'},
+	{ "channel", required_argument, 0, 'c' },
 
-	{"textcolour", required_argument, 0, 'A'},
-	{"foreground", required_argument, 0, 'F'},
-	{"background", required_argument, 0, 'B'},
-	{"rmscolour", required_argument, 0, 'R'},
-	{"borderbg", required_argument, 0, 'G'},
+	{ "textcolour", required_argument, 0, 'A' },
+	{ "foreground", required_argument, 0, 'F' },
+	{ "background", required_argument, 0, 'B' },
+	{ "rmscolour", required_argument, 0, 'R' },
+	{ "borderbg", required_argument, 0, 'G' },
 
-	{"timecode", required_argument, 0, 't'},
-	{"timeoffset", required_argument, 0, 'T'},
+	{ "timecode", required_argument, 0, 't' },
+	{ "timeoffset", required_argument, 0, 'T' },
 
-	{"no-peak", no_argument, 0, 1},
-	{"no-rms", no_argument, 0, 2},
-	{NULL, 0, NULL, 0}
+	{ "no-peak", no_argument, 0, 1 },
+	{ "no-rms", no_argument, 0, 2 },
+	{ NULL, 0, NULL, 0 }
 } ;
 
 
@@ -961,12 +961,12 @@ main (int argc, char * argv [])
 		/*border*/ false,
 		/*geometry_no_border*/ false,
 		/*logscale*/ false, /*rectified*/ false,
-		/*foreground*/	{ 0.2, 0.2, 0.2, 1.0},
-		/*wave-rms*/	{ 0.7, 0.7, 0.7, 1.0},
-		/*background*/	{ 0.6, 0.6, 0.6, 0.5},
-		/*annotation*/	{ 1.0, 1.0, 1.0, 1.0},
-		/*border-bg*/	{ 0.0, 0.0, 0.0, 0.7},
-		/*center-line*/	{ 1.0, 1.0, 1.0, 0.3},
+		/*foreground*/	{ 0.2, 0.2, 0.2, 1.0 },
+		/*wave-rms*/	{ 0.7, 0.7, 0.7, 1.0 },
+		/*background*/	{ 0.6, 0.6, 0.6, 0.5 },
+		/*annotation*/	{ 1.0, 1.0, 1.0, 1.0 },
+		/*border-bg*/	{ 0.0, 0.0, 0.0, 0.7 },
+		/*center-line*/	{ 1.0, 1.0, 1.0, 0.3 },
 		/*timecode num*/ 0, /*den*/ 0, /*offset*/ 0.0,
 		/*parse BWF*/ true
 		} ;
