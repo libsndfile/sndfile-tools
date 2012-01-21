@@ -76,6 +76,7 @@ typedef struct
 	int tc_num, tc_den ;
 	double tc_off ;
 	bool parse_bwf ;
+	bool legend_rmspeak ;
 } RENDER ;
 
 enum WHAT { PEAK = 1, RMS = 2 } ;
@@ -207,8 +208,13 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 } /* calc_peak */
 
 static void
-render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infile, SF_INFO *info, double left, double top, double width, double height, int channel, float gain)
+render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_INFO *info, double left, double top, double width, double height, int channel, float gain)
 {
+#ifdef CONTINUOUS_LINE
+	static float pmin = 0 ;
+	static float pmax = 0 ;
+	static float prms = 0 ;
+#endif
 	long frames_per_buf = info->frames / width ;
 	long buffer_len = frames_per_buf * info->channels ;
 	float* data = malloc (sizeof (float) * buffer_len) ;
@@ -233,9 +239,14 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 	cairo_set_source_rgba (cr, C_COLOUR (&render->c_bg)) ;
 	cairo_fill (cr) ;
 
+#ifdef CONTINUOUS_LINE
+	cairo_set_line_width (cr, 1.25) ;
+#else
 	cairo_set_line_width (cr, 2.0) ;
+#endif
 
 	int x = 0 ;
+	int rms_peak_overlap = 0 ;
 	int channels = (channel > 0) ? 1 : info->channels ;
 
 	while ((sf_read_float (infile, data, buffer_len)) > 0)
@@ -285,8 +296,15 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 		double yoff ;
 		if (render->rectified)
 		{	yoff = height ;
-			min = height * MAX (-min, max) ;
+#ifdef RECTIFY_ABS_MIN
+			const float mmin = min ;
+#endif
+			min = height * MAX (fabsf (min), fabsf (max)) ;
+#ifdef RECTIFY_ABS_MIN
+			max = height * MIN (fabsf (mmin), fabsf (max)) ;
+#else
 			max = 0 ;
+#endif
 			rms = height * rms ;
 			}
 		else
@@ -296,6 +314,18 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 			rms = rms * yoff ;
 			} ;
 
+#ifdef CONTINUOUS_LINE
+		const float rmax = max ;
+		const float rmin = min ;
+		const float rrms = rms ;
+		max = MAX (pmax, max) ;
+		min = MIN (pmin, min) ;
+		rms = MAX (prms, rms) ;
+		pmin = rmin ;
+		pmax = rmax ;
+		prms = rrms ;
+#endif
+
 		if (render->what & PEAK)	// peak
 		{	DRECT pts = { left + x, top + yoff - min, left + x, top + yoff - max } ;
 			draw_cairo_line (cr, &pts, &render->c_fg) ;
@@ -304,6 +334,16 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 		if (render->what & RMS)		// RMS
 		{	DRECT pts = { left + x, top + yoff - rms, left + x, top + yoff + ((yoff != height) ? rms : 0) } ;
 			draw_cairo_line (cr, &pts, &render->c_rms) ;
+			} ;
+
+		if ((render->what & (PEAK | RMS)) == (PEAK | RMS) )
+		{
+#ifdef RECTIFY_ABS_MIN
+			if ( (render->rectified && min >= rms && max <= rms) || (-min >= rms && max >= rms) )
+#else
+			if ( (render->rectified && min >= rms) || (-min >= rms && max >= rms) )
+#endif
+				rms_peak_overlap++ ;
 			} ;
 
 		x++ ;
@@ -319,6 +359,11 @@ render_waveform (cairo_surface_t * surface, const RENDER *render, SNDFILE *infil
 		cairo_set_line_width (cr, BORDER_LINE_WIDTH) ;
 		draw_cairo_line (cr, &pts, &render->c_cl) ;
 		} ;
+
+	if ((render->what & (PEAK | RMS)) == (PEAK | RMS) )
+	{
+		if (rms_peak_overlap > width /2.0) render->legend_rmspeak = true ;
+		}
 
 	cairo_surface_mark_dirty (surface) ;
 	cairo_destroy (cr) ;
@@ -638,7 +683,7 @@ render_wav_border (cairo_surface_t * surface, const RENDER * render, double left
 			} ;
 		} ;
 
-#if WITH_Y_LABEL
+#ifdef WITH_Y_LABEL
 	cairo_matrix_t matrix ;
 	cairo_set_font_size (cr, 1.0 * NORMAL_FONT_SIZE) ;
 
@@ -652,13 +697,85 @@ render_wav_border (cairo_surface_t * surface, const RENDER * render, double left
 
 	cairo_move_to (cr, cairo_image_surface_get_width (surface) - 12, top + (height + extents.width) / 2) ;
 	cairo_show_text (cr, text) ;
+
+#else // legend
+
+	double lx, ly, dxy, dh ;
+	dh = 0 ;
+	dxy= NORMAL_FONT_SIZE * 0.65 ;
+
+	if (render->what & RMS)
+	{	cairo_text_extents (cr, "RMS", &extents) ;
+		dh += dxy + extents.width ;
+		}
+	if (render->what & PEAK)
+	{	cairo_text_extents (cr, "Peak", &extents) ;
+		dh += dxy + extents.width ;
+		}
+	if ((render->what & (PEAK | RMS)) == (PEAK | RMS) ) { dh+= 8 ; }
+
+	lx = cairo_image_surface_get_width (surface) - 12 - dxy ;
+	ly = top + (height + dh) / 2 ;
+
+	cairo_set_line_width (cr, 2.0) ;
+
+	if (render->what & RMS)
+	{	cairo_matrix_t matrix ;
+
+		cairo_set_source_rgba (cr, C_COLOUR (&render->c_bg)) ;
+		if (render->legend_rmspeak && (render->what & PEAK) ) // possible alpha overlay
+			cairo_set_source_rgba (cr, C_COLOUR (&render->c_fg)) ;
+		cairo_rectangle (cr, lx, ly, dxy, dxy) ;
+		cairo_fill (cr) ;
+		cairo_set_source_rgba (cr, C_COLOUR (&render->c_rms)) ;
+		cairo_rectangle (cr, lx, ly, dxy, dxy) ;
+		cairo_fill (cr) ;
+		cairo_set_source_rgba (cr, C_COLOUR (&render->c_ann)) ;
+		cairo_rectangle (cr, lx, ly, dxy, dxy) ;
+		cairo_stroke (cr) ;
+		ly -= dxy + 2.5 ;
+
+		cairo_set_font_size (cr, 1.0 * NORMAL_FONT_SIZE) ;
+		cairo_set_source_rgba (cr, C_COLOUR (&render->c_ann)) ;
+		cairo_move_to (cr, lx + dxy +.5 , ly + dxy) ;
+		cairo_get_font_matrix (cr, &matrix) ;
+		cairo_matrix_rotate (&matrix, -0.5 * M_PI) ;
+		cairo_set_font_matrix (cr, &matrix) ;
+		cairo_show_text (cr, "RMS") ;
+
+		cairo_text_extents (cr, "RMS", &extents) ;
+		ly -= extents.height + 8 ;
+		}
+
+	if (render->what & PEAK)
+	{	cairo_matrix_t matrix ;
+
+		cairo_set_source_rgba (cr, C_COLOUR (&render->c_bg)) ;
+		cairo_rectangle (cr, lx, ly, dxy, dxy) ;
+		cairo_fill (cr) ;
+		cairo_set_source_rgba (cr, C_COLOUR (&render->c_fg)) ;
+		cairo_rectangle (cr, lx, ly, dxy, dxy) ;
+		cairo_fill (cr) ;
+		cairo_set_source_rgba (cr, C_COLOUR (&render->c_ann)) ;
+		cairo_rectangle (cr, lx, ly, dxy, dxy) ;
+		cairo_stroke (cr) ;
+		ly -= dxy + 2.5 ;
+
+		cairo_set_font_size (cr, 1.0 * NORMAL_FONT_SIZE) ;
+		cairo_set_source_rgba (cr, C_COLOUR (&render->c_ann)) ;
+		cairo_move_to (cr, lx + dxy +.5 , ly + dxy) ;
+		cairo_get_font_matrix (cr, &matrix) ;
+		cairo_matrix_rotate (&matrix, -0.5 * M_PI) ;
+		cairo_set_font_matrix (cr, &matrix) ;
+		cairo_show_text (cr, "Peak") ;
+		}
 #endif
 
 	cairo_destroy (cr) ;
 } /* render_wav_border */
 
 static void
-render_to_surface (const RENDER * render, SNDFILE *infile, SF_INFO *info, cairo_surface_t * surface)
+render_to_surface (RENDER * render, SNDFILE *infile, SF_INFO *info, cairo_surface_t * surface)
 {
 	double width, height ;
 
@@ -752,7 +869,7 @@ render_to_surface (const RENDER * render, SNDFILE *infile, SF_INFO *info, cairo_
 } /* render_to_surface */
 
 static void
-render_cairo_surface (const RENDER * render, SNDFILE *infile, SF_INFO *info )
+render_cairo_surface (RENDER * render, SNDFILE *infile, SF_INFO *info )
 {
 	cairo_surface_t * surface = NULL ;
 	cairo_status_t status ;
@@ -968,7 +1085,8 @@ main (int argc, char * argv [])
 		/*border-bg*/	{ 0.0, 0.0, 0.0, 0.7 },
 		/*center-line*/	{ 1.0, 1.0, 1.0, 0.3 },
 		/*timecode num*/ 0, /*den*/ 0, /*offset*/ 0.0,
-		/*parse BWF*/ true
+		/*parse BWF*/ true,
+		/*legend_rmspeak*/ false
 		} ;
 
 	int c ;
@@ -1095,7 +1213,9 @@ main (int argc, char * argv [])
 		} ;
 
 	check_int_range ("width", render.width, MIN_WIDTH, MAX_WIDTH) ;
-	check_int_range ("height", render.height, MIN_HEIGHT, MAX_HEIGHT) ;
+	check_int_range ("height", render.height, MIN_HEIGHT +
+			((!render.geometry_no_border && render.border) ? (TOP_BORDER + BOTTOM_BORDER) : 0),
+			MAX_HEIGHT) ;
 
 	render.filename = strrchr (render.sndfilepath, '/') ;
 	render.filename = (render.filename != NULL) ? render.filename + 1 : render.sndfilepath ;
