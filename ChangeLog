@@ -1,3 +1,7 @@
+2011-01-14  Robin Gareus  <robin@gareus.org>
+    * src/waveform.c
+    added sndfile-waveform, a waveform image generator
+
 2011-01-13  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * src/jackplay.c
