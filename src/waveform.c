@@ -76,7 +76,6 @@ typedef struct
 	int tc_num, tc_den ;
 	double tc_off ;
 	bool parse_bwf ;
-	bool legend_rmspeak ;
 } RENDER ;
 
 enum WHAT { PEAK = 1, RMS = 2 } ;
@@ -201,12 +200,10 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 static void
 render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_INFO *info, double left, double top, double width, double height, int channel, float gain)
 {
-#define CONTINUOUS_LINE 1
-#ifdef CONTINUOUS_LINE
-	static float pmin = 0 ;
-	static float pmax = 0 ;
-	static float prms = 0 ;
-#endif
+	float pmin = 0 ;
+	float pmax = 0 ;
+	float prms = 0 ;
+
 	long frames_per_buf = info->frames / width ;
 	long buffer_len = frames_per_buf * info->channels ;
 	float* data = malloc (sizeof (float) * buffer_len) ;
@@ -234,7 +231,6 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 	cairo_set_line_width (cr, 2.0) ;
 
 	int x = 0 ;
-	int rms_peak_overlap = 0 ;
 	int channels = (channel > 0) ? 1 : info->channels ;
 
 	while ((sf_read_float (infile, data, buffer_len)) > 0)
@@ -295,68 +291,62 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 			rms = rms * yoff ;
 			} ;
 
-		if (render->what & PEAK)	// peak
+		/* Draw background - box */
+		if ((render->what & (PEAK | RMS)) == PEAK)
 		{
-#ifdef CONTINUOUS_LINE
 			if (render->rectified)
 			{
-				DRECT pts0 = { left + x, top + yoff - pmin, left + x + 1.0, top + yoff - min } ;
-				draw_cairo_line (cr, &pts0, &render->c_fg) ;
-				DRECT pts2 = { left + x + 1.0, top + yoff - MIN (min, pmin), left + x + 1.0, top + yoff } ;
+				DRECT pts2 = { left + x, top + yoff - MIN (min, pmin), left + x, top + yoff } ;
 				draw_cairo_line (cr, &pts2, &render->c_fg) ;
 				}
 			else
 			{
-				DRECT pts0 = { left + x, top + yoff - pmin, left + x + 1.0, top + yoff - min } ;
-				draw_cairo_line (cr, &pts0, &render->c_fg) ;
-				DRECT pts1 = { left + x, top + yoff - pmax, left + x + 1.0, top + yoff - max } ;
-				draw_cairo_line (cr, &pts1, &render->c_fg) ;
-				DRECT pts2 = { left + x + 1.0, top + yoff - MAX (pmin, min), left + x + 1.0, top + yoff - MIN (pmax, max) } ;
+				DRECT pts2 = { left + x, top + yoff - MAX (pmin, min), left + x, top + yoff - MIN (pmax, max) } ;
 				draw_cairo_line (cr, &pts2, &render->c_fg) ;
 				}
-#else
-			DRECT pts = { left + x, top + yoff - min, left + x, top + yoff - max } ;
-			draw_cairo_line (cr, &pts, &render->c_fg) ;
-#endif
 			}
 
 		if (render->what & RMS)
 		{
-#ifdef CONTINUOUS_LINE
-			DRECT pts0 = { left + x, top + yoff - prms, left + x + 1.0, top + yoff - rms } ;
-			draw_cairo_line (cr, &pts0, &render->c_rms) ;
-
 			if (render->rectified)
 			{
-				DRECT pts2 = { left + x + 0.0, top + yoff - MIN (prms, rms), left + x + 0.0, top + yoff } ;
+				DRECT pts2 = { left + x, top + yoff - MIN (prms, rms), left + x, top + yoff } ;
 				draw_cairo_line (cr, &pts2, &render->c_rms) ;
 				}
 			else
 			{
-				DRECT pts1 = { left + x, top + yoff + prms, left + x + 1.0, top + yoff + rms } ;
-				draw_cairo_line (cr, &pts1, &render->c_rms) ;
-
-				DRECT pts2 = { left + x + 0.0, top + yoff - MIN (prms, rms), left + x + 0.0, top + yoff + MIN (prms, rms) } ;
+				DRECT pts2 = { left + x, top + yoff - MIN (prms, rms), left + x, top + yoff + MIN (prms, rms) } ;
 				draw_cairo_line (cr, &pts2, &render->c_rms) ;
 				}
+			}
 
-#else
-			DRECT pts = { left + x, top + yoff - rms, left + x, top + yoff + ((yoff != height) ? rms : 0) } ;
-			draw_cairo_line (cr, &pts, &render->c_rms) ;
-#endif
-			} ;
-
-		if ((render->what & (PEAK | RMS)) == (PEAK | RMS) )
+		/* Draw Foreground - line */
+		if (render->what & RMS)
 		{
-			if ( (render->rectified && min >= rms) || (-min >= rms && max >= rms) )
-				rms_peak_overlap++ ;
+			DRECT pts0 = { left + x - 0.5, top + yoff - prms, left + x + 0.5, top + yoff - rms } ;
+			draw_cairo_line (cr, &pts0, &render->c_rms) ;
+
+			if (!render->rectified)
+			{
+				DRECT pts1 = { left + x - 0.5, top + yoff + prms, left + x + 0.5, top + yoff + rms } ;
+				draw_cairo_line (cr, &pts1, &render->c_rms) ;
+				}
 			} ;
 
-#ifdef CONTINUOUS_LINE
+		if (render->what & PEAK)
+		{
+			DRECT pts0 = { left + x - 0.5, top + yoff - pmin, left + x + 0.5, top + yoff - min } ;
+			draw_cairo_line (cr, &pts0, &render->c_fg) ;
+			if (!render->rectified)
+			{
+				DRECT pts1 = { left + x - 0.5, top + yoff - pmax, left + x + 0.5, top + yoff - max } ;
+				draw_cairo_line (cr, &pts1, &render->c_fg) ;
+				}
+			}
+
 		pmin = min ;
 		pmax = max ;
 		prms = rms ;
-#endif
 
 		x++ ;
 		if (x > width + BORDER_LINE_WIDTH)
@@ -371,11 +361,6 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 		cairo_set_line_width (cr, BORDER_LINE_WIDTH) ;
 		draw_cairo_line (cr, &pts, &render->c_cl) ;
 		} ;
-
-	if ((render->what & (PEAK | RMS)) == (PEAK | RMS) )
-	{
-		if (rms_peak_overlap > width /2.0) render->legend_rmspeak = true ;
-		}
 
 	cairo_surface_mark_dirty (surface) ;
 	cairo_destroy (cr) ;
@@ -748,12 +733,6 @@ render_y_legend (cairo_surface_t * surface, const RENDER * render, double top, d
 		cairo_set_source_rgba (cr, C_COLOUR (&render->c_bg)) ;
 		cairo_rectangle (cr, lx, ly, dxy, dxy) ;
 		cairo_fill (cr) ;
-		if (render->legend_rmspeak && (render->what & PEAK) )
-		{
-			cairo_set_source_rgba (cr, C_COLOUR (&render->c_fg)) ;
-			cairo_rectangle (cr, lx, ly, dxy, dxy) ;
-			cairo_fill (cr) ;
-			}
 		cairo_set_source_rgba (cr, C_COLOUR (&render->c_rms)) ;
 		cairo_rectangle (cr, lx, ly, dxy, dxy) ;
 		cairo_fill (cr) ;
@@ -1113,8 +1092,7 @@ main (int argc, char * argv [])
 		/*border-bg*/	{ 0.0, 0.0, 0.0, 0.7 },
 		/*center-line*/	{ 1.0, 1.0, 1.0, 0.3 },
 		/*timecode num*/ 0, /*den*/ 0, /*offset*/ 0.0,
-		/*parse BWF*/ true,
-		/*legend_rmspeak*/ false
+		/*parse BWF*/ true
 		} ;
 
 	int c ;
