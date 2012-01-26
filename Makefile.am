@@ -4,9 +4,9 @@ AUTOMAKE_OPTIONS = subdir-objects
 
 EXTRA_DIST = M4/lrint.m4 M4/lrintf.m4 doc/index.html doc/sweep.png $(man_MANS)
 
-bin_PROGRAMS = src/sndfile-generate-chirp src/sndfile-spectrogram \
-	src/sndfile-mix-to-mono src/sndfile-jackplay src/sndfile-resample \
-	src/sndfile-waveform
+bin_PROGRAMS = bin/sndfile-generate-chirp bin/sndfile-spectrogram \
+	bin/sndfile-mix-to-mono bin/sndfile-jackplay bin/sndfile-resample \
+	bin/sndfile-waveform
 
 # Test programs or programs not yet working.
 noinst_PROGRAMS = src/kaiser_window_test src/sndfile-pitch-infer
@@ -22,24 +22,24 @@ man_MANS = man/sndfile-generate-chirp.1 man/sndfile-spectrogram.1 \
 #=========================================================================================
 # The bin targets.
 
-src_sndfile_generate_chirp_SOURCES = src/generate-chirp.c
-src_sndfile_generate_chirp_LDADD = $(SNDFILE_LIBS)
+bin_sndfile_generate_chirp_SOURCES = src/generate-chirp.c
+bin_sndfile_generate_chirp_LDADD = $(SNDFILE_LIBS)
 
-src_sndfile_spectrogram_SOURCES = src/spectrogram.c src/window.c src/common.c \
+bin_sndfile_spectrogram_SOURCES = src/spectrogram.c src/window.c src/common.c \
 	src/window.h src/common.h
-src_sndfile_spectrogram_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS) $(CAIRO_LIBS)
+bin_sndfile_spectrogram_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS) $(CAIRO_LIBS)
 
-src_sndfile_mix_to_mono_SOURCES = src/mix-to-mono.c src/common.h src/common.c
-src_sndfile_mix_to_mono_LDADD = $(SNDFILE_LIBS)
+bin_sndfile_mix_to_mono_SOURCES = src/mix-to-mono.c src/common.h src/common.c
+bin_sndfile_mix_to_mono_LDADD = $(SNDFILE_LIBS)
 
-src_sndfile_waveform_SOURCES = src/waveform.c src/common.c src/common.h
-src_sndfile_waveform_LDADD = $(SNDFILE_LIBS) $(CAIRO_LIBS)
+bin_sndfile_waveform_SOURCES = src/waveform.c src/common.c src/common.h
+bin_sndfile_waveform_LDADD = $(SNDFILE_LIBS) $(CAIRO_LIBS)
 
-src_sndfile_jackplay_SOURCES = src/jackplay.c
-src_sndfile_jackplay_LDADD = $(SNDFILE_LIBS) $(JACK_LIBS)
+bin_sndfile_jackplay_SOURCES = src/jackplay.c
+bin_sndfile_jackplay_LDADD = $(SNDFILE_LIBS) $(JACK_LIBS)
 
-src_sndfile_resample_SOURCES = src/resample.c
-src_sndfile_resample_LDADD = $(SNDFILE_LIBS) $(SAMPLERATE_LIBS)
+bin_sndfile_resample_SOURCES = src/resample.c
+bin_sndfile_resample_LDADD = $(SNDFILE_LIBS) $(SAMPLERATE_LIBS)
 
 src_sndfile_pitch_infer_SOURCES = src/pitch-infer.c src/window.c src/common.c
 src_sndfile_pitch_infer_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS)

@@ -21,6 +21,7 @@ Makefile
 Makefile.in
 aclocal.m4
 autom4te.cache
+bin/sndfile-*
 config.log
 config.status
 configure
@@ -33,12 +34,5 @@ src/*_test
 src/config.h
 src/config.h.in
 src/fir_hilbert_coeffs.h
-src/sndfile-beat-detect
-src/sndfile-generate-chirp
-src/sndfile-jackplay
-src/sndfile-mix-to-mono
 src/sndfile-pitch-infer
-src/sndfile-resample
-src/sndfile-spectrogram
-src/sndfile-waveform
 src/stamp-h1
