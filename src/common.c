@@ -42,7 +42,7 @@ sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen)
 	while (dataout < datalen)
 	{	int this_read ;
 
-		this_read = MIN (ARRAY_LEN (multi_data) / info.channels, datalen) ;
+		this_read = MIN (ARRAY_LEN (multi_data) / info.channels, datalen - dataout) ;
 
 		frames_read = sf_readf_double (file, multi_data, this_read) ;
 		if (frames_read == 0)
