@@ -33,6 +33,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
+#include <limits.h>
 
 #include <cairo.h>
 #include <fftw3.h>
@@ -44,8 +45,6 @@
 
 #define	MIN_WIDTH	640
 #define	MIN_HEIGHT	480
-#define	MAX_WIDTH	8192
-#define	MAX_HEIGHT	4096
 
 #define TICK_LEN			6
 #define	BORDER_LINE_WIDTH	1.8
@@ -182,18 +181,19 @@ read_mono_audio (SNDFILE * file, sf_count_t filelen, double * data, int datalen,
 static void
 apply_window (double * data, int datalen)
 {
-	static double window [10 * MAX_HEIGHT] ;
+	static double *window = NULL;
 	static int window_len = 0 ;
 	int k ;
 
 	if (window_len != datalen)
 	{
-		window_len = datalen ;
-		if (datalen > ARRAY_LEN (window))
+		window = realloc( window, datalen * sizeof(double) );
+		if (window == NULL)
 		{
-			printf ("%s : datalen >  MAX_HEIGHT\n", __func__) ;
+			printf ("%s : Not enough memory.\n", __func__) ;
 			exit (1) ;
 		} ;
+		window_len = datalen ;
 
 		calc_kaiser_window (window, datalen, 20.0) ;
 	} ;
@@ -205,7 +205,7 @@ apply_window (double * data, int datalen)
 } /* apply_window */
 
 static void
-render_spectrogram (cairo_surface_t * surface, double spec_floor_db, float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, double left, double top, double width, double height, bool gray_scale)
+render_spectrogram (cairo_surface_t * surface, double spec_floor_db, float **mag2d, double maxval, double left, double top, double width, double height, bool gray_scale)
 {
 	unsigned char colour [3] = { 0, 0, 0 } ;
 	unsigned char *data ;
@@ -489,10 +489,10 @@ interp_spec (float * mag, int maglen, const double *spec, int speclen)
 static void
 render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
-	static double time_domain [10 * MAX_HEIGHT] ;
-	static double freq_domain [10 * MAX_HEIGHT] ;
-	static double single_mag_spec [5 * MAX_HEIGHT] ;
-	static float mag_spec [MAX_WIDTH][MAX_HEIGHT] ;
+	double * time_domain = NULL ;
+	double * freq_domain = NULL ;
+	double * single_mag_spec = NULL ;
+	float ** mag_spec = NULL ; // Indexed by [w][h]
 
 	fftw_plan plan ;
 	double max_mag = 0.0 ;
@@ -515,10 +515,22 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 	speclen = height * (samplerate / 20 / height + 1) ;
 	speclen += 0x40 - (speclen & 0x3f) ;
 
-	if (2 * speclen > ARRAY_LEN (time_domain))
-	{	printf ("%s : 2 * speclen > ARRAY_LEN (time_domain)\n", __func__) ;
+	time_domain     = calloc (2 * speclen, sizeof(double));
+	freq_domain     = calloc (2 * speclen, sizeof(double));
+	single_mag_spec = calloc (speclen, sizeof(double));
+	mag_spec        = calloc (width, sizeof(float *)); 
+	if ( time_domain == NULL || freq_domain == NULL ||
+	     single_mag_spec == NULL || mag_spec == NULL )
+	{	printf ("%s : Not enough memory.\n", __func__) ;
 		exit (1) ;
 		} ;
+	for (w = 0 ; w < width ; w++)
+	{
+		if ( (mag_spec[w] = calloc(height, sizeof(float))) == NULL )
+		{	printf ("%s : Not enough memory.\n", __func__) ;
+			exit (1) ;
+			} ;
+		};
 
 	plan = fftw_plan_r2r_1d (2 * speclen, time_domain, freq_domain, FFTW_R2HC, FFTW_MEASURE | FFTW_PRESERVE_INPUT) ;
 	if (plan == NULL)
@@ -542,6 +554,9 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 		} ;
 
 	fftw_destroy_plan (plan) ;
+	free (time_domain) ;
+	free (freq_domain) ;
+	free (single_mag_spec) ;
 
 	if (render->border)
 	{	RECT heat_rect ;
@@ -560,6 +575,10 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 		}
 	else
 		render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, 0, 0, width, height, render->gray_scale) ;
+
+	for (w = 0 ; w < width ; w++)
+		free( mag_spec[w] );
+	free( mag_spec );
 
 	return ;
 } /* render_to_surface */
@@ -701,8 +720,8 @@ main (int argc, char * argv [])
 	render.height = atoi (argv [k + 2]) ;
 	render.pngfilepath = argv [k + 3] ;
 
-	check_int_range ("width", render.width, MIN_WIDTH, MAX_WIDTH) ;
-	check_int_range ("height", render.height, MIN_HEIGHT, MAX_HEIGHT) ;
+	check_int_range ("width", render.width, MIN_WIDTH, INT_MAX) ;
+	check_int_range ("height", render.height, MIN_HEIGHT, INT_MAX) ;
 
 
 	render.filename = strrchr (render.sndfilepath, '/') ;
