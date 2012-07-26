@@ -64,7 +64,7 @@
 typedef struct
 {	const char *sndfilepath, *pngfilepath, *filename ;
 	int width, height ;
-	bool border, log_freq ;
+	bool border, log_freq, gray_scale ;
 	double spec_floor_db ;
 } RENDER ;
 
@@ -73,7 +73,7 @@ typedef struct
 } RECT ;
 
 static void
-get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3])
+get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3], bool gray_scale)
 {	static unsigned char map [][3] =
 	{	/* These values were originally calculated for a dynamic range of 180dB. */
 		{	255,	255,	255	},	/* -0dB */
@@ -102,6 +102,33 @@ get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3
 
 	if (value >= 0.0)
 	{	colour = map [0] ;
+		return ;
+		} ;
+
+	if (gray_scale)
+	{	/* "value" is a negative value in decibels.
+		 * black (0,0,0) is for <= -180.0,
+		 * white (255,255,255) is for >= 0.0 leaving 254 values
+		 * which should cover the intervening range evenly.
+		 * (value/spec_floor_db) is between 0.0 and 1.0 (not inclusive)
+		 * because both value and spec_floor_db are negative.
+		 * (v/s) * 254.0 is from 0.000001 to 253.9999999 and
+		 * we want 1 to 254, so ceil((v/s) * 254) gives us that,
+		 * converted to 254 to 1 by subtracting from 255. */
+		int c; /* The pixel value */
+
+		if (value <= spec_floor_db)
+			c = 0;
+		else
+		{	c = 255 - lrintf (ceil ( (value / spec_floor_db) * 254.0 ) ) ;
+
+			if (c < 1 || c > 254)	/* Sanity check */
+			{	printf ("\nError : gray value is %d\n\n", c) ;
+				exit (1) ;
+				} ;
+
+			} ;
+		colour [0] = colour [1] = colour [2] = c;
 		return ;
 		} ;
 
@@ -178,7 +205,7 @@ apply_window (double * data, int datalen)
 } /* apply_window */
 
 static void
-render_spectrogram (cairo_surface_t * surface, double spec_floor_db, float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, double left, double top, double width, double height)
+render_spectrogram (cairo_surface_t * surface, double spec_floor_db, float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, double left, double top, double width, double height, bool gray_scale)
 {
 	unsigned char colour [3] = { 0, 0, 0 } ;
 	unsigned char *data ;
@@ -199,7 +226,7 @@ render_spectrogram (cairo_surface_t * surface, double spec_floor_db, float mag2d
 			mag2d [w][h] = mag2d [w][h] / maxval ;
 			mag2d [w][h] = (mag2d [w][h] < linear_spec_floor) ? spec_floor_db : 20.0 * log10 (mag2d [w][h]) ;
 
-			get_colour_map_value (mag2d [w][h], spec_floor_db, colour) ;
+			get_colour_map_value (mag2d [w][h], spec_floor_db, colour, gray_scale) ;
 
 			y = height + top - 1 - h ;
 			x = (w + left) * 4 ;
@@ -213,7 +240,7 @@ render_spectrogram (cairo_surface_t * surface, double spec_floor_db, float mag2d
 } /* render_spectrogram */
 
 static void
-render_heat_map (cairo_surface_t * surface, double magfloor, const RECT *r)
+render_heat_map (cairo_surface_t * surface, double magfloor, const RECT *r, bool gray_scale)
 {
 	unsigned char colour [3], *data ;
 	int w, h, stride ;
@@ -222,7 +249,7 @@ render_heat_map (cairo_surface_t * surface, double magfloor, const RECT *r)
 	data = cairo_image_surface_get_data (surface) ;
 
 	for (h = 0 ; h < r->height ; h++)
-	{	get_colour_map_value (magfloor * (r->height - h) / (r->height + 1), magfloor, colour) ;
+	{	get_colour_map_value (magfloor * (r->height - h) / (r->height + 1), magfloor, colour, gray_scale) ;
 
 		for (w = 0 ; w < r->width ; w ++)
 		{	int x, y ;
@@ -524,15 +551,15 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 		heat_rect.width = 12 ;
 		heat_rect.height = height - TOP_BORDER / 2 ;
 
-		render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height) ;
+		render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height, render->gray_scale) ;
 
-		render_heat_map (surface, render->spec_floor_db, &heat_rect) ;
+		render_heat_map (surface, render->spec_floor_db, &heat_rect, render->gray_scale) ;
 
 		render_spect_border (surface, render->filename, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, 0.5 * samplerate) ;
 		render_heat_border (surface, render->spec_floor_db, &heat_rect) ;
 		}
 	else
-		render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, 0, 0, width, height) ;
+		render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, 0, 0, width, height, render->gray_scale) ;
 
 	return ;
 } /* render_to_surface */
@@ -623,6 +650,7 @@ usage_exit (const char * argv0, int error)
 		"        --dyn-range=<number>   : Dynamic range (ie 100 for 100dB range)\n"
 		"        --no-border            : Drop the border, scales, heat map and title\n"
 		/*-"        --log-freq             : Use a logarithmic frquency scale\n" -*/
+		"        --gray-scale           : Output gray pixels instead of a heat map\n"
 		) ;
 
 	exit (error) ;
@@ -633,7 +661,7 @@ main (int argc, char * argv [])
 {	RENDER render =
 	{	NULL, NULL, NULL,
 		0, 0,
-		true, false,
+		true, false, false,
 		SPEC_FLOOR_DB
 		} ;
 	int k ;
@@ -656,6 +684,11 @@ main (int argc, char * argv [])
 
 		if (strcmp (argv [k], "--log-freq") == 0)
 		{	render.log_freq = true ;
+			continue ;
+			} ;
+
+		if (strcmp (argv [k], "--gray-scale") == 0)
+		{	render.gray_scale = true ;
 			continue ;
 			} ;
 
