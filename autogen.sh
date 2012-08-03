@@ -149,13 +149,15 @@ autoconf || exit 1
 cd $olddir
 $srcdir/configure -enable-gcc-werror "$@" && echo
 
-fprecommit=.git/hooks/pre-commit
-if test ! -f $fprecommit ; then
-	echo "Installing git pre-commit hook for this project."
-	cat > $fprecommit << 'foobar'
+if test -d .git; then
+	fprecommit=.git/hooks/pre-commit
+	if test ! -f $fprecommit ; then
+		echo "Installing git pre-commit hook for this project."
+		cat > $fprecommit << 'foobar'
 #!/bin/sh
 exec Scripts/git-pre-commit-hook
 foobar
-	chmod u+x $fprecommit
-	echo
+		chmod u+x $fprecommit
+		echo
+		fi
 	fi
