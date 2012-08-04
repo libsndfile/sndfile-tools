@@ -33,6 +33,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
+#include <limits.h>
 
 #include <cairo.h>
 #include <fftw3.h>
@@ -44,8 +45,6 @@
 
 #define	MIN_WIDTH	640
 #define	MIN_HEIGHT	480
-#define	MAX_WIDTH	8192
-#define	MAX_HEIGHT	4096
 
 #define TICK_LEN			6
 #define	BORDER_LINE_WIDTH	1.8
@@ -64,7 +63,7 @@
 typedef struct
 {	const char *sndfilepath, *pngfilepath, *filename ;
 	int width, height ;
-	bool border, log_freq ;
+	bool border, log_freq, gray_scale ;
 	double spec_floor_db ;
 } RENDER ;
 
@@ -73,7 +72,7 @@ typedef struct
 } RECT ;
 
 static void
-get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3])
+get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3], bool gray_scale)
 {	static unsigned char map [][3] =
 	{	/* These values were originally calculated for a dynamic range of 180dB. */
 		{	255,	255,	255	},	/* -0dB */
@@ -102,6 +101,33 @@ get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3
 
 	if (value >= 0.0)
 	{	colour = map [0] ;
+		return ;
+		} ;
+
+	if (gray_scale)
+	{	/* "value" is a negative value in decibels.
+		 * black (0,0,0) is for <= -180.0,
+		 * white (255,255,255) is for >= 0.0 leaving 254 values
+		 * which should cover the intervening range evenly.
+		 * (value/spec_floor_db) is between 0.0 and 1.0 (not inclusive)
+		 * because both value and spec_floor_db are negative.
+		 * (v/s) * 254.0 is from 0.000001 to 253.9999999 and
+		 * we want 1 to 254, so ceil((v/s) * 254) gives us that,
+		 * converted to 254 to 1 by subtracting from 255. */
+		int c; /* The pixel value */
+
+		if (value <= spec_floor_db)
+			c = 0;
+		else
+		{	c = 255 - lrintf (ceil ( (value / spec_floor_db) * 254.0 ) ) ;
+
+			if (c < 1 || c > 254)	/* Sanity check */
+			{	printf ("\nError : gray value is %d\n\n", c) ;
+				exit (1) ;
+				} ;
+
+			} ;
+		colour [0] = colour [1] = colour [2] = c;
 		return ;
 		} ;
 
@@ -155,18 +181,19 @@ read_mono_audio (SNDFILE * file, sf_count_t filelen, double * data, int datalen,
 static void
 apply_window (double * data, int datalen)
 {
-	static double window [10 * MAX_HEIGHT] ;
+	static double *window = NULL;
 	static int window_len = 0 ;
 	int k ;
 
 	if (window_len != datalen)
 	{
-		window_len = datalen ;
-		if (datalen > ARRAY_LEN (window))
+		window = realloc( window, datalen * sizeof(double) );
+		if (window == NULL)
 		{
-			printf ("%s : datalen >  MAX_HEIGHT\n", __func__) ;
+			printf ("%s : Not enough memory.\n", __func__) ;
 			exit (1) ;
 		} ;
+		window_len = datalen ;
 
 		calc_kaiser_window (window, datalen, 20.0) ;
 	} ;
@@ -178,7 +205,7 @@ apply_window (double * data, int datalen)
 } /* apply_window */
 
 static void
-render_spectrogram (cairo_surface_t * surface, double spec_floor_db, float mag2d [MAX_WIDTH][MAX_HEIGHT], double maxval, double left, double top, double width, double height)
+render_spectrogram (cairo_surface_t * surface, double spec_floor_db, float **mag2d, double maxval, double left, double top, double width, double height, bool gray_scale)
 {
 	unsigned char colour [3] = { 0, 0, 0 } ;
 	unsigned char *data ;
@@ -199,7 +226,7 @@ render_spectrogram (cairo_surface_t * surface, double spec_floor_db, float mag2d
 			mag2d [w][h] = mag2d [w][h] / maxval ;
 			mag2d [w][h] = (mag2d [w][h] < linear_spec_floor) ? spec_floor_db : 20.0 * log10 (mag2d [w][h]) ;
 
-			get_colour_map_value (mag2d [w][h], spec_floor_db, colour) ;
+			get_colour_map_value (mag2d [w][h], spec_floor_db, colour, gray_scale) ;
 
 			y = height + top - 1 - h ;
 			x = (w + left) * 4 ;
@@ -213,7 +240,7 @@ render_spectrogram (cairo_surface_t * surface, double spec_floor_db, float mag2d
 } /* render_spectrogram */
 
 static void
-render_heat_map (cairo_surface_t * surface, double magfloor, const RECT *r)
+render_heat_map (cairo_surface_t * surface, double magfloor, const RECT *r, bool gray_scale)
 {
 	unsigned char colour [3], *data ;
 	int w, h, stride ;
@@ -222,7 +249,7 @@ render_heat_map (cairo_surface_t * surface, double magfloor, const RECT *r)
 	data = cairo_image_surface_get_data (surface) ;
 
 	for (h = 0 ; h < r->height ; h++)
-	{	get_colour_map_value (magfloor * (r->height - h) / (r->height + 1), magfloor, colour) ;
+	{	get_colour_map_value (magfloor * (r->height - h) / (r->height + 1), magfloor, colour, gray_scale) ;
 
 		for (w = 0 ; w < r->width ; w ++)
 		{	int x, y ;
@@ -462,10 +489,10 @@ interp_spec (float * mag, int maglen, const double *spec, int speclen)
 static void
 render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
-	static double time_domain [10 * MAX_HEIGHT] ;
-	static double freq_domain [10 * MAX_HEIGHT] ;
-	static double single_mag_spec [5 * MAX_HEIGHT] ;
-	static float mag_spec [MAX_WIDTH][MAX_HEIGHT] ;
+	double * time_domain = NULL ;
+	double * freq_domain = NULL ;
+	double * single_mag_spec = NULL ;
+	float ** mag_spec = NULL ; // Indexed by [w][h]
 
 	fftw_plan plan ;
 	double max_mag = 0.0 ;
@@ -488,10 +515,22 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 	speclen = height * (samplerate / 20 / height + 1) ;
 	speclen += 0x40 - (speclen & 0x3f) ;
 
-	if (2 * speclen > ARRAY_LEN (time_domain))
-	{	printf ("%s : 2 * speclen > ARRAY_LEN (time_domain)\n", __func__) ;
+	time_domain     = calloc (2 * speclen, sizeof(double));
+	freq_domain     = calloc (2 * speclen, sizeof(double));
+	single_mag_spec = calloc (speclen, sizeof(double));
+	mag_spec        = calloc (width, sizeof(float *)); 
+	if ( time_domain == NULL || freq_domain == NULL ||
+	     single_mag_spec == NULL || mag_spec == NULL )
+	{	printf ("%s : Not enough memory.\n", __func__) ;
 		exit (1) ;
 		} ;
+	for (w = 0 ; w < width ; w++)
+	{
+		if ( (mag_spec[w] = calloc(height, sizeof(float))) == NULL )
+		{	printf ("%s : Not enough memory.\n", __func__) ;
+			exit (1) ;
+			} ;
+		};
 
 	plan = fftw_plan_r2r_1d (2 * speclen, time_domain, freq_domain, FFTW_R2HC, FFTW_MEASURE | FFTW_PRESERVE_INPUT) ;
 	if (plan == NULL)
@@ -515,6 +554,9 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 		} ;
 
 	fftw_destroy_plan (plan) ;
+	free (time_domain) ;
+	free (freq_domain) ;
+	free (single_mag_spec) ;
 
 	if (render->border)
 	{	RECT heat_rect ;
@@ -524,15 +566,19 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 		heat_rect.width = 12 ;
 		heat_rect.height = height - TOP_BORDER / 2 ;
 
-		render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height) ;
+		render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, LEFT_BORDER, TOP_BORDER, width, height, render->gray_scale) ;
 
-		render_heat_map (surface, render->spec_floor_db, &heat_rect) ;
+		render_heat_map (surface, render->spec_floor_db, &heat_rect, render->gray_scale) ;
 
 		render_spect_border (surface, render->filename, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, 0.5 * samplerate) ;
 		render_heat_border (surface, render->spec_floor_db, &heat_rect) ;
 		}
 	else
-		render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, 0, 0, width, height) ;
+		render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, 0, 0, width, height, render->gray_scale) ;
+
+	for (w = 0 ; w < width ; w++)
+		free( mag_spec[w] );
+	free( mag_spec );
 
 	return ;
 } /* render_to_surface */
@@ -623,6 +669,7 @@ usage_exit (const char * argv0, int error)
 		"        --dyn-range=<number>   : Dynamic range (ie 100 for 100dB range)\n"
 		"        --no-border            : Drop the border, scales, heat map and title\n"
 		/*-"        --log-freq             : Use a logarithmic frquency scale\n" -*/
+		"        --gray-scale           : Output gray pixels instead of a heat map\n"
 		) ;
 
 	exit (error) ;
@@ -633,7 +680,7 @@ main (int argc, char * argv [])
 {	RENDER render =
 	{	NULL, NULL, NULL,
 		0, 0,
-		true, false,
+		true, false, false,
 		SPEC_FLOOR_DB
 		} ;
 	int k ;
@@ -659,6 +706,11 @@ main (int argc, char * argv [])
 			continue ;
 			} ;
 
+		if (strcmp (argv [k], "--gray-scale") == 0)
+		{	render.gray_scale = true ;
+			continue ;
+			} ;
+
 		printf ("\nError : Bad command line argument '%s'\n", argv [k]) ;
 		usage_exit (argv [0], 1) ;
 		} ;
@@ -668,8 +720,8 @@ main (int argc, char * argv [])
 	render.height = atoi (argv [k + 2]) ;
 	render.pngfilepath = argv [k + 3] ;
 
-	check_int_range ("width", render.width, MIN_WIDTH, MAX_WIDTH) ;
-	check_int_range ("height", render.height, MIN_HEIGHT, MAX_HEIGHT) ;
+	check_int_range ("width", render.width, MIN_WIDTH, INT_MAX) ;
+	check_int_range ("height", render.height, MIN_HEIGHT, INT_MAX) ;
 
 
 	render.filename = strrchr (render.sndfilepath, '/') ;
