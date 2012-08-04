@@ -139,6 +139,11 @@ draw_cairo_line (cairo_t* cr, DRECT *pts, const COLOUR *c)
 static void
 calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 {
+	int x = 0 ;
+	float s_min, s_max, s_rms ;
+	int channels ;
+	long frames_per_buf, buffer_len ;
+
 	const float frames_per_bin = info->frames / (float) width ;
 	const long max_frames_per_bin = ceilf (frames_per_bin) ;
 	float* data = malloc (sizeof (float) * max_frames_per_bin) ;
@@ -156,13 +161,12 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 
 	sf_seek (infile, 0, SEEK_SET) ;
 
-	int x = 0 ;
-	int channels = (channel > 0) ? 1 : info->channels ;
-	float s_min, s_max, s_rms ;
+	channels = (channel > 0) ? 1 : info->channels ;
 	s_min = 1.0 ; s_max = -1.0 ; s_rms = 0.0 ;
 
-	long frames_per_buf = floorf (frames_per_bin) ;
-	long buffer_len = frames_per_buf * info->channels ;
+	frames_per_buf = floorf (frames_per_bin) ;
+	buffer_len = frames_per_buf * info->channels ;
+
 	while ((sf_read_float (infile, data, buffer_len)) > 0)
 	{	int frame ;
 		float min, max, rms ;
@@ -176,10 +180,12 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 				{	fprintf (stderr, "index error!\n") ;
 					break ;
 					} ;
-				const float sample_val = data [frame * info->channels + ch] ;
-				max = MAX (max, sample_val) ;
-				min = MIN (min, sample_val) ;
-				rms += (sample_val * sample_val) ;
+				{
+					const float sample_val = data [frame * info->channels + ch] ;
+					max = MAX (max, sample_val) ;
+					min = MIN (min, sample_val) ;
+					rms += (sample_val * sample_val) ;
+					} ;
 				} ;
 			} ;
 
@@ -212,6 +218,10 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 	float pmax = 0 ;
 	float prms = 0 ;
 
+	int x = 0 ;
+	int channels ;
+	long frames_per_buf, buffer_len ;
+
 	const float frames_per_bin = info->frames / (float) width ;
 	const long max_frames_per_bin = ceilf (frames_per_bin) ;
 	float* data = malloc (sizeof (float) * max_frames_per_bin) ;
@@ -239,14 +249,14 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 
 	cairo_set_line_width (cr, 2.0) ;
 
-	int x = 0 ;
-	int channels = (channel > 0) ? 1 : info->channels ;
-	long frames_per_buf = floorf (frames_per_bin) ;
-	long buffer_len = frames_per_buf * info->channels ;
+	channels = (channel > 0) ? 1 : info->channels ;
+	frames_per_buf = floorf (frames_per_bin) ;
+	buffer_len = frames_per_buf * info->channels ;
 
 	while ((sf_read_float (infile, data, buffer_len)) > 0)
 	{	int frame ;
 		float min, max, rms ;
+		double yoff ;
 
 		min = 1.0 ; max = -1.0 ; rms = 0.0 ;
 
@@ -259,10 +269,12 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 				{	fprintf (stderr, "index error!\n") ;
 					break ;
 					} ;
-				const float sample_val = data [frame * info->channels + ch] ;
-				max = MAX (max, sample_val) ;
-				min = MIN (min, sample_val) ;
-				rms += (sample_val * sample_val) ;
+				{
+					const float sample_val = data [frame * info->channels + ch] ;
+					max = MAX (max, sample_val) ;
+					min = MIN (min, sample_val) ;
+					rms += (sample_val * sample_val) ;
+					} ;
 				} ;
 			} ;
 
@@ -288,7 +300,6 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 			rms = alt_log_meter (coefficient_to_dB (rms)) ;
 			} ;
 
-		double yoff ;
 		if (render->rectified)
 		{	yoff = height ;
 			min = height * MAX (fabsf (min), fabsf (max)) ;
@@ -918,6 +929,7 @@ render_sndfile (RENDER * render)
 {
 	SNDFILE *infile ;
 	SF_INFO info ;
+	sf_count_t max_width ;
 
 	memset (&info, 0, sizeof (info)) ;
 
@@ -933,7 +945,7 @@ render_sndfile (RENDER * render)
 		exit (EXIT_FAILURE) ;
 		} ;
 
-	sf_count_t max_width = info.frames ;
+	max_width = info.frames ;
 	if (render->border)
 		max_width += LEFT_BORDER + RIGHT_BORDER ;
 
@@ -1160,8 +1172,8 @@ main (int argc, char * argv [])
 				break ;
 			case 'g' :		/* --geometry*/
 				{
-					render.width = atoi (optarg) ;
 					char *b = strdup (optarg) ;
+					render.width = atoi (optarg) ;
 					if (strtok (b, "x:/"))
 					{	char *tmp = strtok (NULL, "x:/") ;
 						if (tmp) render.height = atoi (tmp) ;
@@ -1183,9 +1195,9 @@ main (int argc, char * argv [])
 				break ;
 			case 't' :		/* --timecode*/
 				{
+					char *b = strdup (optarg) ;
 					render.tc_num = atoi (optarg) ;
 					render.tc_den = 1 ;
-					char *b = strdup (optarg) ;
 					if (strtok (b, ":/"))
 					{	char *tmp = strtok (NULL, ":/") ;
 						if (tmp) render.tc_den = atoi (tmp) ;
