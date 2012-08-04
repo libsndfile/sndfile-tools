@@ -139,9 +139,10 @@ draw_cairo_line (cairo_t* cr, DRECT *pts, const COLOUR *c)
 static void
 calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 {
-	long frames_per_buf = info->frames / width ;
-	long buffer_len = frames_per_buf * info->channels ;
-	float* data = malloc (sizeof (float) * buffer_len) ;
+	const float frames_per_bin = info->frames / (float) width ;
+	const long max_frames_per_bin = ceilf (frames_per_bin) ;
+	float* data = malloc (sizeof (float) * max_frames_per_bin) ;
+	long f_offset = 0 ;
 
 	if (!data)
 	{	printf ("out of memory.\n") ;
@@ -160,6 +161,8 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 	float s_min, s_max, s_rms ;
 	s_min = 1.0 ; s_max = -1.0 ; s_rms = 0.0 ;
 
+	long frames_per_buf = floorf (frames_per_bin) ;
+	long buffer_len = frames_per_buf * info->channels ;
 	while ((sf_read_float (infile, data, buffer_len)) > 0)
 	{	int frame ;
 		float min, max, rms ;
@@ -180,6 +183,7 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 				} ;
 			} ;
 
+		/* TODO: use a sliding window for RMS - independent of buffer_len */
 		rms /= (frames_per_buf * channels) ;
 		rms = sqrt (rms) ;
 
@@ -188,12 +192,17 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 		if (rms > s_rms) s_rms = rms ;
 
 		x++ ;
-		if (x > width + BORDER_LINE_WIDTH) break ;
+		if (x > width ) break ;
+
+		f_offset += frames_per_buf ;
+		frames_per_buf = floorf ( (x+1) * frames_per_bin) - f_offset ;
+		buffer_len = frames_per_buf * info->channels ;
 		} ;
 
 	agc->min = s_min ;
 	agc->max = s_max ;
 	agc->rms = s_rms ;
+	free (data) ;
 } /* calc_peak */
 
 static void
@@ -203,16 +212,17 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 	float pmax = 0 ;
 	float prms = 0 ;
 
-	long frames_per_buf = info->frames / width ;
-	long buffer_len = frames_per_buf * info->channels ;
-	float* data = malloc (sizeof (float) * buffer_len) ;
+	const float frames_per_bin = info->frames / (float) width ;
+	const long max_frames_per_bin = ceilf (frames_per_bin) ;
+	float* data = malloc (sizeof (float) * max_frames_per_bin) ;
+	long f_offset = 0 ;
 
 	if (!data)
 	{	printf ("out of memory.\n") ;
 		return ;
 		} ;
 
-	if (channel <0 || channel > info->channels)
+	if (channel < 0 || channel > info->channels)
 	{	printf ("invalid channel\n") ;
 		return ;
 		} ;
@@ -231,6 +241,8 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 
 	int x = 0 ;
 	int channels = (channel > 0) ? 1 : info->channels ;
+	long frames_per_buf = floorf (frames_per_bin) ;
+	long buffer_len = frames_per_buf * info->channels ;
 
 	while ((sf_read_float (infile, data, buffer_len)) > 0)
 	{	int frame ;
@@ -348,11 +360,11 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 		prms = rms ;
 
 		x++ ;
-		if (x > width + BORDER_LINE_WIDTH)
-		{	printf ("Warning: right end of wave-form is incomplete\n") ;
-			/* this can happen with very short audio-files */
-			break ;
-			} ;
+		if (x > width) break ;
+
+		f_offset += frames_per_buf ;
+		frames_per_buf = floorf ( (x+1) * frames_per_bin) - f_offset ;
+		buffer_len = frames_per_buf * info->channels ;
 		} ;
 
 	if (!render->rectified)		// center line
@@ -363,6 +375,7 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 
 	cairo_surface_mark_dirty (surface) ;
 	cairo_destroy (cr) ;
+	free (data) ;
 } /* render_waveform */
 
 static inline void
