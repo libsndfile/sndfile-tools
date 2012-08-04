@@ -114,12 +114,12 @@ get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3
 		 * (v/s) * 254.0 is from 0.000001 to 253.9999999 and
 		 * we want 1 to 254, so ceil((v/s) * 254) gives us that,
 		 * converted to 254 to 1 by subtracting from 255. */
-		int c; /* The pixel value */
+		int c ; /* The pixel value */
 
 		if (value <= spec_floor_db)
-			c = 0;
+			c = 0 ;
 		else
-		{	c = 255 - lrintf (ceil ( (value / spec_floor_db) * 254.0 ) ) ;
+		{	c = 255 - lrintf (ceil ((value / spec_floor_db) * 254.0)) ;
 
 			if (c < 1 || c > 254)	/* Sanity check */
 			{	printf ("\nError : gray value is %d\n\n", c) ;
@@ -127,7 +127,7 @@ get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3
 				} ;
 
 			} ;
-		colour [0] = colour [1] = colour [2] = c;
+		colour [0] = colour [1] = colour [2] = c ;
 		return ;
 		} ;
 
@@ -180,23 +180,20 @@ read_mono_audio (SNDFILE * file, sf_count_t filelen, double * data, int datalen,
 
 static void
 apply_window (double * data, int datalen)
-{
-	static double *window = NULL;
+{	static double *window = NULL ;
 	static int window_len = 0 ;
 	int k ;
 
 	if (window_len != datalen)
-	{
-		window = realloc( window, datalen * sizeof(double) );
+	{	window = realloc (window, datalen * sizeof (double)) ;
 		if (window == NULL)
-		{
-			printf ("%s : Not enough memory.\n", __func__) ;
+		{	printf ("%s : Not enough memory.\n", __func__) ;
 			exit (1) ;
-		} ;
+			} ;
 		window_len = datalen ;
 
 		calc_kaiser_window (window, datalen, 20.0) ;
-	} ;
+		} ;
 
 	for (k = 0 ; k < datalen ; k++)
 		data [k] *= window [k] ;
@@ -515,22 +512,20 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 	speclen = height * (samplerate / 20 / height + 1) ;
 	speclen += 0x40 - (speclen & 0x3f) ;
 
-	time_domain     = calloc (2 * speclen, sizeof(double));
-	freq_domain     = calloc (2 * speclen, sizeof(double));
-	single_mag_spec = calloc (speclen, sizeof(double));
-	mag_spec        = calloc (width, sizeof(float *)); 
-	if ( time_domain == NULL || freq_domain == NULL ||
-	     single_mag_spec == NULL || mag_spec == NULL )
+	time_domain		= calloc (2 * speclen, sizeof (double)) ;
+	freq_domain		= calloc (2 * speclen, sizeof (double)) ;
+	single_mag_spec = calloc (speclen, sizeof (double)) ;
+	mag_spec		= calloc (width, sizeof (float *)) ;
+	if (time_domain == NULL || freq_domain == NULL || single_mag_spec == NULL || mag_spec == NULL)
 	{	printf ("%s : Not enough memory.\n", __func__) ;
 		exit (1) ;
 		} ;
 	for (w = 0 ; w < width ; w++)
-	{
-		if ( (mag_spec[w] = calloc(height, sizeof(float))) == NULL )
+	{	if ((mag_spec [w] = calloc (height, sizeof (float))) == NULL)
 		{	printf ("%s : Not enough memory.\n", __func__) ;
 			exit (1) ;
 			} ;
-		};
+		} ;
 
 	plan = fftw_plan_r2r_1d (2 * speclen, time_domain, freq_domain, FFTW_R2HC, FFTW_MEASURE | FFTW_PRESERVE_INPUT) ;
 	if (plan == NULL)
@@ -577,8 +572,8 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 		render_spectrogram (surface, render->spec_floor_db, mag_spec, max_mag, 0, 0, width, height, render->gray_scale) ;
 
 	for (w = 0 ; w < width ; w++)
-		free( mag_spec[w] );
-	free( mag_spec );
+		free (mag_spec [w]) ;
+	free (mag_spec) ;
 
 	return ;
 } /* render_to_surface */

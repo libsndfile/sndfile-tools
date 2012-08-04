@@ -198,10 +198,10 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 		if (rms > s_rms) s_rms = rms ;
 
 		x++ ;
-		if (x > width ) break ;
+		if (x > width) break ;
 
 		f_offset += frames_per_buf ;
-		frames_per_buf = floorf ( (x+1) * frames_per_bin) - f_offset ;
+		frames_per_buf = floorf ((x + 1) * frames_per_bin) - f_offset ;
 		buffer_len = frames_per_buf * info->channels ;
 		} ;
 
@@ -374,7 +374,7 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 		if (x > width) break ;
 
 		f_offset += frames_per_buf ;
-		frames_per_buf = floorf ( (x+1) * frames_per_bin) - f_offset ;
+		frames_per_buf = floorf ((x + 1) * frames_per_bin) - f_offset ;
 		buffer_len = frames_per_buf * info->channels ;
 		} ;
 
@@ -702,7 +702,7 @@ render_wav_border (cairo_surface_t * surface, const RENDER * render, double left
 	else
 	{	TICKS ticks ;
 		int k, tick_count ;
-		tick_count = calculate_ticks ( (render->rectified ? 1.0 : 2.0), height, &ticks) ;
+		tick_count = calculate_ticks ((render->rectified ? 1.0 : 2.0), height, &ticks) ;
 		for (k = 0 ; k < tick_count ; k++)
 		{	x_line (cr, left + width, top + height - ticks.distance [k], (k % 2) ? TICK_LEN : TXT_TICK_LEN) ;
 			if (k % 2 == 1)
@@ -749,12 +749,12 @@ render_y_legend (cairo_surface_t * surface, const RENDER * render, double top, d
 	if (render->what & RMS)
 	{	cairo_text_extents (cr, "RMS", &extents) ;
 		dh += dxy + extents.width ;
-		}
+		} ;
 	if (render->what & PEAK)
 	{	cairo_text_extents (cr, "Peak", &extents) ;
 		dh += dxy + extents.width ;
-		}
-	if ((render->what & (PEAK | RMS)) == (PEAK | RMS) ) { dh+= 8 ; }
+		} ;
+	if ((render->what & (PEAK | RMS)) == (PEAK | RMS)) { dh += 8 ; }
 
 	lx = cairo_image_surface_get_width (surface) - 12 - dxy ;
 	ly = top + (height + dh) / 2 ;
@@ -910,7 +910,7 @@ render_to_surface (RENDER * render, SNDFILE *infile, SF_INFO *info, cairo_surfac
 } /* render_to_surface */
 
 static void
-render_cairo_surface (RENDER * render, SNDFILE *infile, SF_INFO *info )
+render_cairo_surface (RENDER * render, SNDFILE *infile, SF_INFO *info)
 {
 	cairo_surface_t * surface = NULL ;
 	cairo_status_t status ;
@@ -967,7 +967,7 @@ render_sndfile (RENDER * render)
 		} ;
 
 	if (render->geometry_no_border)	// given geometry applies to wave-form (per channel) without border.
-	{	if (render->channel <0 )
+	{	if (render->channel < 0)
 			render->height = render->height * info.channels + (info.channels-1) * render->channel_separation ;
 
 		if (render->border)
