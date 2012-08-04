@@ -1219,8 +1219,8 @@ main (int argc, char * argv [])
 			case 'V' :
 				printf ("%s %s\n\n", argv [0], PACKAGE_VERSION) ;
 				printf (
-					"Copyright (C) 2007-2009 Erik de Castro Lopo <erikd@mega-nerd.com>\n"
-					"Written 2011 by Robin Gareus <robin@gareus.org>\n\n"
+					"Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>\n"
+					"Written 2011,2012 by Robin Gareus <robin@gareus.org>\n\n"
 					"This is free software; see the source for copying conditions.  There is NO\n"
 					"warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 					) ;
