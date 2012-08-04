@@ -1,4 +1,4 @@
-# Copyright (C) 2002-2011 Erik de Castro Lopo (erikd AT mega-nerd DOT com).
+# Copyright (C) 2002-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 
 dnl Require autoconf version >= 2.54)
 AC_PREREQ(2.54)
@@ -22,7 +22,6 @@ dnl Add parameters for aclocal
 AC_SUBST(ACLOCAL_AMFLAGS, "-I M4")
 
 AC_LANG([C])
-AC_LANG_SOURCE([C])
 
 #------------------------------------------------------------------------------------
 
