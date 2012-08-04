@@ -146,7 +146,7 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 
 	const float frames_per_bin = info->frames / (float) width ;
 	const long max_frames_per_bin = ceilf (frames_per_bin) ;
-	float* data = malloc (sizeof (float) * max_frames_per_bin) ;
+	float* data = malloc (sizeof (float) * max_frames_per_bin * info->channels) ;
 	long f_offset = 0 ;
 
 	if (!data)
@@ -224,7 +224,7 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 
 	const float frames_per_bin = info->frames / (float) width ;
 	const long max_frames_per_bin = ceilf (frames_per_bin) ;
-	float* data = malloc (sizeof (float) * max_frames_per_bin) ;
+	float* data = malloc (sizeof (float) * max_frames_per_bin * info->channels) ;
 	long f_offset = 0 ;
 
 	if (!data)
