@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
+#include <limits.h>
 #include <libgen.h>
 #include <getopt.h>
 
@@ -35,8 +36,6 @@
 
 #define	MIN_WIDTH		(120)
 #define	MIN_HEIGHT		(32)
-#define	MAX_WIDTH		(8192)
-#define	MAX_HEIGHT		(4096)
 
 #define TICK_LEN		(6)
 #define TXT_TICK_LEN	(8)
@@ -1218,10 +1217,10 @@ main (int argc, char * argv [])
 		exit (EXIT_FAILURE) ;
 		} ;
 
-	check_int_range ("width", render.width, MIN_WIDTH, MAX_WIDTH) ;
+	check_int_range ("width", render.width, MIN_WIDTH, INT_MAX) ;
 	check_int_range ("height", render.height, MIN_HEIGHT +
 			((!render.geometry_no_border && render.border) ? (TOP_BORDER + BOTTOM_BORDER) : 0),
-			MAX_HEIGHT) ;
+			INT_MAX) ;
 
 	render.filename = strrchr (render.sndfilepath, '/') ;
 	render.filename = (render.filename != NULL) ? render.filename + 1 : render.sndfilepath ;
