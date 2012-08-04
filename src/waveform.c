@@ -24,6 +24,7 @@
 #include <string.h>
 #include <stdbool.h>
 #include <math.h>
+#include <limits.h>
 #include <libgen.h>
 #include <getopt.h>
 
@@ -35,8 +36,6 @@
 
 #define	MIN_WIDTH		(120)
 #define	MIN_HEIGHT		(32)
-#define	MAX_WIDTH		(8192)
-#define	MAX_HEIGHT		(4096)
 
 #define TICK_LEN		(6)
 #define TXT_TICK_LEN	(8)
@@ -140,9 +139,15 @@ draw_cairo_line (cairo_t* cr, DRECT *pts, const COLOUR *c)
 static void
 calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 {
-	long frames_per_buf = info->frames / width ;
-	long buffer_len = frames_per_buf * info->channels ;
-	float* data = malloc (sizeof (float) * buffer_len) ;
+	int x = 0 ;
+	float s_min, s_max, s_rms ;
+	int channels ;
+	long frames_per_buf, buffer_len ;
+
+	const float frames_per_bin = info->frames / (float) width ;
+	const long max_frames_per_bin = ceilf (frames_per_bin) ;
+	float* data = malloc (sizeof (float) * max_frames_per_bin * info->channels) ;
+	long f_offset = 0 ;
 
 	if (!data)
 	{	printf ("out of memory.\n") ;
@@ -156,10 +161,11 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 
 	sf_seek (infile, 0, SEEK_SET) ;
 
-	int x = 0 ;
-	int channels = (channel > 0) ? 1 : info->channels ;
-	float s_min, s_max, s_rms ;
+	channels = (channel > 0) ? 1 : info->channels ;
 	s_min = 1.0 ; s_max = -1.0 ; s_rms = 0.0 ;
+
+	frames_per_buf = floorf (frames_per_bin) ;
+	buffer_len = frames_per_buf * info->channels ;
 
 	while ((sf_read_float (infile, data, buffer_len)) > 0)
 	{	int frame ;
@@ -174,13 +180,16 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 				{	fprintf (stderr, "index error!\n") ;
 					break ;
 					} ;
-				const float sample_val = data [frame * info->channels + ch] ;
-				max = MAX (max, sample_val) ;
-				min = MIN (min, sample_val) ;
-				rms += (sample_val * sample_val) ;
+				{
+					const float sample_val = data [frame * info->channels + ch] ;
+					max = MAX (max, sample_val) ;
+					min = MIN (min, sample_val) ;
+					rms += (sample_val * sample_val) ;
+					} ;
 				} ;
 			} ;
 
+		/* TODO: use a sliding window for RMS - independent of buffer_len */
 		rms /= (frames_per_buf * channels) ;
 		rms = sqrt (rms) ;
 
@@ -189,12 +198,17 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 		if (rms > s_rms) s_rms = rms ;
 
 		x++ ;
-		if (x > width + BORDER_LINE_WIDTH) break ;
+		if (x > width ) break ;
+
+		f_offset += frames_per_buf ;
+		frames_per_buf = floorf ( (x+1) * frames_per_bin) - f_offset ;
+		buffer_len = frames_per_buf * info->channels ;
 		} ;
 
 	agc->min = s_min ;
 	agc->max = s_max ;
 	agc->rms = s_rms ;
+	free (data) ;
 } /* calc_peak */
 
 static void
@@ -204,16 +218,21 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 	float pmax = 0 ;
 	float prms = 0 ;
 
-	long frames_per_buf = info->frames / width ;
-	long buffer_len = frames_per_buf * info->channels ;
-	float* data = malloc (sizeof (float) * buffer_len) ;
+	int x = 0 ;
+	int channels ;
+	long frames_per_buf, buffer_len ;
+
+	const float frames_per_bin = info->frames / (float) width ;
+	const long max_frames_per_bin = ceilf (frames_per_bin) ;
+	float* data = malloc (sizeof (float) * max_frames_per_bin * info->channels) ;
+	long f_offset = 0 ;
 
 	if (!data)
 	{	printf ("out of memory.\n") ;
 		return ;
 		} ;
 
-	if (channel <0 || channel > info->channels)
+	if (channel < 0 || channel > info->channels)
 	{	printf ("invalid channel\n") ;
 		return ;
 		} ;
@@ -230,12 +249,14 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 
 	cairo_set_line_width (cr, 2.0) ;
 
-	int x = 0 ;
-	int channels = (channel > 0) ? 1 : info->channels ;
+	channels = (channel > 0) ? 1 : info->channels ;
+	frames_per_buf = floorf (frames_per_bin) ;
+	buffer_len = frames_per_buf * info->channels ;
 
 	while ((sf_read_float (infile, data, buffer_len)) > 0)
 	{	int frame ;
 		float min, max, rms ;
+		double yoff ;
 
 		min = 1.0 ; max = -1.0 ; rms = 0.0 ;
 
@@ -248,10 +269,12 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 				{	fprintf (stderr, "index error!\n") ;
 					break ;
 					} ;
-				const float sample_val = data [frame * info->channels + ch] ;
-				max = MAX (max, sample_val) ;
-				min = MIN (min, sample_val) ;
-				rms += (sample_val * sample_val) ;
+				{
+					const float sample_val = data [frame * info->channels + ch] ;
+					max = MAX (max, sample_val) ;
+					min = MIN (min, sample_val) ;
+					rms += (sample_val * sample_val) ;
+					} ;
 				} ;
 			} ;
 
@@ -277,7 +300,6 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 			rms = alt_log_meter (coefficient_to_dB (rms)) ;
 			} ;
 
-		double yoff ;
 		if (render->rectified)
 		{	yoff = height ;
 			min = height * MAX (fabsf (min), fabsf (max)) ;
@@ -349,11 +371,11 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 		prms = rms ;
 
 		x++ ;
-		if (x > width + BORDER_LINE_WIDTH)
-		{	printf ("Warning: right end of wave-form is incomplete\n") ;
-			/* this can happen with very short audio-files */
-			break ;
-			} ;
+		if (x > width) break ;
+
+		f_offset += frames_per_buf ;
+		frames_per_buf = floorf ( (x+1) * frames_per_bin) - f_offset ;
+		buffer_len = frames_per_buf * info->channels ;
 		} ;
 
 	if (!render->rectified)		// center line
@@ -364,6 +386,7 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 
 	cairo_surface_mark_dirty (surface) ;
 	cairo_destroy (cr) ;
+	free (data) ;
 } /* render_waveform */
 
 static inline void
@@ -478,17 +501,19 @@ str_print_value (char * text, int text_len, double value)
 } /* str_print_value */
 
 
-static void
-str_print_timecode (char * text, int text_len, double sec, int fps_num, int fps_den)
+static bool
+str_print_timecode (char * text, int text_len, double sec, int fps_num, int fps_den, double samplerate)
 {
-	double flen = fps_num / fps_den ;
+	const double flen = fps_num / fps_den ;
 
-	int hours	= (int) floor (sec / 3600.0) ;
-	int mins	= (int) floor ((sec - (3600.0 * hours)) / 60.0) ;
-	int secs	= (int) floor (sec) % 60 ;
-	int frame	= (int) floor ((sec - floor (sec)) * (1.0 * fps_num) / (1.0 * fps_den)) ;
+	const int hours	= (int) floor (sec / 3600.0) ;
+	const int mins	= (int) floor ((sec - (3600.0 * hours)) / 60.0) ;
+	const int secs	= (int) floor (sec) % 60 ;
+	const int frame	= (int) floor ((sec - floor (sec)) * (1.0 * fps_num) / (1.0 * fps_den)) ;
 
-	if (flen <= 1.0)
+	if (flen < 0.0)
+		snprintf (text, text_len, "%ld", (long) rint (sec * samplerate)) ;
+	else if (flen <= 1.0)
 		snprintf (text, text_len, "%02d:%02d:%02d", hours, mins, secs) ;
 	else if (flen <= 10.0)
 		snprintf (text, text_len, "%02d:%02d:%02d.%01d", hours, mins, secs, frame) ;
@@ -496,6 +521,9 @@ str_print_timecode (char * text, int text_len, double sec, int fps_num, int fps_
 		snprintf (text, text_len, "%02d:%02d:%02d.%02d", hours, mins, secs, frame) ;
 	else
 		snprintf (text, text_len, "%02d:%02d:%02d.%03d", hours, mins, secs, frame) ;
+
+	text [text_len-1] = '\0' ;
+	return (flen < 0.0) ? true : false ;
 } /* str_print_timecode */
 
 static void
@@ -545,9 +573,10 @@ render_title (cairo_surface_t * surface, const RENDER * render, double left, dou
 
 
 static void
-render_timeaxis (cairo_surface_t * surface, const RENDER * render, double left, double width, double seconds, double top, double height)
+render_timeaxis (cairo_surface_t * surface, const RENDER * render, const SF_INFO *info, double left, double width, double top, double height)
 {
 	char text [32] ;
+	double seconds = info->frames / (1.0 * info->samplerate) ;
 	cairo_t * cr ;
 	cairo_text_extents_t extents ;
 
@@ -587,9 +616,11 @@ render_timeaxis (cairo_surface_t * surface, const RENDER * render, double left, 
 } /* render_timeaxis */
 
 static void
-render_timecode (cairo_surface_t * surface, const RENDER * render, double left, double width, double seconds, double top, double height)
+render_timecode (cairo_surface_t * surface, const RENDER * render, const SF_INFO *info, double left, double width, double top, double height)
 {
 	char text [32] ;
+	bool print_label = false ;
+	double seconds = info->frames / (1.0 * info->samplerate) ;
 	cairo_t * cr ;
 	cairo_text_extents_t extents ;
 
@@ -613,20 +644,23 @@ render_timecode (cairo_surface_t * surface, const RENDER * render, double left, 
 		if (k % 2 == 1)
 			yoff = 1.0 * NORMAL_FONT_SIZE ;
 
-		str_print_timecode (text, sizeof (text), ticks.value [k] + render->tc_off, render->tc_num, render->tc_den) ;
+		print_label = str_print_timecode (text, sizeof (text), ticks.value [k] + render->tc_off, render->tc_num, render->tc_den, info->samplerate) ;
 		cairo_text_extents (cr, text, &extents) ;
 		cairo_move_to (cr, left + ticks.distance [k] - extents.width / 8, top + height + 8 + extents.height +yoff) ;
 		cairo_show_text (cr, text) ;
 		} ;
 
 	cairo_set_font_size (cr, 1.0 * NORMAL_FONT_SIZE) ;
-#if 0
-	/* Label X axis. */
-	snprintf (text, sizeof (text), "Time") ;
-	cairo_text_extents (cr, text, &extents) ;
-	cairo_move_to (cr, left + (width - extents.width) / 2, cairo_image_surface_get_height (surface) - 8) ;
-	cairo_show_text (cr, text) ;
-#endif
+
+	if (print_label)
+	{
+		/* Label X axis. */
+		snprintf (text, sizeof (text), "Time [Frames]") ;
+		cairo_text_extents (cr, text, &extents) ;
+		cairo_move_to (cr, left + width + RIGHT_BORDER - extents.width -2 , cairo_image_surface_get_height (surface) - 8) ;
+		cairo_show_text (cr, text) ;
+		} ;
+
 	cairo_destroy (cr) ;
 } /* render_timecode */
 
@@ -866,9 +900,9 @@ render_to_surface (RENDER * render, SNDFILE *infile, SF_INFO *info, cairo_surfac
 	{	render_title (surface, render, LEFT_BORDER, TOP_BORDER, info->channels) ;
 		render_y_legend (surface, render, TOP_BORDER, height) ;
 		if (render->tc_den > 0)
-			render_timecode (surface, render, LEFT_BORDER, width, info->frames / (1.0 * info->samplerate), TOP_BORDER, height) ;
+			render_timecode (surface, render, info, LEFT_BORDER, width, TOP_BORDER, height) ;
 		else
-			render_timeaxis (surface, render, LEFT_BORDER, width, info->frames / (1.0 * info->samplerate), TOP_BORDER, height) ;
+			render_timeaxis (surface, render, info, LEFT_BORDER, width, TOP_BORDER, height) ;
 		} ;
 
 
@@ -906,6 +940,7 @@ render_sndfile (RENDER * render)
 {
 	SNDFILE *infile ;
 	SF_INFO info ;
+	sf_count_t max_width ;
 
 	memset (&info, 0, sizeof (info)) ;
 
@@ -921,7 +956,7 @@ render_sndfile (RENDER * render)
 		exit (EXIT_FAILURE) ;
 		} ;
 
-	sf_count_t max_width = info.frames ;
+	max_width = info.frames ;
 	if (render->border)
 		max_width += LEFT_BORDER + RIGHT_BORDER ;
 
@@ -973,7 +1008,7 @@ check_int_range (const char * name, int value, int lower, int upper)
 
 
 /* NOTE: after editing this, run
- * make && help2man -N -n 'waveform image generator' ./src/sndfile-waveform -o man/sndfile-waveform.1
+ * make && help2man -N -n 'waveform image generator' ./bin/sndfile-waveform -o man/sndfile-waveform.1
  */
 static void
 usage_exit (char * argv0, int status)
@@ -987,7 +1022,7 @@ usage_exit (char * argv0, int status)
 		"The vertical axis can be plotted logarithmically, and the signal\n"
 		"can optionally be rectified.\n"
 		"\n"
-		"The Time-axis annotation unit is either seconds or timecode\n"
+		"The Time-axis annotation unit is either seconds, audio-frames or timecode\n"
 		"using broadcast-wave time reference meta-data.\n"
 		"\n"
 		"The tool can plot individual channels, reduce the file to mono,\n"
@@ -1026,6 +1061,7 @@ usage_exit (char * argv0, int status)
 		"                            use timecode instead of seconds for x-axis;\n"
 		"                            The numerator must be set, the denominator\n"
 		"                            defaults to 1 if omitted.\n"
+		"                            If the value is negative, audio-frames are used.\n"
 		"  -T <offset>               override the BWF time-reference (if any);\n"
 		"                            the offset is specified in audio-frames\n"
 		"                            and only used with timecode (-t) annotation.\n"
@@ -1148,8 +1184,8 @@ main (int argc, char * argv [])
 				break ;
 			case 'g' :		/* --geometry*/
 				{
-					render.width = atoi (optarg) ;
 					char *b = strdup (optarg) ;
+					render.width = atoi (optarg) ;
 					if (strtok (b, "x:/"))
 					{	char *tmp = strtok (NULL, "x:/") ;
 						if (tmp) render.height = atoi (tmp) ;
@@ -1171,9 +1207,9 @@ main (int argc, char * argv [])
 				break ;
 			case 't' :		/* --timecode*/
 				{
+					char *b = strdup (optarg) ;
 					render.tc_num = atoi (optarg) ;
 					render.tc_den = 1 ;
-					char *b = strdup (optarg) ;
 					if (strtok (b, ":/"))
 					{	char *tmp = strtok (NULL, ":/") ;
 						if (tmp) render.tc_den = atoi (tmp) ;
@@ -1195,8 +1231,8 @@ main (int argc, char * argv [])
 			case 'V' :
 				printf ("%s %s\n\n", argv [0], PACKAGE_VERSION) ;
 				printf (
-					"Copyright (C) 2007-2009 Erik de Castro Lopo <erikd@mega-nerd.com>\n"
-					"Written 2011 by Robin Gareus <robin@gareus.org>\n\n"
+					"Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>\n"
+					"Written 2011,2012 by Robin Gareus <robin@gareus.org>\n\n"
 					"This is free software; see the source for copying conditions.  There is NO\n"
 					"warranty; not even for MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.\n\n"
 					) ;
@@ -1218,10 +1254,10 @@ main (int argc, char * argv [])
 		exit (EXIT_FAILURE) ;
 		} ;
 
-	check_int_range ("width", render.width, MIN_WIDTH, MAX_WIDTH) ;
+	check_int_range ("width", render.width, MIN_WIDTH, INT_MAX) ;
 	check_int_range ("height", render.height, MIN_HEIGHT +
 			((!render.geometry_no_border && render.border) ? (TOP_BORDER + BOTTOM_BORDER) : 0),
-			MAX_HEIGHT) ;
+			INT_MAX) ;
 
 	render.filename = strrchr (render.sndfilepath, '/') ;
 	render.filename = (render.filename != NULL) ? render.filename + 1 : render.sndfilepath ;
