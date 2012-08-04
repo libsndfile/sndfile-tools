@@ -501,17 +501,19 @@ str_print_value (char * text, int text_len, double value)
 } /* str_print_value */
 
 
-static void
-str_print_timecode (char * text, int text_len, double sec, int fps_num, int fps_den)
+static bool
+str_print_timecode (char * text, int text_len, double sec, int fps_num, int fps_den, double samplerate)
 {
-	double flen = fps_num / fps_den ;
+	const double flen = fps_num / fps_den ;
 
-	int hours	= (int) floor (sec / 3600.0) ;
-	int mins	= (int) floor ((sec - (3600.0 * hours)) / 60.0) ;
-	int secs	= (int) floor (sec) % 60 ;
-	int frame	= (int) floor ((sec - floor (sec)) * (1.0 * fps_num) / (1.0 * fps_den)) ;
+	const int hours	= (int) floor (sec / 3600.0) ;
+	const int mins	= (int) floor ((sec - (3600.0 * hours)) / 60.0) ;
+	const int secs	= (int) floor (sec) % 60 ;
+	const int frame	= (int) floor ((sec - floor (sec)) * (1.0 * fps_num) / (1.0 * fps_den)) ;
 
-	if (flen <= 1.0)
+	if (flen < 0.0)
+		snprintf (text, text_len, "%ld", (long) rint (sec * samplerate)) ;
+	else if (flen <= 1.0)
 		snprintf (text, text_len, "%02d:%02d:%02d", hours, mins, secs) ;
 	else if (flen <= 10.0)
 		snprintf (text, text_len, "%02d:%02d:%02d.%01d", hours, mins, secs, frame) ;
@@ -519,6 +521,9 @@ str_print_timecode (char * text, int text_len, double sec, int fps_num, int fps_
 		snprintf (text, text_len, "%02d:%02d:%02d.%02d", hours, mins, secs, frame) ;
 	else
 		snprintf (text, text_len, "%02d:%02d:%02d.%03d", hours, mins, secs, frame) ;
+
+	text [text_len-1] = '\0' ;
+	return (flen < 0.0) ? true : false ;
 } /* str_print_timecode */
 
 static void
@@ -568,9 +573,10 @@ render_title (cairo_surface_t * surface, const RENDER * render, double left, dou
 
 
 static void
-render_timeaxis (cairo_surface_t * surface, const RENDER * render, double left, double width, double seconds, double top, double height)
+render_timeaxis (cairo_surface_t * surface, const RENDER * render, const SF_INFO *info, double left, double width, double top, double height)
 {
 	char text [32] ;
+	double seconds = info->frames / (1.0 * info->samplerate) ;
 	cairo_t * cr ;
 	cairo_text_extents_t extents ;
 
@@ -610,9 +616,11 @@ render_timeaxis (cairo_surface_t * surface, const RENDER * render, double left, 
 } /* render_timeaxis */
 
 static void
-render_timecode (cairo_surface_t * surface, const RENDER * render, double left, double width, double seconds, double top, double height)
+render_timecode (cairo_surface_t * surface, const RENDER * render, const SF_INFO *info, double left, double width, double top, double height)
 {
 	char text [32] ;
+	bool print_label = false ;
+	double seconds = info->frames / (1.0 * info->samplerate) ;
 	cairo_t * cr ;
 	cairo_text_extents_t extents ;
 
@@ -636,20 +644,23 @@ render_timecode (cairo_surface_t * surface, const RENDER * render, double left, 
 		if (k % 2 == 1)
 			yoff = 1.0 * NORMAL_FONT_SIZE ;
 
-		str_print_timecode (text, sizeof (text), ticks.value [k] + render->tc_off, render->tc_num, render->tc_den) ;
+		print_label = str_print_timecode (text, sizeof (text), ticks.value [k] + render->tc_off, render->tc_num, render->tc_den, info->samplerate) ;
 		cairo_text_extents (cr, text, &extents) ;
 		cairo_move_to (cr, left + ticks.distance [k] - extents.width / 8, top + height + 8 + extents.height +yoff) ;
 		cairo_show_text (cr, text) ;
 		} ;
 
 	cairo_set_font_size (cr, 1.0 * NORMAL_FONT_SIZE) ;
-#if 0
-	/* Label X axis. */
-	snprintf (text, sizeof (text), "Time") ;
-	cairo_text_extents (cr, text, &extents) ;
-	cairo_move_to (cr, left + (width - extents.width) / 2, cairo_image_surface_get_height (surface) - 8) ;
-	cairo_show_text (cr, text) ;
-#endif
+
+	if (print_label)
+	{
+		/* Label X axis. */
+		snprintf (text, sizeof (text), "Time [Frames]") ;
+		cairo_text_extents (cr, text, &extents) ;
+		cairo_move_to (cr, left + width + RIGHT_BORDER - extents.width -2 , cairo_image_surface_get_height (surface) - 8) ;
+		cairo_show_text (cr, text) ;
+		} ;
+
 	cairo_destroy (cr) ;
 } /* render_timecode */
 
@@ -889,9 +900,9 @@ render_to_surface (RENDER * render, SNDFILE *infile, SF_INFO *info, cairo_surfac
 	{	render_title (surface, render, LEFT_BORDER, TOP_BORDER, info->channels) ;
 		render_y_legend (surface, render, TOP_BORDER, height) ;
 		if (render->tc_den > 0)
-			render_timecode (surface, render, LEFT_BORDER, width, info->frames / (1.0 * info->samplerate), TOP_BORDER, height) ;
+			render_timecode (surface, render, info, LEFT_BORDER, width, TOP_BORDER, height) ;
 		else
-			render_timeaxis (surface, render, LEFT_BORDER, width, info->frames / (1.0 * info->samplerate), TOP_BORDER, height) ;
+			render_timeaxis (surface, render, info, LEFT_BORDER, width, TOP_BORDER, height) ;
 		} ;
 
 
@@ -997,7 +1008,7 @@ check_int_range (const char * name, int value, int lower, int upper)
 
 
 /* NOTE: after editing this, run
- * make && help2man -N -n 'waveform image generator' ./src/sndfile-waveform -o man/sndfile-waveform.1
+ * make && help2man -N -n 'waveform image generator' ./bin/sndfile-waveform -o man/sndfile-waveform.1
  */
 static void
 usage_exit (char * argv0, int status)
@@ -1011,7 +1022,7 @@ usage_exit (char * argv0, int status)
 		"The vertical axis can be plotted logarithmically, and the signal\n"
 		"can optionally be rectified.\n"
 		"\n"
-		"The Time-axis annotation unit is either seconds or timecode\n"
+		"The Time-axis annotation unit is either seconds, audio-frames or timecode\n"
 		"using broadcast-wave time reference meta-data.\n"
 		"\n"
 		"The tool can plot individual channels, reduce the file to mono,\n"
@@ -1050,6 +1061,7 @@ usage_exit (char * argv0, int status)
 		"                            use timecode instead of seconds for x-axis;\n"
 		"                            The numerator must be set, the denominator\n"
 		"                            defaults to 1 if omitted.\n"
+		"                            If the value is negative, audio-frames are used.\n"
 		"  -T <offset>               override the BWF time-reference (if any);\n"
 		"                            the offset is specified in audio-frames\n"
 		"                            and only used with timecode (-t) annotation.\n"
