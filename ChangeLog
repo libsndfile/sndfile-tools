@@ -3,6 +3,9 @@
     * src/resample.c
     Fix valgrind warning.
 
+    * Makefile.am tests/valgrind-test.sh
+    Add a valgrind test for some of the executables.
+
 2012-09-04  Erik de Castro Lopo  <erikd AT mega-nerd DOT com>
 
     * configure.ac
