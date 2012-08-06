@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2002-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2002-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software; you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -98,6 +98,7 @@ main (int argc, char *argv [])
 		exit (1) ;
 		} ;
 
+	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	if ((infile = sf_open (argv [argc - 2], SFM_READ, &sfinfo)) == NULL)
 	{	printf ("Error : Not able to open input file '%s'\n", argv [argc - 2]) ;
 		exit (1) ;
