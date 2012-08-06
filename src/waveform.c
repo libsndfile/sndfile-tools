@@ -905,7 +905,6 @@ render_to_surface (RENDER * render, SNDFILE *infile, SF_INFO *info, cairo_surfac
 			render_timeaxis (surface, render, info, LEFT_BORDER, width, TOP_BORDER, height) ;
 		} ;
 
-
 	return ;
 } /* render_to_surface */
 
