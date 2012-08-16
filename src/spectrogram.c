@@ -483,6 +483,41 @@ interp_spec (float * mag, int maglen, const double *spec, int speclen)
 	return ;
 } /* interp_spec */
 
+/* Pick the best FFT length good for FFTW?
+**
+** We use fftw_plan_r2r_1d() for which the documantation
+** http://fftw.org/fftw3_doc/Real_002dto_002dReal-Transforms.html says:
+**
+** "FFTW is generally best at handling sizes of the form
+** 2^a 3^b 5^c 7^d 11^e 13^f
+** where e+f is either 0 or 1, and the other exponents are arbitrary."
+*/
+
+/* Helper function: does N have only 2, 3, 5 and 7 as its factors? */
+static bool
+is_2357(int n)
+{
+	/* Just eliminate all factors os 2, 3, 5 and 7 and see if 1 remains */
+	while (n % 2 == 0) n /= 2 ;
+	while (n % 3 == 0) n /= 3 ;
+	while (n % 5 == 0) n /= 5 ;
+	while (n % 7 == 0) n /= 7 ;
+	return (n == 1) ;
+}
+
+/* Helper function: is N a "fast" value for the FFT size? */
+static bool
+is_good_speclen (int n)
+{
+	/* It wants n, 11*n, 13*n but not (11*13*n)
+	** where n only has as factors 2, 3, 5 and 7
+	*/
+	if (n % (11 * 13) == 0) return 0 ; /* No good */
+
+	return is_2357(n) || ((n % 11 == 0) && is_2357(n / 11))
+	                  || ((n % 13 == 0) && is_2357(n / 13)) ;
+}
+
 static void
 render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
@@ -505,16 +540,36 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 		}
 
 	/*
-	**	Choose a speclen value that is long enough to represent frequencies down
-	**	to 20Hz, and then increase it slightly so it is a multiple of 0x40 so that
-	**	FFTW calculations will be quicker.
+	** Choose a speclen value that is long enough to represent frequencies
+	** down to 20Hz.
 	*/
 	speclen = height * (samplerate / 20 / height + 1) ;
-	speclen += 0x40 - (speclen & 0x3f) ;
+
+	/* Find the nearest fast value for the FFT size. */
+	{	int d ;	/* difference */
+
+	 	for (d=0 ; /* Will terminate */ ; d++)
+		{	/* Logarithmically, the integer above is closer than
+			** the integer below, so prefer it to the one below.
+			*/
+			if (is_good_speclen (speclen + d))
+			{	speclen += d ;
+				break ;
+				}
+			/* FFT length must also be >= the output height,
+			** otherwise repeated pixel rows occur in the output.
+			*/
+			if (speclen - d >= height &&
+			    is_good_speclen (speclen - d))
+			{	speclen -= d ;
+				break ;
+				}
+			}
+		}
 
 	time_domain		= calloc (2 * speclen, sizeof (double)) ;
 	freq_domain		= calloc (2 * speclen, sizeof (double)) ;
-	single_mag_spec = calloc (speclen, sizeof (double)) ;
+	single_mag_spec = calloc (speclen, sizeof (double)) ; 
 	mag_spec		= calloc (width, sizeof (float *)) ;
 	if (time_domain == NULL || freq_domain == NULL || single_mag_spec == NULL || mag_spec == NULL)
 	{	printf ("%s : Not enough memory.\n", __func__) ;
