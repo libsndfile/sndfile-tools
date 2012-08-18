@@ -43,9 +43,6 @@
 #include "window.h"
 #include "common.h"
 
-#define	MIN_WIDTH	640
-#define	MIN_HEIGHT	480
-
 #define TICK_LEN			6
 #define	BORDER_LINE_WIDTH	1.8
 
@@ -539,6 +536,18 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 		height = render->height ;
 		}
 
+	if (width < 1)
+	{	printf ("Error : 'width' parameter must be >= %d\n",
+			render->border ? (int)(LEFT_BORDER + RIGHT_BORDER) + 1 : 1) ;
+		exit (1) ;
+		} ;
+
+	if (height < 1)
+	{	printf ("Error : 'height' parameter must be >= %d\n",
+			render->border ? (int)(TOP_BORDER + BOTTOM_BORDER) + 1 : 1) ;
+		exit (1) ;
+		} ;
+
 	/*
 	** Choose a speclen value that is long enough to represent frequencies
 	** down to 20Hz.
@@ -691,15 +700,6 @@ render_sndfile (const RENDER * render)
 } /* render_sndfile */
 
 static void
-check_int_range (const char * name, int value, int lower, int upper)
-{
-	if (value < lower || value > upper)
-	{	printf ("Error : '%s' parameter must be in range [%d, %d]\n", name, lower, upper) ;
-		exit (1) ;
-		} ;
-} /* check_int_range */
-
-static void
 usage_exit (const char * argv0, int error)
 {
 	const char * progname ;
@@ -769,10 +769,6 @@ main (int argc, char * argv [])
 	render.width = atoi (argv [k + 1]) ;
 	render.height = atoi (argv [k + 2]) ;
 	render.pngfilepath = argv [k + 3] ;
-
-	check_int_range ("width", render.width, MIN_WIDTH, INT_MAX) ;
-	check_int_range ("height", render.height, MIN_HEIGHT, INT_MAX) ;
-
 
 	render.filename = strrchr (render.sndfilepath, '/') ;
 	render.filename = (render.filename != NULL) ? render.filename + 1 : render.sndfilepath ;
