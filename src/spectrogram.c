@@ -492,7 +492,7 @@ interp_spec (float * mag, int maglen, const double *spec, int speclen)
 
 /* Helper function: does N have only 2, 3, 5 and 7 as its factors? */
 static bool
-is_2357(int n)
+is_2357 (int n)
 {
 	/* Just eliminate all factors os 2, 3, 5 and 7 and see if 1 remains */
 	while (n % 2 == 0) n /= 2 ;
@@ -511,8 +511,8 @@ is_good_speclen (int n)
 	*/
 	if (n % (11 * 13) == 0) return 0 ; /* No good */
 
-	return is_2357(n) || ((n % 11 == 0) && is_2357(n / 11))
-	                  || ((n % 13 == 0) && is_2357(n / 13)) ;
+	return is_2357 (n)	|| ((n % 11 == 0) && is_2357 (n / 11))
+						|| ((n % 13 == 0) && is_2357 (n / 13)) ;
 }
 
 static void
@@ -538,13 +538,13 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 
 	if (width < 1)
 	{	printf ("Error : 'width' parameter must be >= %d\n",
-			render->border ? (int)(LEFT_BORDER + RIGHT_BORDER) + 1 : 1) ;
+			render->border ? (int) (LEFT_BORDER + RIGHT_BORDER) + 1 : 1) ;
 		exit (1) ;
 		} ;
 
 	if (height < 1)
 	{	printf ("Error : 'height' parameter must be >= %d\n",
-			render->border ? (int)(TOP_BORDER + BOTTOM_BORDER) + 1 : 1) ;
+			render->border ? (int) (TOP_BORDER + BOTTOM_BORDER) + 1 : 1) ;
 		exit (1) ;
 		} ;
 
@@ -557,7 +557,7 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 	/* Find the nearest fast value for the FFT size. */
 	{	int d ;	/* difference */
 
-	 	for (d=0 ; /* Will terminate */ ; d++)
+		for (d = 0 ; /* Will terminate */ ; d++)
 		{	/* Logarithmically, the integer above is closer than
 			** the integer below, so prefer it to the one below.
 			*/
@@ -568,8 +568,7 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 			/* FFT length must also be >= the output height,
 			** otherwise repeated pixel rows occur in the output.
 			*/
-			if (speclen - d >= height &&
-			    is_good_speclen (speclen - d))
+			if (speclen - d >= height && is_good_speclen (speclen - d))
 			{	speclen -= d ;
 				break ;
 				}
@@ -578,7 +577,7 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 
 	time_domain		= calloc (2 * speclen, sizeof (double)) ;
 	freq_domain		= calloc (2 * speclen, sizeof (double)) ;
-	single_mag_spec = calloc (speclen, sizeof (double)) ; 
+	single_mag_spec = calloc (speclen, sizeof (double)) ;
 	mag_spec		= calloc (width, sizeof (float *)) ;
 	if (time_domain == NULL || freq_domain == NULL || single_mag_spec == NULL || mag_spec == NULL)
 	{	printf ("%s : Not enough memory.\n", __func__) ;
