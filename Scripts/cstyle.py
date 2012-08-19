@@ -9,7 +9,9 @@ This program checks C code for compliance to coding standards used in
 libsndfile and other projects I run.
 """
 
-import re, sys
+import re
+import sys
+
 
 class Preprocessor:
 	"""
@@ -126,14 +128,21 @@ class CStyleChecker:
 			, ( re.compile ("[^\s\(\[\*&']\("),				"missing space before open parenthesis" )
 			, ( re.compile ("\)(-[^>]|[^,'\s\n\)\]-])"),	"missing space after close parenthesis" )
 			, ( re.compile ("\s(do|for|if|when)\s.*{$"),	"trailing open parenthesis at end of line" )
+			, ( re.compile ("\( [^;]"),						"space after open parenthesis" )
+			, ( re.compile ("[^;] \)"),						"space before close parenthesis" )
 
 			# Open and close square brace.
 			, ( re.compile ("[^\s\(\]]\["),			"missing space before open square brace" )
 			, ( re.compile ("\][^,\)\]\[\s\.-]"),	"missing space after close square brace" )
+			, ( re.compile ("\[ "),					"space after open square brace" )
+			, ( re.compile (" \]"),					"space before close square brace" )
 
 			# Space around operators.
 			, ( re.compile ("[^\s][\*/%+-][=][^\s]"),		"missing space around opassign" )
 			, ( re.compile ("[^\s][<>!=^/][=]{1,2}[^\s]"),	"missing space around comparison" )
+
+			# Parens around single argument to return.
+			, ( re.compile ("\s+return\s+\([a-zA-Z0-9_]+\)\s+;"),	"parens around return value" )
 			]
 
 	def get_error_count (self):
@@ -190,7 +199,7 @@ class CStyleChecker:
 		indent = len (self.indent_re.search (line).group ())
 		if re.search ("^\s+}", line):
 			if not self.last_line_indent_curly and indent != self.last_line_indent:
-				None # self.error ("bad indent on close curly brace")
+				None	# self.error ("bad indent on close curly brace")
 			self.last_line_indent_curly = True
 		else:
 			self.last_line_indent_curly = False
@@ -235,4 +244,3 @@ if cstyle.get_error_count ():
 	sys.exit (1)
 
 sys.exit (0)
-
