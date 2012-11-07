@@ -154,7 +154,7 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 		return ;
 		} ;
 
-	if (channel < 0 || channel > info->channels)
+	if (channel < 0 || channel >= info->channels)
 	{	printf ("invalid channel\n") ;
 		return ;
 		} ;
@@ -232,7 +232,7 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 		return ;
 		} ;
 
-	if (channel < 0 || channel > info->channels)
+	if (channel < 0 || channel >= info->channels)
 	{	printf ("invalid channel\n") ;
 		return ;
 		} ;
