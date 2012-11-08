@@ -146,16 +146,17 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 
 	const float frames_per_bin = info->frames / (float) width ;
 	const long max_frames_per_bin = ceilf (frames_per_bin) ;
-	float* data = malloc (sizeof (float) * max_frames_per_bin * info->channels) ;
+	float* data ;
 	long f_offset = 0 ;
-
-	if (!data)
-	{	printf ("out of memory.\n") ;
-		return ;
-		} ;
 
 	if (channel < 0 || channel >= info->channels)
 	{	printf ("invalid channel\n") ;
+		return ;
+		} ;
+
+	data = malloc (sizeof (float) * max_frames_per_bin * info->channels) ;
+	if (!data)
+	{	printf ("out of memory.\n") ;
 		return ;
 		} ;
 
@@ -214,6 +215,8 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 static void
 render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_INFO *info, double left, double top, double width, double height, int channel, float gain)
 {
+	cairo_t * cr ;
+
 	float pmin = 0 ;
 	float pmax = 0 ;
 	float prms = 0 ;
@@ -223,25 +226,24 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 	long frames_per_buf, buffer_len ;
 
 	const float frames_per_bin = info->frames / (float) width ;
-	const long max_frames_per_bin = ceilf (frames_per_bin) ;
-	float* data = malloc (sizeof (float) * max_frames_per_bin * info->channels) ;
+	const long max_frames_per_bin = 1 + ceilf (frames_per_bin) ;
+	float* data ;
 	long f_offset = 0 ;
-
-	if (!data)
-	{	printf ("out of memory.\n") ;
-		return ;
-		} ;
 
 	if (channel < 0 || channel >= info->channels)
 	{	printf ("invalid channel\n") ;
 		return ;
 		} ;
 
+	data = malloc (sizeof (float) * max_frames_per_bin * info->channels) ;
+	if (!data)
+	{	printf ("out of memory.\n") ;
+		return ;
+		} ;
+
 	sf_seek (infile, 0, SEEK_SET) ;
 
-	cairo_t * cr ;
 	cr = cairo_create (surface) ;
-
 	cairo_rectangle (cr, left, top, width, height) ;
 	cairo_stroke_preserve (cr) ;
 	cairo_set_source_rgba (cr, C_COLOUR (&render->c_bg)) ;
@@ -1243,13 +1245,13 @@ main (int argc, char * argv [])
 				usage_exit (argv [0], EXIT_FAILURE) ;
 			} ;
 
-	if (optind +2 > argc)
+	if (optind + 2 > argc)
 		usage_exit (argv [0], EXIT_FAILURE) ;
 
 	render.sndfilepath = argv [optind] ;
 	render.pngfilepath = argv [optind + 1] ;
 
-	if ((render.what& (RMS | PEAK)) == 0)
+	if ((render.what & (RMS | PEAK)) == 0)
 	{	printf ("Error: at least one of RMS or PEAK must be rendered\n") ;
 		exit (EXIT_FAILURE) ;
 		} ;
