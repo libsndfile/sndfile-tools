@@ -375,6 +375,7 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 
 		f_offset += frames_per_buf ;
 		frames_per_buf = floorf ((x + 1) * frames_per_bin) - f_offset ;
+		frames_per_buf = frames_per_buf > max_frames_per_bin ? max_frames_per_bin : frames_per_buf ;
 		buffer_len = frames_per_buf * info->channels ;
 		} ;
 
