@@ -765,8 +765,8 @@ main (int argc, char * argv [])
 		} ;
 
 	render.sndfilepath = argv [k] ;
-	render.width = atoi (argv [k + 1]) ;
-	render.height = atoi (argv [k + 2]) ;
+	render.width = parse_int_or_die (argv [k + 1], "width") ;
+	render.height = parse_int_or_die (argv [k + 2], "height") ;
 	render.pngfilepath = argv [k + 3] ;
 
 	render.filename = strrchr (render.sndfilepath, '/') ;

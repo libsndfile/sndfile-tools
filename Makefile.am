@@ -22,7 +22,7 @@ man_MANS = man/sndfile-generate-chirp.1 man/sndfile-spectrogram.1 \
 #=========================================================================================
 # The bin targets.
 
-bin_sndfile_generate_chirp_SOURCES = src/generate-chirp.c
+bin_sndfile_generate_chirp_SOURCES = src/generate-chirp.c src/common.c src/common.h
 bin_sndfile_generate_chirp_LDADD = $(SNDFILE_LIBS)
 
 bin_sndfile_spectrogram_SOURCES = src/spectrogram.c src/window.c src/common.c \
@@ -38,7 +38,7 @@ bin_sndfile_waveform_LDADD = $(SNDFILE_LIBS) $(CAIRO_LIBS)
 bin_sndfile_jackplay_SOURCES = src/jackplay.c
 bin_sndfile_jackplay_LDADD = $(SNDFILE_LIBS) $(JACK_LIBS)
 
-bin_sndfile_resample_SOURCES = src/resample.c
+bin_sndfile_resample_SOURCES = src/resample.c src/common.c src/common.h
 bin_sndfile_resample_LDADD = $(SNDFILE_LIBS) $(SAMPLERATE_LIBS)
 
 src_sndfile_pitch_infer_SOURCES = src/pitch-infer.c src/window.c src/common.c

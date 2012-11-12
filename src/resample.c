@@ -24,6 +24,8 @@
 #include <string.h>
 #include <math.h>
 
+#include "common.h"
+
 #if (HAVE_SNDFILE)
 
 #include <samplerate.h>
@@ -71,7 +73,7 @@ main (int argc, char *argv [])
 			max_speed = SF_TRUE ;
 		else if (strcmp (argv [k], "-to") == 0)
 		{	k ++ ;
-			new_sample_rate = atoi (argv [k]) ;
+			new_sample_rate = parse_int_or_die (argv [k], "sample rate") ;
 			}
 		else if (strcmp (argv [k], "-by") == 0)
 		{	k ++ ;
@@ -79,7 +81,7 @@ main (int argc, char *argv [])
 			}
 		else if (strcmp (argv [k], "-c") == 0)
 		{	k ++ ;
-			converter = atoi (argv [k]) ;
+			converter = parse_int_or_die (argv [k], "converter") ;
 			}
 		else
 			usage_exit (argv [0]) ;

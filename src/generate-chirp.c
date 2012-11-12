@@ -22,6 +22,8 @@
 #include <errno.h>
 #include <math.h>
 
+#include "common.h"
+
 #include <sndfile.h>
 
 typedef double (*freq_func_t) (double w0, double w1, double total_length) ;
@@ -53,12 +55,12 @@ main (int argc, char * argv [])
 	for (k = 1 ; k < argc - 3 ; k++)
 	{	if (strcmp (argv [k], "-from") == 0)
 		{	k++ ;
-			params.start_freq = atoi (argv [k]) ;
+			params.start_freq = parse_int_or_die (argv [k], "from frequency") ;
 			continue ;
 			} ;
 		if (strcmp (argv [k], "-to") == 0)
 		{	k++ ;
-			params.end_freq = atoi (argv [k]) ;
+			params.end_freq = parse_int_or_die (argv [k], "to frequency") ;
 			continue ;
 			} ;
 		if (strcmp (argv [k], "-amp") == 0)
@@ -76,8 +78,8 @@ main (int argc, char * argv [])
 		exit (1) ;
 		} ;
 
-	params.samplerate = atoi (argv [argc - 3]) ;
-	params.seconds = atoi (argv [argc - 2]) ;
+	params.samplerate = parse_int_or_die (argv [argc - 3], "sample rate") ;
+	params.seconds = parse_int_or_die (argv [argc - 2], "seconds") ;
 	filename = argv [argc - 1] ;
 
 	check_int_range ("sample rate", params.samplerate, 1000, 200 * 1000) ;

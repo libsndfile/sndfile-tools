@@ -1167,7 +1167,7 @@ main (int argc, char * argv [])
 				render.border = true ;
 				break ;
 			case 'c' :		/* --channel */
-				render.channel = atoi (optarg) ;
+				render.channel = parse_int_or_die (optarg, "channel") ;
 				break ;
 			case 'C' :		/* --centerline */
 				set_colour (&render.c_cl, strtoll (optarg, NULL, 16)) ;
@@ -1205,7 +1205,7 @@ main (int argc, char * argv [])
 				render.autogain = true ;
 				break ;
 			case 'S' :		/* --separator */
-				render.channel_separation = atoi (optarg) ;
+				render.channel_separation = parse_int_or_die (optarg, "separator") ;
 				break ;
 			case 't' :		/* --timecode*/
 				{
