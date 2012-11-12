@@ -163,7 +163,10 @@ class CStyleChecker:
 		Run the style checker on the specified file.
 		"""
 		self.filename = filename
-		cfile = open (filename, "r")
+		try:
+			cfile = open (filename, "r")
+		except IOError as e:
+			return
 
 		self.line_num = 1
 
