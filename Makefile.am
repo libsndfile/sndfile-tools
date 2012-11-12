@@ -9,7 +9,7 @@ bin_PROGRAMS = bin/sndfile-generate-chirp bin/sndfile-spectrogram \
 	bin/sndfile-waveform
 
 # Test programs or programs not yet working.
-noinst_PROGRAMS = src/kaiser_window_test src/sndfile-pitch-infer
+noinst_PROGRAMS = tests/kaiser_window_test src/sndfile-pitch-infer
 
 INCLUDES = $(SNDFILE_CFLAGS) $(FFTW3_CFLAGS) $(CAIRO_CFLAGS) $(JACK_CFLAGS) \
 			$(SAMPLERATE_CFLAGS)
@@ -47,8 +47,8 @@ src_sndfile_pitch_infer_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS)
 #=========================================================================================
 # The make check targets.
 
-src_kaiser_window_test_SOURCES = src/kaiser_window_test.c src/window.h src/window.c
+tests_kaiser_window_test_SOURCES = tests/kaiser_window_test.c src/window.h src/window.c
 
 check : $(noinst_PROGRAMS) $(bin_PROGRAMS)
-	@src/kaiser_window_test
+	@tests/kaiser_window_test
 	@tests/valgrind-test.sh
