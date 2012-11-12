@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -43,7 +43,7 @@ static void generate_file (const char * filename, const PARAMS * params) ;
 int
 main (int argc, char * argv [])
 {
-	PARAMS params = { 200, -1, -1.0, 0, 0, 0, NULL } ;
+	PARAMS params = { 1.0, -1, -1.0, 0, 0, 0, NULL } ;
 	const char * filename ;
 	int k ;
 
