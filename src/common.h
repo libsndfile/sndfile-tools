@@ -54,3 +54,5 @@ extern const char * font_family ;
 sf_count_t sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen) ;
 
 double calc_magnitude (const double * freq, int freqlen, double * magnitude) ;
+
+int parse_int_or_die (const char * input, const char * value_name) ;

@@ -17,8 +17,11 @@
 
 #include "config.h"
 
+#include <stdlib.h>
 #include <string.h>
+#include <ctype.h>
 #include <math.h>
+#include <limits.h>
 
 #include "common.h"
 
@@ -78,3 +81,16 @@ calc_magnitude (const double * freq, int freqlen, double * magnitude)
 	return max ;
 } /* calc_magnitude */
 
+int
+parse_int_or_die (const char * input, const char * value_name)
+{	char * endptr ;
+
+	long value = strtol (input, &endptr, 10) ;
+
+	if (endptr == input || endptr [0] != 0 || value >= INT_MAX)
+	{	fprintf (stderr, "Error : Can't parse int value %s : %s\n", value_name, input) ;
+		exit (1) ;
+		} ;
+
+	return value ;
+} /* parse_int_or_die */
