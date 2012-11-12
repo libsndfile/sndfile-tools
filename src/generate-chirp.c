@@ -45,7 +45,7 @@ static void generate_file (const char * filename, const PARAMS * params) ;
 int
 main (int argc, char * argv [])
 {
-	PARAMS params = { 1.0, -1, -1.0, 0, 0, 0, NULL } ;
+	PARAMS params = { 1.0, -1, -1, 0, 0, 0, NULL } ;
 	const char * filename ;
 	int k ;
 
@@ -87,8 +87,10 @@ main (int argc, char * argv [])
 
 	if (params.sweep_func == NULL)
 		params.sweep_func = parse_sweep_type ("-log") ;
-	if (params.end_freq < 0.0)
-		params.end_freq = params.samplerate / 2 ;
+	if (params.start_freq <= 0)
+		params.start_freq = 100 ;
+	if (params.end_freq <= 0)
+		params.end_freq = params.samplerate / 2 - 100 ;
 
 	if (params.end_freq <= params.start_freq)
 	{	printf ("\nError : end frequency %d < start frequency %d.\n\n", params.end_freq, params.start_freq) ;
