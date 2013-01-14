@@ -49,7 +49,10 @@ fork_parse_int (const char * str, int value, int should_parse)
 	if (pid == 0)
 	{	int parsed ;
 
-		freopen ("/dev/null", "w", stderr) ;
+		if (!freopen ("/dev/null", "w", stderr))
+		{	printf ("Error: freopen() failed.\n") ;
+			exit (1) ;
+			} ;
 
 		parsed = parse_int_or_die (str, "test") ;
 		if (should_parse && parsed != value)
