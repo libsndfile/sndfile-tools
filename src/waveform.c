@@ -1,6 +1,7 @@
 /*
 ** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2012 Robin Gareus <robin@gareus.org>
+** Copyright (C) 2013 driedfruit <driedfruit@mindloop.net>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -1044,7 +1045,7 @@ usage_exit (char * argv0, int status)
 		"                            < 0: render all channels vertically separated;\n"
 		"                            > 0: render only specified channel. (default: 0)\n"
 		"  -C, --centerline <COL>    set colour of zero/center line (default 0x4cffffff)\n"
-		"  -F, --foreground <COL>    specify background colour; default 0xff333333\n"
+		"  -F, --foreground <COL>    specify foreground colour; default 0xff333333\n"
 		"  -g <w>x<h>, --geometry <w>x<h>\n"
 		"                            specify the size of the image to create\n"
 		"                            default: 800x192\n"
@@ -1055,7 +1056,7 @@ usage_exit (char * argv0, int status)
 		"  --no-peak                 only draw RMS signal using foreground colour\n"
 		"  --no-rms                  only draw signal peaks (exclusive with --no-peak).\n"
 		"  -r, --rectified           rectify waveform\n"
-		"  -R, --rmscolour  <COL>    specify background colour; default 0xffb3b3b3\n"
+		"  -R, --rmscolour  <COL>    specify RMS colour; default 0xffb3b3b3\n"
 		"  -s, --gainscale           zoom into y-axis, map max signal to height.\n"
 		"  -S, --separator <px>      vertically separate channels by N pixels\n"
 		"                            (default: 12) - only used with -c -1\n"
