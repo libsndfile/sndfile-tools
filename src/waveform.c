@@ -76,6 +76,7 @@ typedef struct
 	int tc_num, tc_den ;
 	double tc_off ;
 	bool parse_bwf ;
+	double border_width ;
 } RENDER ;
 
 enum WHAT { PEAK = 1, RMS = 2 } ;
@@ -245,6 +246,7 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 	sf_seek (infile, 0, SEEK_SET) ;
 
 	cr = cairo_create (surface) ;
+	cairo_set_line_width (cr, render->border_width) ;
 	cairo_rectangle (cr, left, top, width, height) ;
 	cairo_stroke_preserve (cr) ;
 	cairo_set_source_rgba (cr, C_COLOUR (&render->c_bg)) ;
@@ -837,6 +839,7 @@ render_to_surface (RENDER * render, SNDFILE *infile, SF_INFO *info, cairo_surfac
 
 	/* wave-form background */
 	cairo_rectangle (cr, 0, 0, render->width, render->height) ;
+	cairo_set_line_width (cr, render->border_width) ;
 	cairo_stroke_preserve (cr) ;
 	cairo_set_source_rgba (cr, C_COLOUR (&render->c_bbg)) ;
 	cairo_fill (cr) ;
@@ -1068,6 +1071,8 @@ usage_exit (char * argv0, int status)
 		"  -T <offset>               override the BWF time-reference (if any);\n"
 		"                            the offset is specified in audio-frames\n"
 		"                            and only used with timecode (-t) annotation.\n"
+		"  -O, --border-width        change outer border width\n"
+		"                            default: 1.0\n"
 		"  -V, --version             output version information and exit\n"
 		"  -W, --wavesize            given geometry applies to the plain wave-form.\n"
 		"                            image height depends on number of channels.\n"
@@ -1089,6 +1094,7 @@ static struct option const long_options [] =
 	{ "logscale", no_argument, 0, 'l' },
 	{ "rectified", no_argument, 0, 'r' },
 	{ "rectify", no_argument, 0, 'r' },
+	{ "border-width", required_argument, 0, 'O' },
 
 	{ "geometry", required_argument, 0, 'g' },
 	{ "separator", required_argument, 0, 'S' },
@@ -1131,7 +1137,8 @@ main (int argc, char * argv [])
 		/*border-bg*/	{ 0.0, 0.0, 0.0, 0.7 },
 		/*center-line*/	{ 1.0, 1.0, 1.0, 0.3 },
 		/*timecode num*/ 0, /*den*/ 0, /*offset*/ 0.0,
-		/*parse BWF*/ true
+		/*parse BWF*/ true,
+		/*border-width*/ 2.0f,
 		} ;
 
 	int c ;
@@ -1144,6 +1151,7 @@ main (int argc, char * argv [])
 				"F:"	/*	--foreground	*/
 				"G:"	/*	--borderbg	*/
 				"g:"	/*	--geometry	*/
+				"O:"	/*	--border-width	*/
 				"h"		/*	--help	*/
 				"l"		/*	--logscale	*/
 				"r"		/*	--rectified	*/
@@ -1223,6 +1231,9 @@ main (int argc, char * argv [])
 			case 'T' :		/* --timeoffset */
 				render.parse_bwf = false ;
 				render.tc_off = strtod (optarg, NULL) ;
+				break ;
+			case 'O' :
+				render.border_width = strtod (optarg, NULL) * 2.0f ;
 				break ;
 			case 1 :
 				memcpy (&render.c_rms, &render.c_fg, sizeof (COLOUR)) ;
