@@ -1,5 +1,6 @@
 /*
 ** Copyright (C) 2012 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2013 driedfruit <driedfruit@mindloop.net>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -48,7 +49,10 @@ fork_parse_int (const char * str, int value, int should_parse)
 	if (pid == 0)
 	{	int parsed ;
 
-		freopen ("/dev/null", "w", stderr) ;
+		if (!freopen ("/dev/null", "w", stderr))
+		{	printf ("Error: freopen() failed.\n") ;
+			exit (1) ;
+			} ;
 
 		parsed = parse_int_or_die (str, "test") ;
 		if (should_parse && parsed != value)
