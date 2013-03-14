@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2013 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -132,7 +132,7 @@ usage_exit (const char * argv0)
 
 	puts (
 		"    The output file will contain floating point samples in the range [-1.0, 1.0].\n"
-		"    The ouput file type is determined by the file name extension which should be one\n"
+		"    The output file type is determined by the file name extension which should be one\n"
 		"    of 'wav', 'aifc', 'aif', 'aiff', 'au', 'caf' and 'w64'.\n"
 		) ;
 
