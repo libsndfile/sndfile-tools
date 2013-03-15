@@ -1,8 +1,13 @@
-#!/bin/bash -e
+#!/bin/bash
 
 # Make sure we have valgrind.
-valgrind=`which valgrind`
-test -x "$valgrind" || (echo "Error : Can't find valgrind." ; exit 1)
+valgrind=$(which valgrind)
+if test $? -ne 0 ; then
+	echo "Error : Can't find valgrind."
+	exit 1
+	fi
+
+set -e
 
 tmpdir=tmp-`date "+%Y%m%dT%H%M%S"`
 
