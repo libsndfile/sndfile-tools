@@ -1,4 +1,5 @@
 /*
+** Copyright (c) 2013 elboulangero <elboulangero@gmail.com>
 ** Copyright (c) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2007 Jonatan Liljedahl <lijon@kymatica.com>
 **
@@ -22,6 +23,8 @@
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
+#include <getopt.h>
+#include <libgen.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -182,6 +185,30 @@ print_status (const thread_info_t * info)
 	fflush (stdout) ;
 } /* print_status */
 
+static void
+usage_exit (char * argv0, int status)
+{
+	printf ("\n"
+		"Usage : %s [options] <input sound file>\n"
+		"\n"
+		"  Where [options] is one of:\n"
+		"\n"
+		" -l   --loop=<count>   : Loop the file <count> times (0 for infinite).\n"
+		" -h   --help           : This help message.\n"
+		"\n"
+		"Using %s.\n"
+		"\n",
+		basename (argv0), sf_version_string ()) ;
+	exit (status) ;
+} /* usage_exit */
+
+static struct option const long_options [] =
+{
+	{ "loop", required_argument, NULL, 'l' } ,
+	{ "help", no_argument, NULL, 'h' } ,
+	{ NULL, 0, NULL, 0 }
+} ;
+
 int
 main (int argc, char * argv [])
 {	pthread_t thread_id ;
@@ -192,34 +219,28 @@ main (int argc, char * argv [])
 	jack_status_t status = 0 ;
 	thread_info_t info ;
 	int i, jack_sr, loop_count = 1 ;
+	int c ;
 
-	if (argc < 2 || strcmp (argv [0], "--help") == 0)
-	{	const char *progname = argv [0], *cptr ;
+	/* Parse options */
+	while ((c = getopt_long (argc, argv,
+				"l:"	/*	--loop	*/
+				"h",	/*	--help	*/
+				long_options, NULL)) != EOF)
+		switch (c)
+		{	case 'l' :
+				loop_count = strtol (optarg, NULL, 10) ;
+				break ;
+			case 'h' :
+				usage_exit (argv [0], EXIT_SUCCESS) ;
+				break ;
+			default :
+				usage_exit (argv [0], EXIT_FAILURE) ;
+			} ;
 
-		if ((cptr = strrchr (progname, '/')) != NULL)
-			progname = cptr + 1 ;
+	if (argc - optind != 1)
+		usage_exit (argv [0], EXIT_FAILURE) ;
 
-		fprintf (stderr, "\n"
-			"Usage : %s [options] <input sound file>\n"
-			"\n"
-			"  Where [options] is one of:\n"
-			"\n"
-			"    --loop=<count>   : Loop the file <count> times (0 for infinite).\n"
-			"    --help           : This help message.\n"
-			"\n"
-			"Using %s.\n"
-			"\n",
-			progname, sf_version_string ()) ;
-
-		return 1 ;
-		} ;
-
-	if (argc == 3 && strstr (argv [1], "--loop=") == argv [1])
-	{	loop_count = strtol (argv [1] + 7, NULL, 10) ;
-		filename = argv [2] ;
-		}
-	else
-		filename = argv [1] ;
+	filename = argv [optind] ;
 
 	/* Create jack client */
 	if ((client = jack_client_open ("jackplay", JackNullOption | JackNoStartServer, &status)) == 0)
