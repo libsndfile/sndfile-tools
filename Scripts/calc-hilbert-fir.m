@@ -1,5 +1,3 @@
-#!/usr/bin/octave -qH
-
 # For all the gory details, I suggest the paper:
 #
 #    Andrew Reilly and Gordon Frazer and Boualem Boashash:
@@ -48,7 +46,7 @@ b = remez (255, [0 0.356 0.4 1], [1, 1, 0, 0]) ;
 
 len = length (b) ;
 
-fprintf (stderr, "Filter length : %d\n", len) ;
+fprintf (stderr, "         Filter length : %d\n", len) ;
 
 if rem (len , 2) !+ 0
 	error ("Filter length should be even.") ;
