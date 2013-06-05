@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2012 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2012-2013 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2013 driedfruit <driedfruit@mindloop.net>
 **
 ** This program is free software: you can redistribute it and/or modify
@@ -22,7 +22,7 @@
 #include <math.h>
 #include <sys/wait.h>
 
-#include "common.h"
+#include <src/common.h>
 
 static void parse_int_test (void) ;
 

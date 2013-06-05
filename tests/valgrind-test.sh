@@ -3,8 +3,8 @@
 # Make sure we have valgrind.
 valgrind=$(which valgrind)
 if test $? -ne 0 ; then
-	echo "Error : Can't find valgrind."
-	exit 1
+	echo "Sorry, valgrind isn't installed so this test cannot be run."
+	exit 0
 	fi
 
 set -e

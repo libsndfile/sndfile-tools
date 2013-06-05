@@ -2,7 +2,8 @@
 # Tell automake to put the object file in the same dir as the source file.
 AUTOMAKE_OPTIONS = subdir-objects
 
-EXTRA_DIST = M4/lrint.m4 M4/lrintf.m4 doc/index.html doc/sweep.png $(man_MANS)
+EXTRA_DIST = M4/lrint.m4 M4/lrintf.m4 doc/index.html doc/sweep.png \
+	tests/valgrind-test.sh Scripts/calc-hilbert-fir.m $(man_MANS)
 
 bin_PROGRAMS = bin/sndfile-generate-chirp bin/sndfile-spectrogram \
 	bin/sndfile-mix-to-mono bin/sndfile-jackplay bin/sndfile-resample \
@@ -48,12 +49,11 @@ bin_sndfile_pitch_infer_SOURCES = src/pitch-infer.c src/window.c src/common.c
 bin_sndfile_pitch_infer_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS)
 
 #=========================================================================================
-# Generated header file.
+# Generated header file. This is normally create when autogen.sh is run from a Git
+# checkout. The file is shipped in the source code tarball.
 
 src/fir_hilbert_coeffs.h : Scripts/calc-hilbert-fir.m
 	$(AM_V_GEN)octave -qH $< > $@
-
-src/beat-detect.o : src/fir_hilbert_coeffs.h
 
 #=========================================================================================
 # The make check targets.
@@ -64,6 +64,6 @@ tests_common_tests_SOURCES = tests/common_tests.c src/common.c src/common.h
 tests_common_tests_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS)
 
 check : $(noinst_PROGRAMS) $(bin_PROGRAMS)
-	@tests/common_tests
-	@tests/kaiser_window_test
-	@tests/valgrind-test.sh
+	@$(top_builddir)/tests/common_tests
+	@$(top_builddir)/tests/kaiser_window_test
+	@$(top_srcdir)/tests/valgrind-test.sh

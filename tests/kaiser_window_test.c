@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2013 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -19,7 +19,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "window.h"
+#include <src/window.h>
 
 #define ARRAY_LEN(x)	((int) ((sizeof (x)) / (sizeof (x [0]))))
 
