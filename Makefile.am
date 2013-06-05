@@ -51,7 +51,7 @@ bin_sndfile_pitch_infer_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS)
 # Generated header file.
 
 src/fir_hilbert_coeffs.h : Scripts/calc-hilbert-fir.m
-	$+ > $@
+	$(AM_V_GEN)octave -qH $< > $@
 
 src/beat-detect.o : src/fir_hilbert_coeffs.h
 
