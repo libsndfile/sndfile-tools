@@ -2,6 +2,8 @@
 # Tell automake to put the object file in the same dir as the source file.
 AUTOMAKE_OPTIONS = subdir-objects
 
+ACLOCAL_AMFLAGS = -I M4
+
 EXTRA_DIST = M4/lrint.m4 M4/lrintf.m4 doc/index.html doc/sweep.png \
 	tests/valgrind-test.sh Scripts/calc-hilbert-fir.m $(man_MANS)
 
