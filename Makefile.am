@@ -14,7 +14,7 @@ bin_PROGRAMS = bin/sndfile-generate-chirp bin/sndfile-spectrogram \
 # Test programs or programs not yet working.
 noinst_PROGRAMS = tests/kaiser_window_test tests/common_tests bin/sndfile-pitch-infer bin/sndfile-beat-detect
 
-INCLUDES = $(SNDFILE_CFLAGS) $(FFTW3_CFLAGS) $(CAIRO_CFLAGS) $(JACK_CFLAGS) \
+AM_CPPFLAGS = $(SNDFILE_CFLAGS) $(FFTW3_CFLAGS) $(CAIRO_CFLAGS) $(JACK_CFLAGS) \
 			$(SAMPLERATE_CFLAGS)
 
 CLEANFILES = src/*~

@@ -1,4 +1,4 @@
-# Copyright (C) 2002-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
+# Copyright (C) 2002-2014 Erik de Castro Lopo <erikd@mega-nerd.com>
 
 dnl Require autoconf version >= 2.54)
 AC_PREREQ(2.54)
@@ -14,8 +14,7 @@ AC_CANONICAL_TARGET([])
 
 AC_CONFIG_MACRO_DIR([M4])
 AM_CONFIG_HEADER([src/config.h])
-
-AM_INIT_AUTOMAKE($PACKAGE_NAME,$PACKAGE_VERSION)
+AM_INIT_AUTOMAKE
 AM_SILENT_RULES([yes])
 
 dnl Add parameters for aclocal
