@@ -41,9 +41,9 @@ AC_HEADER_STDC
 #====================================================================================
 # Finished checking, handle options.
 
-AC_ARG_ENABLE(gcc-werror,
-	AC_HELP_STRING([--enable-gcc-werror], [enable -Werror in all Makefiles]),
-	ac_arg_gcc_werror=yes, ac_arg_gcc_werror=no)
+AC_ARG_ENABLE(werror,
+	AC_HELP_STRING([--enable-werror], [enable -Werror in all Makefiles]),
+	ac_arg_werror=yes, ac_arg_werror=no)
 
 AC_ARG_ENABLE(gcc-pipe,
 		AC_HELP_STRING([--disable-gcc-pipe], [disable gcc -pipe option ]),
@@ -180,7 +180,7 @@ if test $ac_cv_c_compiler_gnu = yes ; then
 	CFLAGS="$CFLAGS -std=gnu99 -Wall -Wextra -Wstrict-prototypes -Wmissing-prototypes -Waggregate-return -Wcast-align -Wcast-qual -Wnested-externs -Wshadow -Wpointer-arith"
 	# -Wundef -Wbad-function-cast -Wmissing-declarations -Wconversion -Winline"
 
-	if test x$ac_arg_gcc_werror = "xyes" ; then
+	if test x$ac_arg_werror = "xyes" ; then
 		CFLAGS="-Werror $CFLAGS"
 		fi
 
