@@ -171,6 +171,8 @@ else
 	HAVE_JACK=0
 	fi
 
+JACK_LIBS="-lpthread ${JACK_LIBS}"
+
 AC_DEFINE_UNQUOTED([HAVE_JACK],$HAVE_JACK,[Set to 1 if you have JACK.])
 
 #====================================================================================
