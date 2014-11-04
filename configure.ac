@@ -236,7 +236,7 @@ if test x$ac_cv_c_compiler_gnu = xyes ; then
 	fi
 
 AC_MSG_RESULT([
-  Extra tools required for testing and examples :
+  External libraries required for testing and examples :
 
     Found SNDFILE ................. ${ac_cv_sndfile}
     Found SAMPLERATE .............. ${ac_cv_samplerate}
