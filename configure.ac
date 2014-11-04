@@ -238,15 +238,20 @@ if test x$ac_cv_c_compiler_gnu = xyes ; then
 AC_MSG_RESULT([
   External libraries required for testing and examples :
 
-    Found SNDFILE ................. ${ac_cv_sndfile}
-    Found SAMPLERATE .............. ${ac_cv_samplerate}
-    Found FFTW .................... ${ac_cv_fftw3}
-    Found CAIRO ................... ${ac_cv_cairo}
-    Found JACK .................... ${ac_cv_jack}
+    Found libsndfile ................. ${ac_cv_sndfile}
+    Found libsamplerate .............. ${ac_cv_samplerate}
+    Found libfftw3 ................... ${ac_cv_fftw3}
+    Found libcairo ................... ${ac_cv_cairo}
+    Found libjack .................... ${ac_cv_jack}
 ])
 
 if test "x$ac_cv_sndfile$ac_cv_samplerate$ac_cv_fftw3$ac_cv_cairo$ac_cv_jack" != "xyesyesyesyesyes" ; then
-	AC_MSG_RESULT([**** Error : You will need to install the missing libaries. ****])
+	AC_MSG_RESULT([==================================================================])
+	AC_MSG_RESULT([  Error : You will need to install the missing libaries.])
+	echo
+	AC_MSG_RESULT([  On distributions like Debian/Ubuntu/Fedora/etc, you will need])
+	AC_MSG_RESULT([  to install the *-dev or *-devel versions of the libaries.])
+	AC_MSG_RESULT([==================================================================])
 	echo
 	exit 1
 	fi
