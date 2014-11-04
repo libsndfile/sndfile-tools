@@ -1,6 +1,7 @@
 *.aiff
 *.dat
 *.png
+*.o
 *.wav
 .deps
 .dirstamp
