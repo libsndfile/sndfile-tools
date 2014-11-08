@@ -1,6 +1,7 @@
 /*
-** Copyright (c) 2013 elboulangero <elboulangero@gmail.com>
-** Copyright (c) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2014 Alexander Regueiro <alex@noldorin.com>
+** Copyright (C) 2013 elboulangero <elboulangero@gmail.com>
+** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2007 Jonatan Liljedahl <lijon@kymatica.com>
 **
 ** This program is free software ; you can redistribute it and/or modify
@@ -20,6 +21,7 @@
 
 #include "src/config.h"
 
+#include <stdbool.h>
 #include <stdio.h>
 #include <errno.h>
 #include <unistd.h>
@@ -193,8 +195,9 @@ usage_exit (char * argv0, int status)
 		"\n"
 		"  Where [options] is one of:\n"
 		"\n"
-		" -l   --loop=<count>   : Loop the file <count> times (0 for infinite).\n"
-		" -h   --help           : This help message.\n"
+		" -a   --autoconnect[=<channel>]    : Automatically connect to <channel> ports (default = system:playback_%%d).\n"
+		" -l   --loop=<count>               : Loop the file <count> times (0 for infinite).\n"
+		" -h   --help                       : Show this help message.\n"
 		"\n"
 		"Using %s.\n"
 		"\n",
@@ -204,6 +207,7 @@ usage_exit (char * argv0, int status)
 
 static struct option const long_options [] =
 {
+	{ "autoconnect", optional_argument, NULL, 'a' } ,
 	{ "loop", required_argument, NULL, 'l' } ,
 	{ "help", no_argument, NULL, 'h' } ,
 	{ NULL, 0, NULL, 0 }
@@ -218,16 +222,29 @@ main (int argc, char * argv [])
 	jack_client_t *client ;
 	jack_status_t status = 0 ;
 	thread_info_t info ;
+	char * auto_connect_str = NULL ;
 	int i, jack_sr, loop_count = 1 ;
 	int c ;
 
 	/* Parse options */
 	while ((c = getopt_long (argc, argv,
+				"a::"	/*  --autoconnect  */
 				"l:"	/*	--loop	*/
 				"h",	/*	--help	*/
 				long_options, NULL)) != EOF)
+	{	if (optarg != NULL && optarg [0] == '=')
+		{	optarg++ ;
+			}
 		switch (c)
-		{	case 'l' :
+		{	case 'a' :
+				if (optarg == NULL)
+				{	auto_connect_str = "system:playback_%d" ;
+					}
+				else
+				{	auto_connect_str = optarg ;
+					}
+				break ;
+			case 'l' :
 				loop_count = strtol (optarg, NULL, 10) ;
 				break ;
 			case 'h' :
@@ -236,6 +253,7 @@ main (int argc, char * argv [])
 			default :
 				usage_exit (argv [0], EXIT_FAILURE) ;
 			} ;
+		}
 
 	if (argc - optind != 1)
 		usage_exit (argv [0], EXIT_FAILURE) ;
@@ -323,15 +341,17 @@ main (int argc, char * argv [])
 		return 1 ;
 		} ;
 
-	/* Auto connect all channels. */
-	for (i = 0 ; i < sfinfo.channels ; i++)
-	{	char name [64] ;
+	/* Auto-connect all channels. */
+	if (auto_connect_str != NULL)
+	{	for (i = 0 ; i < sfinfo.channels ; i++)
+		{	char name [64] ;
 
-		snprintf (name, sizeof (name), "system:playback_%d", i + 1) ;
+			snprintf (name, sizeof (name), auto_connect_str, i + 1) ;
 
-		if (jack_connect (client, jack_port_name (info.output_port [i]), name))
-			fprintf (stderr, "Cannot connect output port %d (%s).\n", i, name) ;
-		} ;
+			if (jack_connect (client, jack_port_name (info.output_port [i]), name))
+				fprintf (stderr, "Cannot connect output port %d (%s).\n", i, name) ;
+			} ;
+		}
 
 	/* Sit in a loop, displaying the current play position. */
 	while (NOT (info.play_done))
