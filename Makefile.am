@@ -12,7 +12,7 @@ bin_PROGRAMS = bin/sndfile-generate-chirp bin/sndfile-spectrogram \
 	bin/sndfile-waveform
 
 # Test programs or programs not yet working.
-noinst_PROGRAMS = tests/kaiser_window_test tests/common_tests bin/sndfile-pitch-infer bin/sndfile-beat-detect
+noinst_PROGRAMS = tests/kaiser_window_test tests/common_tests
 
 AM_CPPFLAGS = $(SNDFILE_CFLAGS) $(FFTW3_CFLAGS) $(CAIRO_CFLAGS) $(JACK_CFLAGS) \
 			$(SAMPLERATE_CFLAGS)
@@ -43,19 +43,6 @@ bin_sndfile_jackplay_LDADD = $(SNDFILE_LIBS) $(JACK_LIBS)
 
 bin_sndfile_resample_SOURCES = src/resample.c src/common.c src/common.h
 bin_sndfile_resample_LDADD = $(SNDFILE_LIBS) $(SAMPLERATE_LIBS)
-
-bin_sndfile_beat_detect_SOURCES = src/beat-detect.c src/common.h src/fir_hilbert_coeffs.h
-bin_sndfile_beat_detect_LDADD = $(SNDFILE_LIBS)
-
-bin_sndfile_pitch_infer_SOURCES = src/pitch-infer.c src/window.c src/common.c
-bin_sndfile_pitch_infer_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS)
-
-#=========================================================================================
-# Generated header file. This is normally create when autogen.sh is run from a Git
-# checkout. The file is shipped in the source code tarball.
-
-src/fir_hilbert_coeffs.h : Scripts/calc-hilbert-fir.m
-	$(AM_V_GEN)octave -qH $< > $@
 
 #=========================================================================================
 # The make check targets.

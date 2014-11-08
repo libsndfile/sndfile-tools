@@ -117,32 +117,6 @@ result="yes"
 }
 echo $result
 
-
-echo -n "checking for octave... "
-result="yes"
-(octave --version) < /dev/null > /dev/null 2>&1 || {
-        echo
-        echo "You must have GNU octave installed to compile $package."
-        echo "Download the appropriate package for your distribution, or get"
-        echo "the source tarball at http://www.gnu.org/software/octave/"
-        result="no"
-        DIE=1
-}
-echo $result
-
-echo -n "checking for remez... "
-result="yes"
-(octave -qH --eval "help remez") < /dev/null > /dev/null 2>&1 || {
-        echo
-        echo "You must have GNU octave's Signal Processing package"
-        echo "to compile $package."
-        echo "Download the appropriate package for your distribution, or get"
-        echo "the source tarball at http://octave.sourceforge.net/signal/"
-        result="no"
-        DIE=1
-}
-echo $result
-
 if test "$DIE" -eq 1; then
         exit 1
 fi
@@ -170,9 +144,6 @@ echo "  $AUTOMAKE --add-missing $AUTOMAKE_FLAGS"
 $AUTOMAKE --copy --add-missing $AUTOMAKE_FLAGS || exit 1
 echo "  autoconf"
 autoconf || exit 1
-
-echo "  src/fir_hilbert_coeffs.h"
-octave -qH Scripts/calc-hilbert-fir.m > src/fir_hilbert_coeffs.h || exit 1
 
 if test -d .git; then
 	fprecommit=.git/hooks/pre-commit
