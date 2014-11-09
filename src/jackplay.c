@@ -332,18 +332,20 @@ main (int argc, char * argv [])
 	jack_set_process_callback (client, process_callback, &info) ;
 	jack_on_shutdown (client, jack_shutdown, 0) ;
 
-	/* Start the disk thread. */
-	pthread_create (&thread_id, NULL, disk_thread, &info) ;
-
 	/* Activate client. */
 	if (jack_activate (client))
 	{	fprintf (stderr, "Cannot activate client.\n") ;
 		return 1 ;
 		} ;
 
-	/* Auto-connect all channels. */
-	if (auto_connect_str != NULL)
-	{	for (i = 0 ; i < sfinfo.channels ; i++)
+	if (auto_connect_str == NULL)
+	{	/* Wait for key press before playing. */
+		printf ("Press <ENTER> key to start playing...") ;
+		getchar () ;
+		}
+	else
+	{	/* Auto-connect all channels. */
+		for (i = 0 ; i < sfinfo.channels ; i++)
 		{	char name [64] ;
 
 			snprintf (name, sizeof (name), auto_connect_str, i + 1) ;
@@ -352,6 +354,9 @@ main (int argc, char * argv [])
 				fprintf (stderr, "Cannot connect output port %d (%s).\n", i, name) ;
 			} ;
 		}
+
+	/* Start the disk thread. */
+	pthread_create (&thread_id, NULL, disk_thread, &info) ;
 
 	/* Sit in a loop, displaying the current play position. */
 	while (NOT (info.play_done))
