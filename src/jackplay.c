@@ -195,9 +195,9 @@ usage_exit (char * argv0, int status)
 		"\n"
 		"  Where [options] is one of:\n"
 		"\n"
-		" -a   --autoconnect[=<channel>]    : Automatically connect to <channel> ports (default = system:playback_%%d).\n"
-		" -l   --loop=<count>               : Loop the file <count> times (0 for infinite).\n"
-		" -h   --help                       : Show this help message.\n"
+		" -w   --wait[=<port>]    : Wait for input before starting playback; optionally auto-connect to <port> using Jack.\n"
+		" -l   --loop=<count>        : Loop the file <count> times (0 for infinite).\n"
+		" -h   --help                : Show this help message.\n"
 		"\n"
 		"Using %s.\n"
 		"\n",
@@ -207,7 +207,7 @@ usage_exit (char * argv0, int status)
 
 static struct option const long_options [] =
 {
-	{ "autoconnect", optional_argument, NULL, 'a' } ,
+	{ "wait", optional_argument, NULL, 'w' } ,
 	{ "loop", required_argument, NULL, 'l' } ,
 	{ "help", no_argument, NULL, 'h' } ,
 	{ NULL, 0, NULL, 0 }
@@ -222,13 +222,14 @@ main (int argc, char * argv [])
 	jack_client_t *client ;
 	jack_status_t status = 0 ;
 	thread_info_t info ;
-	char * auto_connect_str = NULL ;
+	char * auto_connect_str = "system:playback_%d" ;
+	bool wait_before_play = false ;
 	int i, jack_sr, loop_count = 1 ;
 	int c ;
 
 	/* Parse options */
 	while ((c = getopt_long (argc, argv,
-				"a::"	/*  --autoconnect  */
+				"w::"	/*  --wait  */
 				"l:"	/*	--loop	*/
 				"h",	/*	--help	*/
 				long_options, NULL)) != EOF)
@@ -236,13 +237,9 @@ main (int argc, char * argv [])
 		{	optarg++ ;
 			}
 		switch (c)
-		{	case 'a' :
-				if (optarg == NULL)
-				{	auto_connect_str = "system:playback_%d" ;
-					}
-				else
-				{	auto_connect_str = optarg ;
-					}
+		{	case 'w' :
+				wait_before_play = true ;
+				auto_connect_str = optarg ;
 				break ;
 			case 'l' :
 				loop_count = strtol (optarg, NULL, 10) ;
@@ -338,12 +335,7 @@ main (int argc, char * argv [])
 		return 1 ;
 		} ;
 
-	if (auto_connect_str == NULL)
-	{	/* Wait for key press before playing. */
-		printf ("Press <ENTER> key to start playing...") ;
-		getchar () ;
-		}
-	else
+	if (auto_connect_str != NULL)
 	{	/* Auto-connect all channels. */
 		for (i = 0 ; i < sfinfo.channels ; i++)
 		{	char name [64] ;
@@ -353,6 +345,12 @@ main (int argc, char * argv [])
 			if (jack_connect (client, jack_port_name (info.output_port [i]), name))
 				fprintf (stderr, "Cannot connect output port %d (%s).\n", i, name) ;
 			} ;
+		}
+
+	if (wait_before_play)
+	{	/* Wait for key press before playing. */
+		printf ("Press <ENTER> key to start playing...") ;
+		getchar () ;
 		}
 
 	/* Start the disk thread. */
