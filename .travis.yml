@@ -1,0 +1,11 @@
+language: c
+
+sudo: required
+
+before_install:
+  - sudo apt-get install -y pkg-config libsndfile-dev libjack-dev libfftw3-dev libcairo2-dev libsamplerate0-dev
+
+script:
+  - ./autogen.sh
+  - ./configure
+  - make distcheck
