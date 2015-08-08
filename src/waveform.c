@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2012 Robin Gareus <robin@gareus.org>
 ** Copyright (C) 2013 driedfruit <driedfruit@mindloop.net>
 **
@@ -151,7 +151,7 @@ calc_peak (SNDFILE *infile, SF_INFO *info, double width, int channel, AGC *agc)
 	float* data ;
 	long f_offset = 0 ;
 
-	if (channel < 0 || channel >= info->channels)
+	if (channel < 0 || channel > info->channels)
 	{	printf ("invalid channel\n") ;
 		return ;
 		} ;
@@ -232,7 +232,7 @@ render_waveform (cairo_surface_t * surface, RENDER *render, SNDFILE *infile, SF_
 	float* data ;
 	long f_offset = 0 ;
 
-	if (channel < 0 || channel >= info->channels)
+	if (channel < 0 || channel > info->channels)
 	{	printf ("invalid channel\n") ;
 		return ;
 		} ;
