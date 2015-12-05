@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -189,7 +189,7 @@ apply_window (double * data, int datalen)
 			} ;
 		window_len = datalen ;
 
-		calc_kaiser_window (window, datalen, 20.0) ;
+		calc_hanning_window (window, datalen) ;
 		} ;
 
 	for (k = 0 ; k < datalen ; k++)

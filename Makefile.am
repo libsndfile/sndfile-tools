@@ -12,7 +12,7 @@ bin_PROGRAMS = bin/sndfile-generate-chirp bin/sndfile-spectrogram \
 	bin/sndfile-waveform
 
 # Test programs or programs not yet working.
-noinst_PROGRAMS = tests/kaiser_window_test tests/common_tests
+noinst_PROGRAMS = tests/common_tests
 
 AM_CPPFLAGS = $(SNDFILE_CFLAGS) $(FFTW3_CFLAGS) $(CAIRO_CFLAGS) $(JACK_CFLAGS) \
 			$(SAMPLERATE_CFLAGS)
@@ -47,12 +47,9 @@ bin_sndfile_resample_LDADD = $(SNDFILE_LIBS) $(SAMPLERATE_LIBS)
 #=========================================================================================
 # The make check targets.
 
-tests_kaiser_window_test_SOURCES = tests/kaiser_window_test.c src/window.h src/window.c
-
 tests_common_tests_SOURCES = tests/common_tests.c src/common.c src/common.h
 tests_common_tests_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS)
 
 check : $(noinst_PROGRAMS) $(bin_PROGRAMS)
 	@$(top_builddir)/tests/common_tests
-	@$(top_builddir)/tests/kaiser_window_test
 	@$(top_srcdir)/tests/valgrind-test.sh

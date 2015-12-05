@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -15,6 +15,4 @@
 ** along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-void calc_kaiser_window (double * data, int datalen, double beta) ;
-
-void calc_nuttall_window (double * data, int datalen) ;
+void calc_hanning_window (double * data, int datalen) ;
