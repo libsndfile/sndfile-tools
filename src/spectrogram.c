@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -189,7 +189,7 @@ apply_window (double * data, int datalen)
 			} ;
 		window_len = datalen ;
 
-		calc_kaiser_window (window, datalen, 20.0) ;
+		calc_hanning_window (window, datalen) ;
 		} ;
 
 	for (k = 0 ; k < datalen ; k++)
@@ -656,7 +656,7 @@ render_cairo_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf
 	if (surface == NULL || cairo_surface_status (surface) != CAIRO_STATUS_SUCCESS)
 	{	status = cairo_surface_status (surface) ;
 		printf ("Error while creating surface : %s\n", cairo_status_to_string (status)) ;
-		return ;
+		exit(1) ;
 		} ;
 
 	cairo_surface_flush (surface) ;
@@ -665,7 +665,9 @@ render_cairo_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf
 
 	status = cairo_surface_write_to_png (surface, render->pngfilepath) ;
 	if (status != CAIRO_STATUS_SUCCESS)
-		printf ("Error while creating PNG file : %s\n", cairo_status_to_string (status)) ;
+	{	printf ("Error while creating PNG file : %s\n", cairo_status_to_string (status)) ;
+		exit(1) ;
+		} ;
 
 	cairo_surface_destroy (surface) ;
 
@@ -680,7 +682,7 @@ render_sndfile (const RENDER * render)
 
 	if (render->log_freq)
 	{	printf ("Error : --log-freq option not working yet.\n\n") ;
-		return ;
+		exit(1) ;
 		} ;
 
 	memset (&info, 0, sizeof (info)) ;
@@ -688,7 +690,7 @@ render_sndfile (const RENDER * render)
 	infile = sf_open (render->sndfilepath, SFM_READ, &info) ;
 	if (infile == NULL)
 	{	printf ("Error : failed to open file '%s' : \n%s\n", render->sndfilepath, sf_strerror (NULL)) ;
-		return ;
+		exit(1) ;
 		} ;
 
 	render_cairo_surface (render, infile, info.samplerate, info.frames) ;
