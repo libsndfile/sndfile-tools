@@ -61,6 +61,7 @@ typedef struct
 {	const char *sndfilepath, *pngfilepath, *filename ;
 	int width, height ;
 	bool border, log_freq, gray_scale ;
+	enum WINDOW_FUNCTION window_function ;
 	double spec_floor_db ;
 } RENDER ;
 
@@ -176,7 +177,7 @@ read_mono_audio (SNDFILE * file, sf_count_t filelen, double * data, int datalen,
 } /* read_mono_audio */
 
 static void
-apply_window (double * data, int datalen)
+apply_window (double * data, int datalen, enum WINDOW_FUNCTION window_function)
 {	static double *window = NULL ;
 	static int window_len = 0 ;
 	int k ;
@@ -189,7 +190,17 @@ apply_window (double * data, int datalen)
 			} ;
 		window_len = datalen ;
 
-		calc_kaiser_window (window, datalen, 20.0) ;
+		switch (window_function)
+		{	case KAISER:
+				calc_kaiser_window (window, datalen, 20.0) ;
+				break;
+			case NUTTALL:
+				calc_nuttall_window (window, datalen) ;
+				break;
+			default:
+				printf ("Internal error: Unknown window_function.\n") ;
+				exit (1) ;
+			} ;
 		} ;
 
 	for (k = 0 ; k < datalen ; k++)
@@ -601,7 +612,7 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 
 		read_mono_audio (infile, filelen, time_domain, 2 * speclen, w, width) ;
 
-		apply_window (time_domain, 2 * speclen) ;
+		apply_window (time_domain, 2 * speclen, render->window_function) ;
 
 		fftw_execute (plan) ;
 
@@ -721,6 +732,8 @@ usage_exit (const char * argv0, int error)
 		"        --no-border            : Drop the border, scales, heat map and title\n"
 		/*-"        --log-freq             : Use a logarithmic frquency scale\n" -*/
 		"        --gray-scale           : Output gray pixels instead of a heat map\n"
+		"        --kaiser               : Use a Kaiser window function (the default)\n"
+		"        --nuttall              : Use a Nuttall window function\n"
 		) ;
 
 	exit (error) ;
@@ -732,6 +745,7 @@ main (int argc, char * argv [])
 	{	NULL, NULL, NULL,
 		0, 0,
 		true, false, false,
+		KAISER,
 		SPEC_FLOOR_DB
 		} ;
 	int k ;
@@ -759,6 +773,16 @@ main (int argc, char * argv [])
 
 		if (strcmp (argv [k], "--gray-scale") == 0)
 		{	render.gray_scale = true ;
+			continue ;
+			} ;
+
+		if (strcmp (argv [k], "--kaiser") == 0)
+		{	render.window_function = KAISER ;
+			continue ;
+			} ;
+
+		if (strcmp (argv [k], "--nuttall") == 0)
+		{	render.window_function = NUTTALL ;
 			continue ;
 			} ;
 
