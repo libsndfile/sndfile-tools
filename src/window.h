@@ -15,8 +15,10 @@
 ** along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-enum WINDOW_FUNCTION { KAISER = 1, NUTTALL = 2 } ;
+enum WINDOW_FUNCTION { KAISER = 1, NUTTALL = 2, HANNING = 3 } ;
 
 void calc_kaiser_window (double * data, int datalen, double beta) ;
 
 void calc_nuttall_window (double * data, int datalen) ;
+
+void calc_hanning_window (double * data, int datalen) ;
