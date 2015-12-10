@@ -197,6 +197,9 @@ apply_window (double * data, int datalen, enum WINDOW_FUNCTION window_function)
 			case NUTTALL:
 				calc_nuttall_window (window, datalen) ;
 				break;
+			case HANN:
+				calc_hann_window (window, datalen) ;
+				break;
 			default:
 				printf ("Internal error: Unknown window_function.\n") ;
 				exit (1) ;
@@ -734,6 +737,7 @@ usage_exit (const char * argv0, int error)
 		"        --gray-scale           : Output gray pixels instead of a heat map\n"
 		"        --kaiser               : Use a Kaiser window function (the default)\n"
 		"        --nuttall              : Use a Nuttall window function\n"
+		"        --hann                 : Use a Hann window function\n"
 		) ;
 
 	exit (error) ;
@@ -783,6 +787,11 @@ main (int argc, char * argv [])
 
 		if (strcmp (argv [k], "--nuttall") == 0)
 		{	render.window_function = NUTTALL ;
+			continue ;
+			} ;
+
+		if (strcmp (argv [k], "--hann") == 0)
+		{	render.window_function = HANN ;
 			continue ;
 			} ;
 

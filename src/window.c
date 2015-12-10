@@ -79,6 +79,23 @@ calc_nuttall_window (double * data, int datalen)
 	return ;
 } /* calc_nuttall_window */
 
+void
+calc_hann_window (double * data, int datalen)
+{
+	int k ;
+
+	/*
+	**	Hann window function from :
+	**
+	**	http://en.wikipedia.org/wiki/Window_function
+	*/
+
+	for (k = 0 ; k < datalen ; k++)
+		data [k] = 0.5 * (1.0 - cos(2.0 * M_PI * k / (datalen - 1))) ;
+
+	return ;
+} /* calc_hann_window */
+
 /*==============================================================================
 */
 
