@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2011 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -91,7 +91,7 @@ calc_hann_window (double * data, int datalen)
 	*/
 
 	for (k = 0 ; k < datalen ; k++)
-		data [k] = 0.5 * (1.0 - cos(2.0 * M_PI * k / (datalen - 1))) ;
+		data [k] = 0.5 * (1.0 - cos (2.0 * M_PI * k / (datalen - 1))) ;
 
 	return ;
 } /* calc_hann_window */
