@@ -34,6 +34,7 @@
 #include <stdbool.h>
 #include <math.h>
 #include <limits.h>
+#include <assert.h>
 
 #include <cairo.h>
 #include <fftw3.h>
@@ -99,28 +100,22 @@ get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3
 
 	if (gray_scale)
 	{	/* "value" is a negative value in decibels.
-		 * black (0,0,0) is for <= -180.0,
-		 * white (255,255,255) is for >= 0.0 leaving 254 values
-		 * which should cover the intervening range evenly.
-		 * (value/spec_floor_db) is between 0.0 and 1.0 (not inclusive)
+		 * black (0,0,0) is for <= -180.0, and the other 255 values
+		 * should cover the range from -180 to 0 evenly.
+		 * (value/spec_floor_db) is >=0.0  and <1.0
 		 * because both value and spec_floor_db are negative.
-		 * (v/s) * 254.0 is from 0.000001 to 253.9999999 and
-		 * we want 1 to 254, so ceil((v/s) * 254) gives us that,
-		 * converted to 254 to 1 by subtracting from 255. */
-		int c ; /* The pixel value */
+		 * (v/s) * 255.0 goes from 0.0 to 254.9999999 and
+		 * floor((v/s) * 255) gives us 0 to 254
+		 * converted to 255 to 1 by subtracting it from 255. */
+		int gray ; /* The pixel value */
 
 		if (value <= spec_floor_db)
-			c = 0 ;
+			gray = 0 ;
 		else
-		{	c = 255 - lrintf (ceil ((value / spec_floor_db) * 254.0)) ;
-
-			if (c < 1 || c > 254)	/* Sanity check */
-			{	printf ("\nError : gray value is %d\n\n", c) ;
-				exit (1) ;
-				} ;
-
+		{	gray = 255 - lrint (floor ((value / spec_floor_db) * 255.0)) ;
+			assert (gray >= 1 && gray <= 255) ;
 			} ;
-		colour [0] = colour [1] = colour [2] = c ;
+		colour [0] = colour [1] = colour [2] = gray ;
 		return ;
 		} ;
 
