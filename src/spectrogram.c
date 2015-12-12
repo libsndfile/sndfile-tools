@@ -731,7 +731,7 @@ usage_exit (const char * argv0, int error)
 
 	puts (
 		"    Options:\n"
-		"        --dyn-range=<number>   : Dynamic range (ie 100 for 100dB range)\n"
+		"        --dyn-range=<number>   : Dynamic range (default is 180 for 180dB range)\n"
 		"        --no-border            : Drop the border, scales, heat map and title\n"
 		/*-"        --log-freq             : Use a logarithmic frquency scale\n" -*/
 		"        --gray-scale           : Output gray pixels instead of a heat map\n"
