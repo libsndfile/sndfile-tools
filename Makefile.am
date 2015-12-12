@@ -56,3 +56,7 @@ check : $(noinst_PROGRAMS) $(bin_PROGRAMS)
 	@$(top_builddir)/tests/common_tests
 	@$(top_builddir)/tests/kaiser_window_test
 	@$(top_srcdir)/tests/valgrind-test.sh
+
+# The 'dist-clean' target on Mac OSX fails without this.
+clean-local:
+	rm -rf bin/*.dSYM
