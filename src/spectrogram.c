@@ -97,11 +97,6 @@ get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3
 	float rem ;
 	int indx ;
 
-	if (value >= 0.0)
-	{	colour = map [0] ;
-		return ;
-		} ;
-
 	if (gray_scale)
 	{	/* "value" is a negative value in decibels.
 		 * black (0,0,0) is for <= -180.0,
@@ -129,6 +124,11 @@ get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3
 		return ;
 		} ;
 
+	if (value >= 0.0)
+	{	colour [0] = colour [1] = colour [2] = 255 ;
+		return ;
+		} ;
+
 	value = fabs (value * (-180.0 / spec_floor_db) * 0.1) ;
 
 	indx = lrintf (floor (value)) ;
@@ -138,8 +138,8 @@ get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3
 		exit (1) ;
 		} ;
 
-	if (indx >= ARRAY_LEN (map) - 1)
-	{	colour = map [ARRAY_LEN (map) - 1] ;
+	if (indx >= ARRAY_LEN (map))
+	{	colour [0] = colour [1] = colour [2] = 0 ;
 		return ;
 		} ;
 
