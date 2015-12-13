@@ -65,22 +65,6 @@ sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen)
 	return dataout ;
 } /* sfx_mix_mono_read_double */
 
-
-double
-calc_magnitude (const double * freq, int freqlen, double * magnitude)
-{
-	int k ;
-	double max = 0.0 ;
-
-	for (k = 1 ; k < freqlen / 2 ; k++)
-	{	magnitude [k] = sqrt (freq [k] * freq [k] + freq [freqlen - k - 1] * freq [freqlen - k - 1]) ;
-		max = MAX (max, magnitude [k]) ;
-		} ;
-	magnitude [0] = 0.0 ;
-
-	return max ;
-} /* calc_magnitude */
-
 int
 parse_int_or_die (const char * input, const char * value_name)
 {	char * endptr ;
