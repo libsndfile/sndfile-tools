@@ -524,6 +524,27 @@ is_good_speclen (int n)
 						|| ((n % 13 == 0) && is_2357 (n / 13)) ;
 }
 
+/* Convert from FFTW's "half complex" format to an array of magnitudes.
+ * In HC format, the values are stored:
+ * r0, r1, r2 ... r(n/2), i(n+1)/2-1 .. i2, i1
+ */
+static double
+calc_magnitude (const double * freq, int freqlen, double * magnitude)
+{
+	int k ;
+	double max = 0.0 ;
+
+	for (k = 1 ; k < freqlen / 2 ; k++)
+	{	magnitude [k] = sqrt (freq [k] * freq [k] + freq [freqlen - k] * freq [freqlen - k]) ;
+		max = MAX (max, magnitude [k]) ;
+		} ;
+	magnitude [0] = fabs (freq [0]) ;
+	max = MAX (max, magnitude [0]) ;
+
+	return max ;
+} /* calc_magnitude */
+
+
 static void
 render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
