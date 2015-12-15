@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2013 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -31,12 +31,14 @@ typedef double (*freq_func_t) (double w0, double w1, double total_length) ;
 typedef struct
 {	double amplitude ;
 	int start_freq, end_freq ;
-	int samplerate, seconds, format ;
+	int samplerate, format ;
+	double seconds ;
 	freq_func_t sweep_func ;
 } PARAMS ;
 
 static void usage_exit (const char * argv0) ;
 static void check_int_range (const char * name, int value, int lower, int upper) ;
+static void check_double_range (const char * name, double value, double lower, double upper) ;
 static freq_func_t parse_sweep_type (const char * name) ;
 static int guess_major_format (const char * filename) ;
 static void generate_file (const char * filename, const PARAMS * params) ;
@@ -79,11 +81,11 @@ main (int argc, char * argv [])
 		} ;
 
 	params.samplerate = parse_int_or_die (argv [argc - 3], "sample rate") ;
-	params.seconds = parse_int_or_die (argv [argc - 2], "seconds") ;
+	params.seconds = parse_double_or_die (argv [argc - 2], "seconds") ;
 	filename = argv [argc - 1] ;
 
 	check_int_range ("sample rate", params.samplerate, 1000, 200 * 1000) ;
-	check_int_range ("seconds", params.seconds, 1, 100) ;
+	check_double_range ("seconds", params.seconds, 0.1, 100.0) ;
 
 	if (params.sweep_func == NULL)
 		params.sweep_func = parse_sweep_type ("-log") ;
@@ -128,6 +130,8 @@ usage_exit (const char * argv0)
 		"                             -log     logarithmic sweep\n"
 		"                             -quad    quadratic sweep\n"
 		"                             -linear  linear sweep\n"
+		"\n"
+		"        The <lengths in seconds> parameter can be a decimal like 1.5.\n"
 		) ;
 
 	puts (
@@ -148,41 +152,44 @@ check_int_range (const char * name, int value, int lower, int upper)
 		} ;
 } /* check_int_range */
 
+static void
+check_double_range (const char * name, double value, double lower, double upper)
+{
+	if (value < lower || value > upper)
+	{	printf ("Error : '%s' parameter must be in range [%.1f, %.1f]\n", name, lower, upper) ;
+		exit (1) ;
+		} ;
+} /* check_double_range */
 
 static void
-write_chirp (SNDFILE * file, int samplerate, int seconds, double amp, double w0, double w1, freq_func_t sweep_func)
+write_chirp (SNDFILE * file, int samplerate, double seconds, double amp, double w0, double w1, freq_func_t sweep_func)
 {
-	double total_samples ;
 	double instantaneous_w, current_phase ;
 	float * data ;
-	int sec, k ;
+	int total_samples, k ;
 
-	data = malloc (samplerate * sizeof (data [0])) ;
+	total_samples = lrint (seconds * samplerate) ;
+
+	data = malloc (total_samples * sizeof (data [0])) ;
 	if (data == NULL)
 	{	printf ("\nError : malloc failed : %s\n", strerror (errno)) ;
 		exit (1) ;
 		} ;
-
-	total_samples = (1.0 * seconds) * samplerate ;
 
 	current_phase = 0.0 ;
 	instantaneous_w = w0 ;
 
 	printf ("Start frequency : %8.1f Hz (%f rad/sec)\n", instantaneous_w * samplerate / (2.0 * M_PI), instantaneous_w) ;
 
-	for (sec = 0 ; sec < seconds ; sec ++)
-	{	for (k = 0 ; k < samplerate ; k++)
-		{	int current ;
+	for (k = 0 ; k < total_samples ; k++)
+	{	data [k] = amp * sin (current_phase) ;
 
-			data [k] = amp * sin (current_phase) ;
+		instantaneous_w = sweep_func (w0, w1, (1.0 * k) / total_samples) ;
+		current_phase = fmod (current_phase + instantaneous_w, 2.0 * M_PI) ;
 
-			current = sec * samplerate + k ;
-			instantaneous_w = sweep_func (w0, w1, current / total_samples) ;
-			current_phase = fmod (current_phase + instantaneous_w, 2.0 * M_PI) ;
-			} ;
-
-		sf_write_float (file, data, samplerate) ;
 		} ;
+
+	sf_write_float (file, data, total_samples) ;
 
 	printf ("End   frequency : %8.1f Hz (%f rad/sec)\n", instantaneous_w * samplerate / (2.0 * M_PI), instantaneous_w) ;
 

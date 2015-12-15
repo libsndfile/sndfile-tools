@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -54,3 +54,5 @@ extern const char * font_family ;
 sf_count_t sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen) ;
 
 int parse_int_or_die (const char * input, const char * value_name) ;
+
+double parse_double_or_die (const char * input, const char * value_name) ;

@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -78,3 +78,17 @@ parse_int_or_die (const char * input, const char * value_name)
 
 	return value ;
 } /* parse_int_or_die */
+
+double
+parse_double_or_die (const char * input, const char * value_name)
+{	char * endptr ;
+
+	double value = strtod (input, &endptr) ;
+
+	if (endptr == input || endptr [0] != 0)
+	{	fprintf (stderr, "Error : Can't parse double value %s : %s\n", value_name, input) ;
+		exit (1) ;
+		} ;
+
+	return value ;
+} /* parse_double_or_die */
