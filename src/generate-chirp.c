@@ -30,9 +30,8 @@ typedef double (*freq_func_t) (double w0, double w1, double total_length) ;
 
 typedef struct
 {	double amplitude ;
-	int start_freq, end_freq ;
 	int samplerate, format ;
-	double seconds ;
+	double start_freq, end_freq, seconds ;
 	freq_func_t sweep_func ;
 } PARAMS ;
 
@@ -57,12 +56,12 @@ main (int argc, char * argv [])
 	for (k = 1 ; k < argc - 3 ; k++)
 	{	if (strcmp (argv [k], "-from") == 0)
 		{	k++ ;
-			params.start_freq = parse_int_or_die (argv [k], "from frequency") ;
+			params.start_freq = parse_double_or_die (argv [k], "from frequency") ;
 			continue ;
 			} ;
 		if (strcmp (argv [k], "-to") == 0)
 		{	k++ ;
-			params.end_freq = parse_int_or_die (argv [k], "to frequency") ;
+			params.end_freq = parse_double_or_die (argv [k], "to frequency") ;
 			continue ;
 			} ;
 		if (strcmp (argv [k], "-amp") == 0)
@@ -89,13 +88,13 @@ main (int argc, char * argv [])
 
 	if (params.sweep_func == NULL)
 		params.sweep_func = parse_sweep_type ("-log") ;
-	if (params.start_freq <= 0)
-		params.start_freq = 100 ;
-	if (params.end_freq <= 0)
-		params.end_freq = params.samplerate / 2 - 100 ;
+	if (params.start_freq <= 0.0)
+		params.start_freq = 100.0 ;
+	if (params.end_freq <= 0.0)
+		params.end_freq = params.samplerate / 2.0 - 100.0 ;
 
 	if (params.end_freq <= params.start_freq)
-	{	printf ("\nError : end frequency %d < start frequency %d.\n\n", params.end_freq, params.start_freq) ;
+	{	printf ("\nError : end frequency %g < start frequency %g.\n\n", params.end_freq, params.start_freq) ;
 		exit (1) ;
 		} ;
 
@@ -218,7 +217,7 @@ generate_file (const char * filename, const PARAMS * params)
 
 	sf_set_string (file, SF_STR_TITLE, "Logarithmic chirp signal") ;
 
-	snprintf (buffer, sizeof (buffer), "start_freq : %d Hz   end_freq : %d Hz   amplitude : %g", params->start_freq, params->end_freq, params->amplitude) ;
+	snprintf (buffer, sizeof (buffer), "start_freq : %g Hz   end_freq : %g Hz   amplitude : %g", params->start_freq, params->end_freq, params->amplitude) ;
 	sf_set_string (file, SF_STR_COMMENT, buffer) ;
 
 	sf_set_string (file, SF_STR_SOFTWARE, "sndfile-generate-chirp") ;
