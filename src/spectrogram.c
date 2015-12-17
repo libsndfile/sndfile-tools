@@ -133,7 +133,7 @@ get_colour_map_value (float value, double spec_floor_db, unsigned char colour [3
 		exit (1) ;
 		} ;
 
-	if (indx >= ARRAY_LEN (map))
+	if (indx >= ARRAY_LEN (map) - 1)
 	{	colour [0] = colour [1] = colour [2] = 0 ;
 		return ;
 		} ;
