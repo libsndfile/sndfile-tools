@@ -1,4 +1,4 @@
-# Copyright (C) 2002-2014 Erik de Castro Lopo <erikd@mega-nerd.com>
+# Copyright (C) 2002-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
 
 dnl Require autoconf version >= 2.54)
 AC_PREREQ(2.54)
@@ -26,6 +26,9 @@ AC_LANG([C])
 
 AC_PROG_CC
 AM_PROG_CC_C_O
+
+MN_C_COMPILER_IS_CLANG
+MN_GCC_REALLY_IS_GCC
 
 # Do not check for F77.
 define([AC_LIBTOOL_LANG_F77_CONFIG], [:])dnl
@@ -228,11 +231,13 @@ AC_MSG_RESULT([
 AC_MSG_RESULT([    Enable debugging .............. ${ac_arg_debug}
 ])
 
+echo
+echo -e "  Tools :\n"
+echo "    Compiler is Clang : .............. ${mn_cv_c_compiler_clang}"
+echo "    Compiler is GCC : ................ ${ac_cv_c_compiler_gnu}"
 
 if test x$ac_cv_c_compiler_gnu = xyes ; then
-	echo -e "  Tools :\n"
-	echo "    Compiler is GCC ............... ${ac_cv_c_compiler_gnu}"
-	echo "    GCC major version ............. ${GCC_MAJOR_VERSION}"
+	echo "    GCC major version ................ ${GCC_MAJOR_VERSION}"
 	fi
 
 AC_MSG_RESULT([
