@@ -1,7 +1,7 @@
 /*
+** Copyright (C) 2007-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2014 Alexander Regueiro <alex@noldorin.com>
 ** Copyright (C) 2013 elboulangero <elboulangero@gmail.com>
-** Copyright (C) 2007-2012 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2007 Jonatan Liljedahl <lijon@kymatica.com>
 **
 ** This program is free software ; you can redistribute it and/or modify
@@ -39,6 +39,8 @@
 #include <jack/ringbuffer.h>
 
 #include <sndfile.h>
+
+#include <src/common.h>
 
 #define RB_SIZE		(1 << 16)
 #define SAMPLE_SIZE (sizeof (jack_default_audio_sample_t))
@@ -109,10 +111,31 @@ process_callback (jack_nframes_t nframes, void * arg)
 	return 0 ;
 } /* process_callback */
 
+
+/*
+** This seemingly needless memcpy-ing is needed because the `buf` field of
+** `jack_ringbuffer_data_t` is a `char*` and may not have the correct alignment
+** for the `float` data read from the file.
+*/
+static sf_count_t
+fill_jack_buffer (thread_info_t *info, jack_ringbuffer_data_t * vec)
+{	sf_count_t frame_count = vec->len / sizeof (float) / info->channels ;
+	sf_count_t buffer_frames ;
+	static float buf [1 << 16] ;
+
+	buffer_frames = ARRAY_LEN (buf) / info->channels ;
+	frame_count = frame_count < buffer_frames ? frame_count : buffer_frames ;
+
+	frame_count = sf_readf_float (info->sndfile, buf, frame_count) ;
+	memcpy (vec->buf, buf, frame_count * info->channels * sizeof (buf [0])) ;
+
+	return frame_count ;
+} /* fill_jack_buffer */
+
 static void *
 disk_thread (void *arg)
 {	thread_info_t *info = (thread_info_t *) arg ;
-	sf_count_t buf_avail, read_frames ;
+	sf_count_t read_frames ;
 	jack_ringbuffer_data_t vec [2] ;
 	size_t bytes_per_frame = SAMPLE_SIZE * info->channels ;
 
@@ -120,18 +143,20 @@ disk_thread (void *arg)
 	pthread_mutex_lock (&disk_thread_lock) ;
 
 	while (1)
-	{	jack_ringbuffer_get_write_vector (info->ringbuf, vec) ;
+	{	/* `vec` is *always* a two element array. See:
+		** http://jackaudio.org/files/docs/html/ringbuffer_8h.html
+		*/
+		jack_ringbuffer_get_write_vector (info->ringbuf, vec) ;
 
 		read_frames = 0 ;
 
 		if (vec [0].len)
 		{	/* Fill the first part of the ringbuffer. */
-			buf_avail = vec [0].len / bytes_per_frame ;
-			read_frames = sf_readf_float (info->sndfile, (float *) vec [0].buf, buf_avail) ;
+			read_frames = fill_jack_buffer (info, vec) ;
+
 			if (vec [1].len)
 			{	/* Fill the second part of the ringbuffer? */
-				buf_avail = vec [1].len / bytes_per_frame ;
-				read_frames += sf_readf_float (info->sndfile, (float *) vec [1].buf, buf_avail) ;
+				read_frames += fill_jack_buffer (info, vec + 1) ;
 				} ;
 			} ;
 
@@ -142,6 +167,7 @@ disk_thread (void *arg)
 				break ; /* end of file? */
 
 			sf_seek (info->sndfile, 0, SEEK_SET) ;
+			continue ;
 			}
 
 		jack_ringbuffer_write_advance (info->ringbuf, read_frames * bytes_per_frame) ;
