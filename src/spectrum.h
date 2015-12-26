@@ -1,6 +1,7 @@
 
 typedef struct
 {	int speclen ;
+	enum WINDOW_FUNCTION wfunc ;
 	fftw_plan plan ;
 
 	double *time_domain ;

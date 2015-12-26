@@ -20,6 +20,7 @@ create_spectrum (int speclen, enum WINDOW_FUNCTION window_function)
 
 	spec = calloc (1, sizeof (spectrum) + (2 + 2 + 2 + 1) * speclen * sizeof (double)) ;
 
+	spec->wfunc = window_function ;
 	spec->speclen = speclen ;
 
 	spec->time_domain = spec->data ;
@@ -34,8 +35,10 @@ create_spectrum (int speclen, enum WINDOW_FUNCTION window_function)
 		exit (1) ;
 		} ;
 
-	switch (window_function)
-	{	case KAISER :
+	switch (spec->wfunc)
+	{	case RECTANGULAR :
+			break ;
+		case KAISER :
 			calc_kaiser_window (spec->window, 2 * speclen, 20.0) ;
 			break ;
 		case NUTTALL:
@@ -69,8 +72,9 @@ calc_magnitude_spectrum (spectrum * spec)
 
 	freqlen = 2 * spec->speclen ;
 
-	for (k = 0 ; k < 2 * spec->speclen ; k++)
-		spec->time_domain [k] *= spec->window [k] ;
+	if (spec->wfunc != RECTANGULAR)
+		for (k = 0 ; k < 2 * spec->speclen ; k++)
+			spec->time_domain [k] *= spec->window [k] ;
 
 
 	fftw_execute (spec->plan) ;

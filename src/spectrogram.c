@@ -684,6 +684,7 @@ usage_exit (const char * argv0, int error)
 		/*-"        --log-freq             : Use a logarithmic frquency scale\n" -*/
 		"        --gray-scale           : Output gray pixels instead of a heat map\n"
 		"        --kaiser               : Use a Kaiser window function (the default)\n"
+		"        --rectangular          : Use a rectangular window function\n"
 		"        --nuttall              : Use a Nuttall window function\n"
 		"        --hann                 : Use a Hann window function\n"
 		) ;
@@ -725,6 +726,11 @@ main (int argc, char * argv [])
 
 		if (strcmp (argv [k], "--gray-scale") == 0)
 		{	render.gray_scale = true ;
+			continue ;
+			} ;
+
+		if (strcmp (argv [k], "--rectangular") == 0)
+		{	render.window_function = RECTANGULAR ;
 			continue ;
 			} ;
 
