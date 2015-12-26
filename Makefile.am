@@ -29,7 +29,7 @@ bin_sndfile_generate_chirp_SOURCES = src/generate-chirp.c src/common.c src/commo
 bin_sndfile_generate_chirp_LDADD = $(SNDFILE_LIBS)
 
 bin_sndfile_spectrogram_SOURCES = src/spectrogram.c src/window.c src/common.c \
-	src/window.h src/common.h
+	src/window.h src/common.h src/spectrum.c src/spectrum.h
 bin_sndfile_spectrogram_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS) $(CAIRO_LIBS)
 
 bin_sndfile_mix_to_mono_SOURCES = src/mix-to-mono.c src/common.h src/common.c

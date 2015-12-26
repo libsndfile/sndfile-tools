@@ -43,6 +43,7 @@
 
 #include "window.h"
 #include "common.h"
+#include "spectrum.h"
 
 #define TICK_LEN			6
 #define	BORDER_LINE_WIDTH	1.8
@@ -170,42 +171,6 @@ read_mono_audio (SNDFILE * file, sf_count_t filelen, double * data, int datalen,
 
 	return ;
 } /* read_mono_audio */
-
-static void
-apply_window (double * data, int datalen, enum WINDOW_FUNCTION window_function)
-{	static double *window = NULL ;
-	static int window_len = 0 ;
-	int k ;
-
-	if (window_len != datalen)
-	{	window = realloc (window, datalen * sizeof (double)) ;
-		if (window == NULL)
-		{	printf ("%s : Not enough memory.\n", __func__) ;
-			exit (1) ;
-			} ;
-		window_len = datalen ;
-
-		switch (window_function)
-		{	case KAISER :
-				calc_kaiser_window (window, datalen, 20.0) ;
-				break ;
-			case NUTTALL:
-				calc_nuttall_window (window, datalen) ;
-				break ;
-			case HANN :
-				calc_hann_window (window, datalen) ;
-				break ;
-			default :
-				printf ("Internal error: Unknown window_function.\n") ;
-				exit (1) ;
-			} ;
-		} ;
-
-	for (k = 0 ; k < datalen ; k++)
-		data [k] *= window [k] ;
-
-	return ;
-} /* apply_window */
 
 static void
 render_spectrogram (cairo_surface_t * surface, double spec_floor_db, float **mag2d, double maxval, double left, double top, double width, double height, bool gray_scale)
@@ -524,36 +489,12 @@ is_good_speclen (int n)
 						|| ((n % 13 == 0) && is_2357 (n / 13)) ;
 }
 
-/* Convert from FFTW's "half complex" format to an array of magnitudes.
- * In HC format, the values are stored:
- * r0, r1, r2 ... r(n/2), i(n+1)/2-1 .. i2, i1
- */
-static double
-calc_magnitude (const double * freq, int freqlen, double * magnitude)
-{
-	int k ;
-	double max = 0.0 ;
-
-	for (k = 1 ; k < freqlen / 2 ; k++)
-	{	magnitude [k] = sqrt (freq [k] * freq [k] + freq [freqlen - k] * freq [freqlen - k]) ;
-		max = MAX (max, magnitude [k]) ;
-		} ;
-	magnitude [0] = fabs (freq [0]) ;
-	max = MAX (max, magnitude [0]) ;
-
-	return max ;
-} /* calc_magnitude */
-
-
 static void
 render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_count_t filelen, cairo_surface_t * surface)
 {
-	double * time_domain = NULL ;
-	double * freq_domain = NULL ;
-	double * single_mag_spec = NULL ;
 	float ** mag_spec = NULL ; // Indexed by [w][h]
 
-	fftw_plan plan ;
+	spectrum *spec ;
 	double max_mag = 0.0 ;
 	int width, height, w, speclen ;
 
@@ -605,11 +546,8 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 			}
 		}
 
-	time_domain		= calloc (2 * speclen, sizeof (double)) ;
-	freq_domain		= calloc (2 * speclen, sizeof (double)) ;
-	single_mag_spec = calloc (speclen, sizeof (double)) ;
 	mag_spec		= calloc (width, sizeof (float *)) ;
-	if (time_domain == NULL || freq_domain == NULL || single_mag_spec == NULL || mag_spec == NULL)
+	if (mag_spec == NULL)
 	{	printf ("%s : Not enough memory.\n", __func__) ;
 		exit (1) ;
 		} ;
@@ -620,8 +558,9 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 			} ;
 		} ;
 
-	plan = fftw_plan_r2r_1d (2 * speclen, time_domain, freq_domain, FFTW_R2HC, FFTW_MEASURE | FFTW_PRESERVE_INPUT) ;
-	if (plan == NULL)
+	spec = create_spectrum (speclen, render->window_function) ;
+
+	if (spec == NULL)
 	{	printf ("%s : line %d : create plan failed.\n", __FILE__, __LINE__) ;
 		exit (1) ;
 		} ;
@@ -629,22 +568,15 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 	for (w = 0 ; w < width ; w++)
 	{	double single_max ;
 
-		read_mono_audio (infile, filelen, time_domain, 2 * speclen, w, width) ;
+		read_mono_audio (infile, filelen, spec->time_domain, 2 * speclen, w, width) ;
 
-		apply_window (time_domain, 2 * speclen, render->window_function) ;
-
-		fftw_execute (plan) ;
-
-		single_max = calc_magnitude (freq_domain, 2 * speclen, single_mag_spec) ;
+		single_max = calc_magnitude_spectrum (spec) ;
 		max_mag = MAX (max_mag, single_max) ;
 
-		interp_spec (mag_spec [w], height, single_mag_spec, speclen) ;
+		interp_spec (mag_spec [w], height, spec->mag_spec, speclen) ;
 		} ;
 
-	fftw_destroy_plan (plan) ;
-	free (time_domain) ;
-	free (freq_domain) ;
-	free (single_mag_spec) ;
+	destroy_spectrum (spec) ;
 
 	if (render->border)
 	{	RECT heat_rect ;
