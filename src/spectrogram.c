@@ -248,64 +248,124 @@ y_line (cairo_t * cr, double x, double y, double len)
 	cairo_stroke (cr) ;
 } /* y_line */
 
+/* The greatest number of ticks seems to occurs from 0-14000 (15 ticks).
+** Play safe with 20. */
 typedef struct
-{	double value [15] ;
-	double distance [15] ;
+{	double value [20] ;
+	double distance [20] ;
+	/* The digit that changes from label to label.
+	** This ensures that a range from 999 to 1001 prints 999.5 and 1000.5
+	** instead of 999 1000 1000 1000 1001.
+	*/
+	int decimal_places_to_print ;
 } TICKS ;
+
+/* Decide where to put ticks and numbers on an axis.
+**
+** Graph-labelling convention is that the least significant digit that changes
+** from one label to the next should change by 1, 2 or 5, so we step by the
+** largest suitable value of 10^n * {1, 2 or 5} that gives us the required
+** number of divisions / numeric labels.
+*/
+
+/* The old code used to make 6 to 14 divisions and number every other tick.
+** What we now mean by "a division" is just the numbered segments so we ask for a
+** minimum of 3 to give the same effect as the old minimum of 6 half-divisions.
+** This results in the same axis labelling for all maximum values
+** from 0 to 12000 in steps of 1000 and gives sensible results from 13000 on,
+** to a maximum of 7 divisions and 8 labels from 0 to 14000.
+**/
+#define TARGET_DIVISIONS 3
+
+/* Value to store in the ticks.value[k] field to mean
+** "Put a tick here, but don't print a number."
+** NaN (0.0/0.0) is untestable without isnan() so use a random value.
+*/
+#define NO_NUMBER (M_PI)	/* They're unlikely to hit that! */
+
+/* Is this entry in "ticks" one of the numberless ticks? */
+#define JUST_A_TICK(ticks,k) (ticks.value[k] == NO_NUMBER)
+
+/* A tolerance to use in floating point < > <= >= comparisons so that
+** imprecision doesn't prevent us from printing an initial or final label
+** if it should fall exactly on min or max but doesn't due to FP problems.
+** For example, for 0-24000, the calculations might give 23999.9999999999.
+*/
+#define DELTA (1e-10)
 
 static inline int
 calculate_ticks (double min, double max, double distance, TICKS * ticks)
-{	const int div_array [] =
-	{	10, 10, 8, 6, 8, 10, 6, 7, 8, 9, 10, 11, 12, 12, 7, 14, 8, 8, 9
-		} ;
-
-	double scale = 1.0 ;
-	int k, leading, divisions ;
+{
+	double step ;   /* Put numbered ticks at multiples of this */
 	double range = max - min ;
+	int k ;
+	double value ;  /* Temporary */
 
-	if (max <= min)
-	{	printf ("\nError in %s : max <= min\n\n", __func__) ;
-		exit (1) ;
+	/* Choose a step between successive axis labels so that one digit
+	** changes by 1, 2 or 5 amd that gives us at least the number of
+	** divisions (and numberic labels) that we would like to have.
+	**
+	** We do this by starting "step" at the lowest power of ten <= max,
+	** which can give us at most 9 divisions (e.g. from 0 to 9999, step 1000)
+	** Then try 5*this, 2*this and 1*this.
+	*/
+	step = pow (10.0, floor (log10 (max))) ;
+	do {
+		if (range / (step * 5) >= TARGET_DIVISIONS)
+		{	step *= 5 ;
+			break ;
+			} ;
+		if (range / (step * 2) >= TARGET_DIVISIONS)
+		{	step *= 2 ;
+			break ;
+			} ;
+		if (range / step >= TARGET_DIVISIONS)
+			break ;
+		step /= 10 ;
+	} while(1) ;	/* This is an odd loop! */
+
+	/* Ensure that the least significant digit that changes gets printed, */
+	ticks->decimal_places_to_print = lrint (-floor (log10 (step))) ;
+	if (ticks->decimal_places_to_print < 0)
+		ticks->decimal_places_to_print = 0 ;
+
+	/* Now go from the first multiple of step that's >= min to
+	 * the last one that's <= max. */
+	k = 0 ;
+	value = ceil (min / step) * step ;
+
+	/* Add the half-way tick before the first number if it's in range */
+	if (value - step/2 >= min - DELTA)
+	{	ticks->value[k] = NO_NUMBER ;
+		ticks->distance[k] = distance * ((value - step/2) - min) / range ;
+		k++ ;
 		} ;
 
-	while (scale * range >= ARRAY_LEN (div_array))
-		scale *= 0.1 ;
+	while (value <= max + DELTA)
+	{ 	/* Add a tick at all numeric values */
+		ticks->value[k] = value ;
+		ticks->distance[k] = distance * (value - min) / range ;
+		k++ ;
 
-	while (scale * range < 1.0)
-		scale *= 10.0 ;
+		/* and at the half-way tick after the number if it's in range */
+		if (value + step/2 <= max + DELTA)
+		{	ticks->value[k] = NO_NUMBER ;
+			ticks->distance[k] = distance * ((value + step/2) - min) / range ;
+			k++ ;
+			} ;
 
-	leading = lround (scale * range) ;
-	divisions = div_array [leading % ARRAY_LEN (div_array)] ;
-
-	/* Scale max down. */
-	scale = (leading / scale) / divisions ;
-
-	if (divisions > ARRAY_LEN (ticks->value) - 1)
-	{	printf ("Error : divisions (%d) > ARRAY_LEN (ticks->value) (%d)\n", divisions, ARRAY_LEN (ticks->value)) ;
-		exit (1) ;
+		value += step ;
 		} ;
 
-	for (k = 0 ; k <= divisions ; k++)
-	{	ticks->value [k] = min + k * scale ;
-		ticks->distance [k] = distance * ticks->value [k] / range ;
-		} ;
-
-	return divisions + 1 ;
-} /* calculate_ticks */
+	return k ;
+}
 
 static void
-str_print_value (char * text, int text_len, double value)
+str_print_value (char * text, int text_len, double value, int decimal_places_to_print)
 {
 	if (fabs (value) < 1e-10)
 		snprintf (text, text_len, "0") ;
-	else if (fabs (value) >= 10.0)
-		snprintf (text, text_len, "%1.0f", value) ;
-	else if (fabs (value) >= 1.0)
-		snprintf (text, text_len, "%3.1f", value) ;
-	else
-		snprintf (text, text_len, "%4.2f", value) ;
-
-	return ;
+	else	snprintf (text, text_len, "%.*f", decimal_places_to_print, value) ;
 } /* str_print_value */
 
 static void
@@ -340,27 +400,27 @@ render_spect_border (cairo_surface_t * surface, const char * filename, double le
 	/* Border around actual spectrogram. */
 	cairo_rectangle (cr, left, top, width, height) ;
 
+	/* Put ticks on Time axis */
 	tick_count = calculate_ticks (0.0, seconds, width, &ticks) ;
 	for (k = 0 ; k < tick_count ; k++)
-	{	/* Don't draw the tick if its further left than the right border. */
-		if (left + ticks.distance [k] > width)
+	{	y_line (cr, left + ticks.distance [k], top + height, TICK_LEN) ;
+		if (JUST_A_TICK(ticks,k))
 			continue ;
-
-		y_line (cr, left + ticks.distance [k], top + height, TICK_LEN) ;
-		if (k % 2 == 1)
-			continue ;
-		str_print_value (text, sizeof (text), ticks.value [k]) ;
+		str_print_value (text, sizeof (text), ticks.value [k],
+			ticks.decimal_places_to_print) ;
 		cairo_text_extents (cr, text, &extents) ;
 		cairo_move_to (cr, left + ticks.distance [k] - extents.width / 2, top + height + 8 + extents.height) ;
 		cairo_show_text (cr, text) ;
 		} ;
 
+	/* Put ticks on Frequency axis */
 	tick_count = calculate_ticks (min_freq, max_freq, height, &ticks) ;
 	for (k = 0 ; k < tick_count ; k++)
 	{	x_line (cr, left + width, top + height - ticks.distance [k], TICK_LEN) ;
-		if (k % 2 == 1)
+		if (JUST_A_TICK(ticks,k))
 			continue ;
-		str_print_value (text, sizeof (text), ticks.value [k]) ;
+		str_print_value (text, sizeof (text), ticks.value [k],
+			ticks.decimal_places_to_print) ;
 		cairo_text_extents (cr, text, &extents) ;
 		cairo_move_to (cr, left + width + 12, top + height - ticks.distance [k] + extents.height / 4.5) ;
 		cairo_show_text (cr, text) ;
@@ -417,10 +477,11 @@ render_heat_border (cairo_surface_t * surface, double magfloor, const RECT *r)
 	tick_count = calculate_ticks (0.0, fabs (magfloor), r->height, &ticks) ;
 	for (k = 0 ; k < tick_count ; k++)
 	{	x_line (cr, r->left + r->width, r->top + ticks.distance [k], TICK_LEN) ;
-		if (k % 2 == 1)
+		if (JUST_A_TICK(ticks,k))
 			continue ;
 
-		str_print_value (text, sizeof (text), -1.0 * ticks.value [k]) ;
+		str_print_value (text, sizeof (text), -1.0 * ticks.value [k],
+			ticks.decimal_places_to_print) ;
 		cairo_text_extents (cr, text, &extents) ;
 		cairo_move_to (cr, r->left + r->width + 2 * TICK_LEN, r->top + ticks.distance [k] + extents.height / 4.5) ;
 		cairo_show_text (cr, text) ;
