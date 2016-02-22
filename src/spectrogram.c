@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2016 Erik de Castro Lopo <erikd@mega-nerd.com>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -21,8 +21,6 @@
 
 /*
 **	Todo:
-**      - Decouple height of image from FFT length. FFT length should be
-*         greater than height and then interpolated to height.
 **      - Make magnitude to colour mapper allow abitrary scaling (ie cmdline
 **        arg).
 **      - Better cmdline arg parsing and flexibility.
@@ -63,6 +61,7 @@ typedef struct
 {	const char *sndfilepath, *pngfilepath, *filename ;
 	int width, height ;
 	bool border, log_freq, gray_scale ;
+	double min_freq, max_freq ;
 	enum WINDOW_FUNCTION window_function ;
 	double spec_floor_db ;
 } RENDER ;
@@ -255,31 +254,31 @@ typedef struct
 } TICKS ;
 
 static inline int
-calculate_ticks (double max, double distance, TICKS * ticks)
+calculate_ticks (double min, double max, double distance, TICKS * ticks)
 {	const int div_array [] =
 	{	10, 10, 8, 6, 8, 10, 6, 7, 8, 9, 10, 11, 12, 12, 7, 14, 8, 8, 9
 		} ;
 
-	double scale = 1.0, scale_max ;
+	double scale = 1.0 ;
 	int k, leading, divisions ;
+	double range = max - min ;
 
-	if (max < 0)
-	{	printf ("\nError in %s : max < 0\n\n", __func__) ;
+	if (max <= min)
+	{	printf ("\nError in %s : max <= min\n\n", __func__) ;
 		exit (1) ;
 		} ;
 
-	while (scale * max >= ARRAY_LEN (div_array))
+	while (scale * range >= ARRAY_LEN (div_array))
 		scale *= 0.1 ;
 
-	while (scale * max < 1.0)
+	while (scale * range < 1.0)
 		scale *= 10.0 ;
 
-	leading = lround (scale * max) ;
+	leading = lround (scale * range) ;
 	divisions = div_array [leading % ARRAY_LEN (div_array)] ;
 
 	/* Scale max down. */
-	scale_max = leading / scale ;
-	scale = scale_max / divisions ;
+	scale = (leading / scale) / divisions ;
 
 	if (divisions > ARRAY_LEN (ticks->value) - 1)
 	{	printf ("Error : divisions (%d) > ARRAY_LEN (ticks->value) (%d)\n", divisions, ARRAY_LEN (ticks->value)) ;
@@ -287,8 +286,8 @@ calculate_ticks (double max, double distance, TICKS * ticks)
 		} ;
 
 	for (k = 0 ; k <= divisions ; k++)
-	{	ticks->value [k] = k * scale ;
-		ticks->distance [k] = distance * ticks->value [k] / max ;
+	{	ticks->value [k] = min + k * scale ;
+		ticks->distance [k] = distance * ticks->value [k] / range ;
 		} ;
 
 	return divisions + 1 ;
@@ -310,7 +309,7 @@ str_print_value (char * text, int text_len, double value)
 } /* str_print_value */
 
 static void
-render_spect_border (cairo_surface_t * surface, const char * filename, double left, double width, double seconds, double top, double height, double max_freq)
+render_spect_border (cairo_surface_t * surface, const char * filename, double left, double width, double seconds, double top, double height, double min_freq, double max_freq)
 {
 	char text [512] ;
 	cairo_t * cr ;
@@ -341,7 +340,7 @@ render_spect_border (cairo_surface_t * surface, const char * filename, double le
 	/* Border around actual spectrogram. */
 	cairo_rectangle (cr, left, top, width, height) ;
 
-	tick_count = calculate_ticks (seconds, width, &ticks) ;
+	tick_count = calculate_ticks (0.0, seconds, width, &ticks) ;
 	for (k = 0 ; k < tick_count ; k++)
 	{	/* Don't draw the tick if its further left than the right border. */
 		if (left + ticks.distance [k] > width)
@@ -356,7 +355,7 @@ render_spect_border (cairo_surface_t * surface, const char * filename, double le
 		cairo_show_text (cr, text) ;
 		} ;
 
-	tick_count = calculate_ticks (max_freq, height, &ticks) ;
+	tick_count = calculate_ticks (min_freq, max_freq, height, &ticks) ;
 	for (k = 0 ; k < tick_count ; k++)
 	{	x_line (cr, left + width, top + height - ticks.distance [k], TICK_LEN) ;
 		if (k % 2 == 1)
@@ -415,7 +414,7 @@ render_heat_border (cairo_surface_t * surface, double magfloor, const RECT *r)
 	cairo_move_to (cr, r->left + (r->width - extents.width) / 2, r->top - 5) ;
 	cairo_show_text (cr, decibels) ;
 
-	tick_count = calculate_ticks (fabs (magfloor), r->height, &ticks) ;
+	tick_count = calculate_ticks (0.0, fabs (magfloor), r->height, &ticks) ;
 	for (k = 0 ; k < tick_count ; k++)
 	{	x_line (cr, r->left + r->width, r->top + ticks.distance [k], TICK_LEN) ;
 		if (k % 2 == 1)
@@ -430,25 +429,83 @@ render_heat_border (cairo_surface_t * surface, double magfloor, const RECT *r)
 	cairo_destroy (cr) ;
 } /* render_heat_border */
 
-static void
-interp_spec (float * mag, int maglen, const double *spec, int speclen)
+/* Helper function:
+** Map the index for an output pixel in a column to an index into the
+** FFT result representing the same frequency.
+** magindex is from 0 to maglen-1, representing min_freq to max_freq Hz.
+** Return values from are from 0 to speclen representing frequencies from
+** 0 to the Nyquist frequency.
+** The result is a floating point number as it may fall between elements,
+** allowing the caller to interpolate onto the input array.
+*/
+static double
+magindex_to_specindex (int speclen, int maglen, int magindex, double min_freq, double max_freq, int samplerate)
 {
-	int k, lastspec = 0 ;
+	double freq = min_freq + (max_freq - min_freq) * magindex / (maglen - 1) ;
+	return (freq * speclen / (samplerate / 2)) ;
+}
 
-	mag [0] = spec [0] ;
+/* Map values from the spectrogram onto an array of magnitudes, the values
+** for display. Reads spec[0..speclen-1], writes mag[0..maglen-1].
+** It looks like maglen needs to be <= speclen.
+*/
+static void
+interp_spec (float * mag, int maglen, const double *spec, int speclen, const RENDER *render, int samplerate)
+{
+	int k ;
 
-	for (k = 1 ; k < maglen ; k++)
-	{	double sum = 0.0 ;
-		int count = 0 ;
+	/* Map each output coordinate to where it depends on in the input array.
+	** If there are more input values than output values, we need to average
+	** a range of inputs.
+	** If there are more output values than input values we do linear
+	** interpolation between the two inputs values that a reverse-mapped
+	** output value's coordinate falls between.
+	**
+	** spec points to an array with elements [0..speclen] inclusive
+	** representing frequencies from 0 to samplerate/2 Hz. Map these to the
+	** scale values min_freq to max_freq so that the bottom and top pixels
+	** in the output represent the energy in the sound at min_ and max_freq Hz.
+	*/
 
-		do
-		{	sum += spec [lastspec] ;
-			lastspec ++ ;
-			count ++ ;
+	for (k = 0 ; k < maglen ; k++)
+	{	/* Average the pixels in the range it comes from */
+		double this = magindex_to_specindex (speclen, maglen, k,
+						render->min_freq, render->max_freq, samplerate) ;
+		double next = magindex_to_specindex (speclen, maglen, k+1,
+						render->min_freq, render->max_freq, samplerate) ;
+
+		/* Range check: can happen if --max-freq > samplerate / 2 */
+		if (this > speclen)
+		{	mag [k] = 0.0 ;
+			return ;
+			} ;
+
+		if (next > this + 1)
+		{	/* The output indices are more sparse than the input indices
+			** so average the range of input indices that map to this output.
+			*/
+			/* Take a proportional part of the first sample */
+			double count = 1.0 - (this - floor (this)) ;
+			double sum = spec [(int) this] * count ;
+
+			while ((this += 1.0) < next)
+			{	sum += spec [(int) this] ;
+				count += 1.0 ;
+				}
+			/* and part of the last one */
+			sum += spec [(int) next] * (next - floor (next)) ;
+			count += next - floor (next) ;
+
+			mag [k] = sum / count ;
 			}
-		while (lastspec <= ceil ((k * speclen) / maglen)) ;
-
-		mag [k] = sum / count ;
+		else
+		/* The output indices are more densely packed than the input indices
+		** so interpolate between input values to generate more output values.
+		*/
+		{	/* Take a weighted average of the nearest values */
+			mag [k] = spec [(int) this] * (1.0 - (this - floor (this)))
+						+ spec [(int) this + 1] * (this - floor (this)) ;
+			} ;
 		} ;
 
 	return ;
@@ -573,7 +630,7 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 		single_max = calc_magnitude_spectrum (spec) ;
 		max_mag = MAX (max_mag, single_max) ;
 
-		interp_spec (mag_spec [w], height, spec->mag_spec, speclen) ;
+		interp_spec (mag_spec [w], height, spec->mag_spec, speclen, render, samplerate) ;
 		} ;
 
 	destroy_spectrum (spec) ;
@@ -590,7 +647,7 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 
 		render_heat_map (surface, render->spec_floor_db, &heat_rect, render->gray_scale) ;
 
-		render_spect_border (surface, render->filename, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, 0.5 * samplerate) ;
+		render_spect_border (surface, render->filename, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, render->min_freq, render->max_freq) ;
 		render_heat_border (surface, render->spec_floor_db, &heat_rect) ;
 		}
 	else
@@ -637,7 +694,7 @@ render_cairo_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf
 } /* render_cairo_surface */
 
 static void
-render_sndfile (const RENDER * render)
+render_sndfile (RENDER * render)
 {
 	SNDFILE *infile ;
 	SF_INFO info ;
@@ -652,6 +709,15 @@ render_sndfile (const RENDER * render)
 	infile = sf_open (render->sndfilepath, SFM_READ, &info) ;
 	if (infile == NULL)
 	{	printf ("Error : failed to open file '%s' : \n%s\n", render->sndfilepath, sf_strerror (NULL)) ;
+		exit (1) ;
+		} ;
+
+	if (render->max_freq == 0.0) render->max_freq = (double) info.samplerate / 2 ;
+
+	/* Do this sanity check here, as soon as max_freq has its default value */
+	if (render->min_freq >= render->max_freq)
+	{	printf ("Error : --min-freq (%g) must be less than max_freq (%g)\n",
+			render->min_freq, render->max_freq) ;
 		exit (1) ;
 		} ;
 
@@ -681,6 +747,8 @@ usage_exit (const char * argv0, int error)
 		"    Options:\n"
 		"        --dyn-range=<number>   : Dynamic range (default is 180 for 180dB range)\n"
 		"        --no-border            : Drop the border, scales, heat map and title\n"
+		"        --min-freq=<number>    : Set the minimum frequency in the output\n"
+		"        --max-freq=<number>    : Set the maximum frequency in the output\n"
 		/*-"        --log-freq             : Use a logarithmic frquency scale\n" -*/
 		"        --gray-scale           : Output gray pixels instead of a heat map\n"
 		"        --kaiser               : Use a Kaiser window function (the default)\n"
@@ -696,8 +764,9 @@ int
 main (int argc, char * argv [])
 {	RENDER render =
 	{	NULL, NULL, NULL,
-		0, 0,
-		true, false, false,
+		0, 0,				/* width, height */
+		true, false, false, /* border, log_freq, gray_scale */
+		0.0, 0.0,			/* {min,max}_freq */
 		KAISER,
 		SPEC_FLOOR_DB
 		} ;
@@ -723,6 +792,25 @@ main (int argc, char * argv [])
 		{	render.log_freq = true ;
 			continue ;
 			} ;
+
+		if (sscanf (argv [k], "--min-freq=%lf", &fval) == 1)
+		{	if (fval < 0.0)
+			{	printf ("--min-freq cannot be negative.\n") ;
+				exit (1) ;
+				} ;
+			render.min_freq = fval ;
+			continue ;
+			}
+
+		if (sscanf (argv [k], "--max-freq=%lf", &fval) == 1)
+		{	render.max_freq = fabs (fval) ;
+			continue ;
+			}
+
+		if (sscanf (argv [k], "--dyn-range=%lf", &fval) == 1)
+		{	render.spec_floor_db = -1.0 * fabs (fval) ;
+			continue ;
+			}
 
 		if (strcmp (argv [k], "--gray-scale") == 0)
 		{	render.gray_scale = true ;
