@@ -24,7 +24,6 @@
 **      - Make magnitude to colour mapper allow abitrary scaling (ie cmdline
 **        arg).
 **      - Better cmdline arg parsing and flexibility.
-**      - Add option to do log frequency scale.
 */
 
 #include <stdlib.h>
@@ -248,8 +247,9 @@ y_line (cairo_t * cr, double x, double y, double len)
 	cairo_stroke (cr) ;
 } /* y_line */
 
-/* The greatest number of ticks seems to occurs from 0-14000 (15 ticks).
-** Play safe with 20. */
+/* The greatest number of linear ticks seems to occurs from 0-14000 (15 ticks).
+** The greatest number of log ticks occurs 1-1000000 (19 ticks). So allow for 20.
+*/
 typedef struct
 {	double value [20] ;
 	double distance [20] ;
@@ -293,13 +293,28 @@ typedef struct
 */
 #define DELTA (1e-10)
 
-static inline int
-calculate_ticks (double min, double max, double distance, TICKS * ticks)
+static int	/* Forward declaration */
+calculate_log_ticks (double min, double max, double distance, TICKS * ticks);
+
+/* log_scale is pseudo-boolean:
+** 0 means use a linear scale,
+** 1 means use a log scale and
+** 2 is an internal value used when calling back from calculate_log_ticks() to
+**   label the range with linear numbering but logarithmic spacing.
+*/
+
+static int
+calculate_ticks (double min, double max, double distance, int log_scale, TICKS * ticks)
 {
 	double step ;   /* Put numbered ticks at multiples of this */
 	double range = max - min ;
 	int k ;
 	double value ;  /* Temporary */
+
+	if (log_scale == 1)
+		return calculate_log_ticks (min, max, distance, ticks) ;
+
+	/* Linear version */
 
 	/* Choose a step between successive axis labels so that one digit
 	** changes by 1, 2 or 5 amd that gives us at least the number of
@@ -334,31 +349,129 @@ calculate_ticks (double min, double max, double distance, TICKS * ticks)
 	k = 0 ;
 	value = ceil (min / step) * step ;
 
+#define add_tick(val,just_a_tick) do \
+	{	if (val >= min - DELTA && val < max + DELTA) \
+		{	ticks->value[k] = just_a_tick ? NO_NUMBER : val ; \
+			ticks->distance[k] = distance * \
+				(log_scale == 2 \
+				 ? /*log*/ (log (val) - log (min)) / (log (max) - log (min)) \
+				 : /*lin*/ (val - min) / range) ; \
+			k++ ; \
+			}; \
+		} while (0)
+
 	/* Add the half-way tick before the first number if it's in range */
-	if (value - step/2 >= min - DELTA)
-	{	ticks->value[k] = NO_NUMBER ;
-		ticks->distance[k] = distance * ((value - step/2) - min) / range ;
-		k++ ;
-		} ;
+	add_tick (value - step/2, true) ;
 
 	while (value <= max + DELTA)
-	{ 	/* Add a tick at all numeric values */
-		ticks->value[k] = value ;
-		ticks->distance[k] = distance * (value - min) / range ;
-		k++ ;
+	{ 	/* Add a tick next to each printed number */
+		add_tick (value, false) ;
 
 		/* and at the half-way tick after the number if it's in range */
-		if (value + step/2 <= max + DELTA)
-		{	ticks->value[k] = NO_NUMBER ;
-			ticks->distance[k] = distance * ((value + step/2) - min) / range ;
-			k++ ;
-			} ;
+		add_tick (value + step/2, true) ;
 
 		value += step ;
 		} ;
 
 	return k ;
-}
+} /* calculate_ticks */
+
+/* Number/tick placer for logarithmic scales.
+**
+** Some say we should number 1, 10, 100, 1000, 1000 and place ticks at
+** 2,3,4,5,6,7,8,9, 20,30,40,50,60,70,80,90, 200,300,400,500,600,700,800,900
+** Others suggest numbering 1,2,5, 10,20,50, 100,200,500.
+**
+** Ticking 1-9 is visually distinctive and emphasizes that we are using
+** a log scale, as well as mimicking log graph paper.
+** Numbering the powers of ten and, if that doesn't give enough labels,
+** numbering also the 2 and 5 multiples might work.
+**
+** Apart from our [number] and tick styles:
+** [1] 2 5 [10] 20 50 [100]  and
+** [1] [2] 3 4 [5] 6 7 8 9 [10]
+** the following are also seen in use:
+** [1] [2] 3 4 [5] 6 7 [8] 9 [10]  and
+** [1] [2] [3] [4] [5] [6] 7 [8] 9 [10]
+** in https://www.lhup.edu/~dsimanek/scenario/errorman/graphs2.htm
+**
+** This works fine for wide ranges, not so well for narrow ranges like
+** 5000-6000, so for ranges less than a decade we apply the above
+** linear numbering style 0.2 0.4 0.6 0.8 or whatever, but calulating
+** the positions of the legends logarithmically.
+**
+** Alternatives could be:
+** - by powers or two from some starting frequency
+**   defaulting to the Nyquist frequency (22050, 11025, 5512.5 ...) or from some
+**   musical pitch (220, 440, 880, 1760)
+** - with a musical note scale  C0 ' D0 ' E0 F0 ' G0 ' A0 ' B0 C1
+** - with manuscript staff lines, piano note or guitar string overlay.
+*/
+
+/* Helper functions: add ticks and labels at start_value and all powers of ten
+** times it that are in the min-max range.
+** This is used to plonk ticks at 1, 10, 100, 1000 then at 2, 20, 200, 2000
+** then at 5, 50, 500, 5000 and so on.
+*/
+static int
+add_log_ticks(double min, double max, double distance, TICKS * ticks,
+              int k, double start_value, bool include_number)
+{	double value;
+
+	for (value = start_value; value <= max + DELTA; value *= 10.0) {
+		if (value < min - DELTA) continue;
+		ticks->value [k] = include_number ? value : NO_NUMBER ;
+		ticks->distance [k] = distance * (log (value) - log (min)) / (log (max) - log (min)) ;
+		k++ ;
+		} ;
+	return k ;
+} /* add_log_ticks */
+
+static int
+calculate_log_ticks (double min, double max, double distance, TICKS * ticks)
+{	int k = 0 ;	/* Number of ticks we have placed in "ticks" array */
+	double underpinning ; 	/* Largest power of ten that is <= min */
+
+	/* If the interval is less than a decade, just apply the same
+	** numbering-choosing scheme as used with linear axis, with the
+	** ticks positioned logarithmically.
+	*/
+	if (max / min < 10.0)
+		return calculate_ticks (min, max, distance, 2, ticks) ;
+
+	/* If the range is greater than 1 to 1000000, it will generate more than
+	** 19 ticks.  Better to fail explicitly than to overflow.
+	*/
+	if (max / min > 1000000)
+	{	printf ("Error: Frequency range is too great for logarithmic scale.\n") ;
+		exit (1) ;
+		} ;
+
+	/* First hack: label the powers of ten. */
+
+ 	/* Find largest power of ten that is <= minimum value */
+	underpinning = pow (10.0, floor (log10 (min))) ;
+
+	/* Go powering up by 10 from there, numbering as we go. */
+	k = add_log_ticks(min, max, distance, ticks, k, underpinning, true);
+
+	/* Do we have enough numbers? If so, add numberless ticks at 2 and 5 */
+	if (k >= TARGET_DIVISIONS + 1) /* Number of labels is n.of divisions + 1 */
+	{
+		k = add_log_ticks(min, max, distance, ticks, k, underpinning * 2.0, false);
+		k = add_log_ticks(min, max, distance, ticks, k, underpinning * 5.0, false);
+		}
+	else
+	{	int i ;
+		/* Not enough numbers: add numbered ticks at 2 and 5 and
+		 * unnumbered ticks at all the rest */
+		for (i=2; i<=9; i++)
+			k = add_log_ticks(min, max, distance, ticks, k,
+			                  underpinning * (1.0 * i), i==2 || i == 5);
+		} ;
+
+	return k ;
+} /* calculate_log_ticks */
 
 static void
 str_print_value (char * text, int text_len, double value, int decimal_places_to_print)
@@ -369,7 +482,7 @@ str_print_value (char * text, int text_len, double value, int decimal_places_to_
 } /* str_print_value */
 
 static void
-render_spect_border (cairo_surface_t * surface, const char * filename, double left, double width, double seconds, double top, double height, double min_freq, double max_freq)
+render_spect_border (cairo_surface_t * surface, const char * filename, double left, double width, double seconds, double top, double height, double min_freq, double max_freq, bool log_freq)
 {
 	char text [512] ;
 	cairo_t * cr ;
@@ -401,7 +514,7 @@ render_spect_border (cairo_surface_t * surface, const char * filename, double le
 	cairo_rectangle (cr, left, top, width, height) ;
 
 	/* Put ticks on Time axis */
-	tick_count = calculate_ticks (0.0, seconds, width, &ticks) ;
+	tick_count = calculate_ticks (0.0, seconds, width, false, &ticks) ;
 	for (k = 0 ; k < tick_count ; k++)
 	{	y_line (cr, left + ticks.distance [k], top + height, TICK_LEN) ;
 		if (JUST_A_TICK(ticks,k))
@@ -414,7 +527,7 @@ render_spect_border (cairo_surface_t * surface, const char * filename, double le
 		} ;
 
 	/* Put ticks on Frequency axis */
-	tick_count = calculate_ticks (min_freq, max_freq, height, &ticks) ;
+	tick_count = calculate_ticks (min_freq, max_freq, height, log_freq, &ticks) ;
 	for (k = 0 ; k < tick_count ; k++)
 	{	x_line (cr, left + width, top + height - ticks.distance [k], TICK_LEN) ;
 		if (JUST_A_TICK(ticks,k))
@@ -474,7 +587,7 @@ render_heat_border (cairo_surface_t * surface, double magfloor, const RECT *r)
 	cairo_move_to (cr, r->left + (r->width - extents.width) / 2, r->top - 5) ;
 	cairo_show_text (cr, decibels) ;
 
-	tick_count = calculate_ticks (0.0, fabs (magfloor), r->height, &ticks) ;
+	tick_count = calculate_ticks (0.0, fabs (magfloor), r->height, false, &ticks) ;
 	for (k = 0 ; k < tick_count ; k++)
 	{	x_line (cr, r->left + r->width, r->top + ticks.distance [k], TICK_LEN) ;
 		if (JUST_A_TICK(ticks,k))
@@ -500,9 +613,15 @@ render_heat_border (cairo_surface_t * surface, double magfloor, const RECT *r)
 ** allowing the caller to interpolate onto the input array.
 */
 static double
-magindex_to_specindex(int speclen, int maglen, int magindex, double min_freq, double max_freq, int samplerate)
+magindex_to_specindex(int speclen, int maglen, int magindex, double min_freq, double max_freq, int samplerate, bool log_freq)
 {
-	double freq = min_freq + (max_freq - min_freq) * magindex / (maglen - 1) ;
+	double freq; /* The frequency that this output value represents */
+
+	if (!log_freq)
+		freq = min_freq + (max_freq - min_freq) * magindex / (maglen - 1) ;
+	else
+		freq = min_freq * pow (max_freq / min_freq, (double) magindex / (maglen - 1)) ;
+
 	return (freq * speclen / (samplerate / 2)) ;
 }
 
@@ -531,9 +650,11 @@ interp_spec (float * mag, int maglen, const double *spec, int speclen, const REN
 	for (k = 0 ; k < maglen ; k++)
 	{	/* Average the pixels in the range it comes from */
 		double this = magindex_to_specindex(speclen, maglen, k,
-			        render->min_freq, render->max_freq, samplerate) ;
+			        render->min_freq, render->max_freq, samplerate,
+				render->log_freq) ;
 		double next = magindex_to_specindex(speclen, maglen, k+1,
-			        render->min_freq, render->max_freq, samplerate) ;
+			        render->min_freq, render->max_freq, samplerate,
+				render->log_freq) ;
 
 		/* Range check: can happen if --max-freq > samplerate / 2 */
 		if (this > speclen)
@@ -708,7 +829,7 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 
 		render_heat_map (surface, render->spec_floor_db, &heat_rect, render->gray_scale) ;
 
-		render_spect_border (surface, render->filename, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, render->min_freq, render->max_freq) ;
+		render_spect_border (surface, render->filename, LEFT_BORDER, width, filelen / (1.0 * samplerate), TOP_BORDER, height, render->min_freq, render->max_freq, render->log_freq) ;
 		render_heat_border (surface, render->spec_floor_db, &heat_rect) ;
 		}
 	else
@@ -760,11 +881,6 @@ render_sndfile (RENDER * render)
 	SNDFILE *infile ;
 	SF_INFO info ;
 
-	if (render->log_freq)
-	{	printf ("Error : --log-freq option not working yet.\n\n") ;
-		exit (1) ;
-		} ;
-
 	memset (&info, 0, sizeof (info)) ;
 
 	infile = sf_open (render->sndfilepath, SFM_READ, &info) ;
@@ -773,7 +889,10 @@ render_sndfile (RENDER * render)
 		exit (1) ;
 		} ;
 
-	if (render->max_freq == 0.0) render->max_freq = (double) info.samplerate / 2 ;
+	if (render->max_freq == 0.0)
+		render->max_freq = (double) info.samplerate / 2 ;
+	if (render->min_freq == 0.0 && render->log_freq)
+		render->min_freq = 20.0;
 
 	/* Do this sanity check here, as soon as max_freq has its default value */
 	if (render->min_freq >= render->max_freq)
@@ -810,7 +929,7 @@ usage_exit (const char * argv0, int error)
 		"        --no-border            : Drop the border, scales, heat map and title\n"
 		"        --min-freq=<number>    : Set the minimum frequency in the output\n"
 		"        --max-freq=<number>    : Set the maximum frequency in the output\n"
-		/*-"        --log-freq             : Use a logarithmic frquency scale\n" -*/
+		"        --log-freq             : Use a logarithmic frquency scale\n"
 		"        --gray-scale           : Output gray pixels instead of a heat map\n"
 		"        --kaiser               : Use a Kaiser window function (the default)\n"
 		"        --rectangular          : Use a rectangular window function\n"
