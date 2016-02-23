@@ -657,7 +657,7 @@ interp_spec (float * mag, int maglen, const double *spec, int speclen, const REN
 						render->log_freq) ;
 
 		/* Range check: can happen if --max-freq > samplerate / 2 */
-		if (this > speclen)
+		if (this >= speclen)
 		{	mag [k] = 0.0 ;
 			return ;
 			} ;
