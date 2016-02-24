@@ -5,7 +5,7 @@ AUTOMAKE_OPTIONS = subdir-objects
 ACLOCAL_AMFLAGS = -I M4
 
 EXTRA_DIST = Readme.md M4/lrint.m4 M4/lrintf.m4 doc/index.html doc/sweep.png \
-	tests/valgrind-test.sh Scripts/calc-hilbert-fir.m $(man_MANS)
+	tests/test-wrapper.sh Scripts/calc-hilbert-fir.m $(man_MANS)
 
 bin_PROGRAMS = bin/sndfile-generate-chirp bin/sndfile-spectrogram \
 	bin/sndfile-mix-to-mono bin/sndfile-jackplay bin/sndfile-resample \
@@ -55,7 +55,7 @@ tests_common_tests_LDADD = $(SNDFILE_LIBS) $(FFTW3_LIBS)
 check : $(noinst_PROGRAMS) $(bin_PROGRAMS)
 	@$(top_builddir)/tests/common_tests
 	@$(top_builddir)/tests/kaiser_window_test
-	@$(top_srcdir)/tests/valgrind-test.sh
+	@$(top_srcdir)/tests/test-wrapper.sh
 
 # The 'dist-clean' target on Mac OSX fails without this.
 clean-local:
