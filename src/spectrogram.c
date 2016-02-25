@@ -626,8 +626,7 @@ magindex_to_specindex (int speclen, int maglen, int magindex, double min_freq, d
 }
 
 /* Map values from the spectrogram onto an array of magnitudes, the values
-** for display. Reads spec[0..speclen-1], writes mag[0..maglen-1].
-** It looks like maglen needs to be <= speclen.
+** for display. Reads spec[0..speclen], writes mag[0..maglen-1].
 */
 static void
 interp_spec (float * mag, int maglen, const double *spec, int speclen, const RENDER *render, int samplerate)
@@ -657,26 +656,29 @@ interp_spec (float * mag, int maglen, const double *spec, int speclen, const REN
 						render->log_freq) ;
 
 		/* Range check: can happen if --max-freq > samplerate / 2 */
-		if (this >= speclen)
+		if (this > speclen)
 		{	mag [k] = 0.0 ;
 			return ;
 			} ;
 
 		if (next > this + 1)
 		{	/* The output indices are more sparse than the input indices
-			** so average the range of input indices that map to this output.
+			** so average the range of input indices that map to this output,
+			** making sure not to exceed the input array (0..speclen inclusive)
 			*/
 			/* Take a proportional part of the first sample */
 			double count = 1.0 - (this - floor (this)) ;
 			double sum = spec [(int) this] * count ;
 
-			while ((this += 1.0) < next)
+			while ((this += 1.0) < next && (int) this <= speclen)
 			{	sum += spec [(int) this] ;
 				count += 1.0 ;
 				}
 			/* and part of the last one */
-			sum += spec [(int) next] * (next - floor (next)) ;
-			count += next - floor (next) ;
+			if ((int) next <= speclen) {
+				sum += spec [(int) next] * (next - floor (next)) ;
+				count += next - floor (next) ;
+				} ;
 
 			mag [k] = sum / count ;
 			}
