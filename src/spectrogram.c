@@ -60,7 +60,7 @@ typedef struct
 {	const char *sndfilepath, *pngfilepath, *filename ;
 	int width, height ;
 	bool border, log_freq, gray_scale ;
-	double min_freq, max_freq ;
+	double min_freq, max_freq, fft_freq ;
 	enum WINDOW_FUNCTION window_function ;
 	double spec_floor_db ;
 } RENDER ;
@@ -761,10 +761,15 @@ render_to_surface (const RENDER * render, SNDFILE *infile, int samplerate, sf_co
 		} ;
 
 	/*
-	** Choose a speclen value that is long enough to represent frequencies
-	** down to 20Hz.
+	** Choose a speclen value, the spectrum length.
+	** The FFT window size is twice this.
 	*/
-	speclen = height * (samplerate / 20 / height + 1) ;
+	if (render->fft_freq != 0.0)
+		/* Choose an FFT window size of 1/fft_freq seconds of audio */
+		speclen = (samplerate / render->fft_freq + 1) / 2 ;
+	else
+		/* Long enough to represent frequencies down to 20Hz. */
+		speclen = height * (samplerate / 20 / height + 1) ;
 
 	/* Find the nearest fast value for the FFT size. */
 	{	int d ;	/* difference */
@@ -931,6 +936,12 @@ usage_exit (const char * argv0, int error)
 		"        --no-border            : Drop the border, scales, heat map and title\n"
 		"        --min-freq=<number>    : Set the minimum frequency in the output\n"
 		"        --max-freq=<number>    : Set the maximum frequency in the output\n"
+		"        --fft-freq=<number>    : Set the lowest resolvable frequency and the\n"
+		"                                 height of each band in the linear spectrogram.\n"
+		"                                 Lower values increase frequency resolution but\n"
+		"                                 smear the output horizontally and higher values\n"
+		"                                 improve the temporal definition but decrease the\n"
+		"                                 distinction between the lowest frequencies.\n"
 		"        --log-freq             : Use a logarithmic frquency scale\n"
 		"        --gray-scale           : Output gray pixels instead of a heat map\n"
 		"        --kaiser               : Use a Kaiser window function (the default)\n"
@@ -948,7 +959,7 @@ main (int argc, char * argv [])
 	{	NULL, NULL, NULL,
 		0, 0,				/* width, height */
 		true, false, false, /* border, log_freq, gray_scale */
-		0.0, 0.0,			/* {min,max}_freq */
+		0.0, 0.0, 0.0,		/* {min,max,fft}_freq */
 		KAISER,
 		SPEC_FLOOR_DB
 		} ;
@@ -986,6 +997,15 @@ main (int argc, char * argv [])
 
 		if (sscanf (argv [k], "--max-freq=%lf", &fval) == 1)
 		{	render.max_freq = fabs (fval) ;
+			continue ;
+			}
+
+		if (sscanf (argv [k], "--fft-freq=%lf", &fval) == 1)
+		{	if (fval <= 0.0)
+			{	printf ("--fft-freq must be positive.\n") ;
+				exit (1) ;
+				} ;
+			render.fft_freq = fabs (fval) ;
 			continue ;
 			}
 
