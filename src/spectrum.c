@@ -92,7 +92,7 @@ calc_magnitude_spectrum (spectrum * spec)
 		max = MAX (max, spec->mag_spec [k]) ;
 		} ;
 	/* Lastly add the point for the Nyquist frequency */
-	spec->mag_spec [spec->speclen] = fabs(spec->freq_domain [spec->speclen]) ;
+	spec->mag_spec [spec->speclen] = fabs (spec->freq_domain [spec->speclen]) ;
 
 	return max ;
 } /* calc_magnitude_spectrum */
