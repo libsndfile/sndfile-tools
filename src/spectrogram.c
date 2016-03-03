@@ -248,11 +248,13 @@ y_line (cairo_t * cr, double x, double y, double len)
 } /* y_line */
 
 /* The greatest number of linear ticks seems to occurs from 0-14000 (15 ticks).
-** The greatest number of log ticks occurs 1-1000000 (19 ticks). So allow for 20.
+** What's the greatest number of log ticks? 20-22050, the default for CD files,
+** gives 28 ticks. 20-90000 gives 35.  10-90000 and 20-100000 switch to a
+** coarser grid with many fewer ticks.
 */
 typedef struct
-{	double value [20] ;
-	double distance [20] ;
+{	double value [40] ;	/* More than 35 */
+	double distance [40] ;
 	/* The digit that changes from label to label.
 	** This ensures that a range from 999 to 1001 prints 999.5 and 1000.5
 	** instead of 999 1000 1000 1000 1001.
