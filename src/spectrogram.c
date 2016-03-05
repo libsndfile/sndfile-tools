@@ -251,6 +251,7 @@ y_line (cairo_t * cr, double x, double y, double len)
 ** What's the greatest number of log ticks? 20-22050, the default for CD files,
 ** gives 28 ticks. 20-90000 gives 35.  10-90000 and 20-100000 switch to a
 ** coarser grid with many fewer ticks.
+** Search for "worst case" below for the commentary that says why 35 is the max.
 */
 typedef struct
 {	double value [40] ;	/* More than 35 */
@@ -271,7 +272,7 @@ typedef struct
 */
 
 /* The old code used to make 6 to 14 divisions and number every other tick.
-** What we now mean by "a division" is just the numbered segments so we ask for a
+** What we now mean by "division" is just the numbered segments so we ask for a
 ** minimum of 3 to give the same effect as the old minimum of 6 half-divisions.
 ** This results in the same axis labelling for all maximum values
 ** from 0 to 12000 in steps of 1000 and gives sensible results from 13000 on,
@@ -457,6 +458,7 @@ calculate_log_ticks (double min, double max, double distance, TICKS * ticks)
 	/* Go powering up by 10 from there, numbering as we go. */
 	k = add_log_ticks (min, max, distance, ticks, k, underpinning, true) ;
 
+	// if (log10 (max/min) >= TARGET_DIVISIONS)
 	/* Do we have enough numbers? If so, add numberless ticks at 2 and 5 */
 	if (k >= TARGET_DIVISIONS + 1) /* Number of labels is n.of divisions + 1 */
 	{
@@ -471,6 +473,16 @@ calculate_log_ticks (double min, double max, double distance, TICKS * ticks)
 			k = add_log_ticks (min, max, distance, ticks, k,
 								underpinning * (1.0 * i), i == 2 || i == 5) ;
 		} ;
+
+	/* Greatest possible number of ticks calculation:
+	** The worst case is when the else clause adds 8 ticks with the maximal
+	** number of divisions, which is when k == TARGET_DIVISIONS, 3,
+	** for example 100, 1000, 10000
+	** the else clause adds another 8 ticks inside each division as well as
+	** up to 8 ticks after the last number (from 20000 to 90000)
+	** and 8 before to the first (from 20 to 90 in the example).
+	** Maximum possible ticks 3+8+8+8+8=35
+	*/
 
 	return k ;
 } /* calculate_log_ticks */
