@@ -248,11 +248,12 @@ y_line (cairo_t * cr, double x, double y, double len)
 } /* y_line */
 
 /* The greatest number of linear ticks seems to occurs from 0-14000 (15 ticks).
-** The greatest number of log ticks occurs 1-1000000 (19 ticks). So allow for 20.
+** The greatest number of log ticks occurs 10-99999 or 11-100000 (35 ticks).
+** Search for "worst case" for the commentary below that says why it is 35.
 */
 typedef struct
-{	double value [20] ;
-	double distance [20] ;
+{	double value [40] ;  /* 35 or more */
+	double distance [40] ;
 	/* The digit that changes from label to label.
 	** This ensures that a range from 999 to 1001 prints 999.5 and 1000.5
 	** instead of 999 1000 1000 1000 1001.
@@ -269,8 +270,9 @@ typedef struct
 */
 
 /* The old code used to make 6 to 14 divisions and number every other tick.
-** What we now mean by "a division" is just the numbered segments so we ask for a
-** minimum of 3 to give the same effect as the old minimum of 6 half-divisions.
+** What we now mean by "division" is one of teh gaps between numbered segments
+** so we ask for a minimum of 3 to give the same effect as the old minimum of
+** 6 half-divisions.
 ** This results in the same axis labelling for all maximum values
 ** from 0 to 12000 in steps of 1000 and gives sensible results from 13000 on,
 ** to a maximum of 7 divisions and 8 labels from 0 to 14000.
@@ -469,6 +471,16 @@ calculate_log_ticks (double min, double max, double distance, TICKS * ticks)
 			k = add_log_ticks (min, max, distance, ticks, k,
 								underpinning * (1.0 * i), i == 2 || i == 5) ;
 		} ;
+
+	/* Greatest possible number of ticks calculation:
+	** The worst case is when the else clause adds 8 ticks with the maximal
+	** number of divisions, which is when k == TARGET_DIVISIONS, 3,
+	** for example 100, 1000, 10000.
+	** The else clause adds another 8 ticks inside each division as well as
+	** up to 8 ticks after the last number (from 20000 to 90000)
+	** and 8 before to the first (from 20 to 90 in the example).
+	** Maximum possible ticks is 3+8+8+8+8=35
+	*/
 
 	return k ;
 } /* calculate_log_ticks */
