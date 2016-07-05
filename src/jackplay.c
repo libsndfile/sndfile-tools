@@ -73,7 +73,7 @@ static volatile int play_done = 0;
 
 static void
 close_signal_handler(int sig)
-{	(void) arg ;
+{	(void) sig ;
 	play_done = 1;
 }
 
