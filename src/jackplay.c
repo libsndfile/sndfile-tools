@@ -34,6 +34,7 @@
 
 #include <math.h>
 #include <pthread.h>
+#include <signal.h>
 
 #include <jack/jack.h>
 #include <jack/ringbuffer.h>
@@ -61,7 +62,6 @@ typedef struct
 
 	volatile int can_process ;
 	volatile int read_done ;
-	volatile int play_done ;
 
 	volatile unsigned int loop_count ;
 	volatile unsigned int current_loop ;
@@ -69,6 +69,13 @@ typedef struct
 
 static pthread_mutex_t disk_thread_lock = PTHREAD_MUTEX_INITIALIZER ;
 static pthread_cond_t data_ready = PTHREAD_COND_INITIALIZER ;
+static volatile int play_done = 0;
+
+static void
+close_signal_handler(int sig)
+{	(void) sig ;
+	play_done = 1;
+}
 
 static int
 process_callback (jack_nframes_t nframes, void * arg)
@@ -77,11 +84,15 @@ process_callback (jack_nframes_t nframes, void * arg)
 	jack_default_audio_sample_t buf [info->channels] ;
 	unsigned i, n ;
 
-	if (NOT (info->can_process))
-		return 0 ;
-
 	for (n = 0 ; n < info->channels ; n++)
 		info->outs [n] = jack_port_get_buffer (info->output_port [n], nframes) ;
+
+	if (play_done || NOT (info->can_process)) {
+		/* output silence */
+		for (n = 0 ; n < info->channels ; n++)
+			memset(info->outs [n], 0, sizeof(float) * nframes);
+		return 0;
+		} ;
 
 	for (i = 0 ; i < nframes ; i++)
 	{	size_t read_count ;
@@ -90,7 +101,10 @@ process_callback (jack_nframes_t nframes, void * arg)
 		read_count = jack_ringbuffer_read (info->ringbuf, (void *) buf, SAMPLE_SIZE * info->channels) ;
 		if (read_count == 0 && info->read_done)
 		{	/* File is done, so stop the main loop. */
-			info->play_done = 1 ;
+			play_done = 1 ;
+			/* Silence the rest of the audio buffer. */
+			for (n = 0 ; n < info->channels ; n++)
+				info->outs [n][i] = 0.0f ;
 			return 0 ;
 			} ;
 
@@ -142,7 +156,7 @@ disk_thread (void *arg)
 	pthread_setcanceltype (PTHREAD_CANCEL_ASYNCHRONOUS, NULL) ;
 	pthread_mutex_lock (&disk_thread_lock) ;
 
-	while (1)
+	while (NOT (play_done))
 	{	/* `vec` is *always* a two element array. See:
 		** http://jackaudio.org/files/docs/html/ringbuffer_8h.html
 		*/
@@ -323,11 +337,18 @@ main (int argc, char * argv [])
 	if (sfinfo.samplerate != jack_sr)
 		fprintf (stderr, "Warning: samplerate of soundfile (%d Hz) does not match jack server (%d Hz).\n", sfinfo.samplerate, jack_sr) ;
 
+	struct sigaction sig;
+	sig.sa_handler  = close_signal_handler;
+	sig.sa_flags    = SA_RESTART;
+	sig.sa_restorer = NULL;
+	sigemptyset(&sig.sa_mask);
+	sigaction(SIGINT, &sig, NULL);
+	sigaction(SIGTERM, &sig, NULL);
+
 	/* Init the thread info struct. */
 	memset (&info, 0, sizeof (info)) ;
 	info.can_process = 0 ;
 	info.read_done = 0 ;
-	info.play_done = 0 ;
 	info.sndfile = sndfile ;
 	info.channels = sfinfo.channels ;
 	info.samplerate = jack_sr ;
@@ -383,11 +404,14 @@ main (int argc, char * argv [])
 	pthread_create (&thread_id, NULL, disk_thread, &info) ;
 
 	/* Sit in a loop, displaying the current play position. */
-	while (NOT (info.play_done))
+	while (NOT (play_done))
 	{	print_status (&info) ;
 		usleep (10000) ;
 		} ;
 
+	jack_deactivate (client);
+
+	pthread_cond_signal (&data_ready) ;
 	pthread_join (thread_id, NULL) ;
 
 	print_status (&info) ;
