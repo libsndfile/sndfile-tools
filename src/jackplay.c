@@ -338,9 +338,11 @@ main (int argc, char * argv [])
 		fprintf (stderr, "Warning: samplerate of soundfile (%d Hz) does not match jack server (%d Hz).\n", sfinfo.samplerate, jack_sr) ;
 
 	struct sigaction sig ;
+
+	memset (&sig, 0, sizeof (sig)) ;
 	sig.sa_handler	= close_signal_handler ;
 	sig.sa_flags	= SA_RESTART ;
-	sig.sa_restorer = NULL ;
+
 	sigemptyset (&sig.sa_mask) ;
 	sigaction (SIGINT, &sig, NULL) ;
 	sigaction (SIGTERM, &sig, NULL) ;
