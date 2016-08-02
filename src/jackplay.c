@@ -236,8 +236,9 @@ usage_exit (char * argv0, int status)
 		"  Where [options] is one of:\n"
 		"\n"
 		" -w   --wait[=<port>]    : Wait for input before starting playback; optionally auto-connect to <port> using Jack.\n"
-		" -l   --loop=<count>        : Loop the file <count> times (0 for infinite).\n"
-		" -h   --help                : Show this help message.\n"
+		" -a   --autonnect=<port> : Auto-connect to <port> using Jack.\n"
+		" -l   --loop=<count>     : Loop the file <count> times (0 for infinite).\n"
+		" -h   --help             : Show this help message.\n"
 		"\n"
 		"Using %s.\n"
 		"\n",
@@ -248,6 +249,7 @@ usage_exit (char * argv0, int status)
 static struct option const long_options [] =
 {
 	{ "wait", optional_argument, NULL, 'w' } ,
+	{ "autoconnect", required_argument, NULL, 'a' } ,
 	{ "loop", required_argument, NULL, 'l' } ,
 	{ "help", no_argument, NULL, 'h' } ,
 	{ NULL, 0, NULL, 0 }
@@ -269,9 +271,10 @@ main (int argc, char * argv [])
 
 	/* Parse options */
 	while ((c = getopt_long (argc, argv,
-				"w::"	/*  --wait  */
-				"l:"	/*	--loop	*/
-				"h",	/*	--help	*/
+				"w::" /* --wait        */
+				"a::" /* --autoconnect */
+				"l:"  /* --loop        */
+				"h",  /* --help        */
 				long_options, NULL)) != EOF)
 	{	if (optarg != NULL && optarg [0] == '=')
 		{	optarg++ ;
@@ -279,6 +282,9 @@ main (int argc, char * argv [])
 		switch (c)
 		{	case 'w' :
 				wait_before_play = true ;
+				auto_connect_str = optarg ;
+				break ;
+			case 'a' :
 				auto_connect_str = optarg ;
 				break ;
 			case 'l' :
