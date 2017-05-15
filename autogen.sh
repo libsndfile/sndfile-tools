@@ -127,7 +127,7 @@ if test -z "$*"; then
 fi
 
 if test ! -d Cfg ; then
-	echo "Createing 'Cfg' directory."
+	echo "Creating 'Cfg' directory."
 	mkdir Cfg
 fi
 
