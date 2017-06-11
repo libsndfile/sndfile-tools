@@ -2,8 +2,6 @@
 # Run this to set up the build system: configure, makefiles, etc.
 # (based on the version in enlightenment's cvs)
 
-ACLOCAL_FLAGS="-I M4"
-
 package="sndfile-tools"
 
 olddir=`pwd`
@@ -121,14 +119,9 @@ if test "$DIE" -eq 1; then
         exit 1
 fi
 
-if test -z "$*"; then
-        echo "I am going to run ./configure with no arguments - if you wish "
-        echo "to pass any to it, please specify them on the $0 command line."
-fi
-
-if test ! -d Cfg ; then
-	echo "Creating 'Cfg' directory."
-	mkdir Cfg
+if test ! -d build-aux ; then
+	echo "Creating 'build-aux' directory."
+	mkdir build-aux
 fi
 
 echo "Generating configuration files for $package, please wait ... "
