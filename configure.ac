@@ -1,269 +1,184 @@
-# Copyright (C) 2002-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
+# Copyright (C) 2002-2017 Erik de Castro Lopo <erikd@mega-nerd.com>
 
-dnl Require autoconf version >= 2.54)
-AC_PREREQ(2.54)
+dnl Require autoconf version >= 2.69)
+AC_PREREQ([2.69])
 
 AC_INIT([sndfile-tools],[1.04],[sndfile@mega-nerd.com],
 		[sndfile-tools],[http://www.mega-nerd.com/libsndfile/tools/])
 
-# Put config stuff in Cfg.
-AC_CONFIG_AUX_DIR(Cfg)
+dnl Check whether we want to set defaults for CFLAGS, CPPFLAGS and LDFLAGS
+AC_MSG_CHECKING([whether configure should try to set CFLAGS/CPPFLAGS/LDFLAGS])
+AS_IF([test "x${CFLAGS+set}" = "xset" || test "x${CPPFLAGS+set}" = "xset" || test "x${LDFLAGS+set}" = "xset"], [
+		enable_flags_setting=no
+		: ${CFLAGS=""}
+	], [
+		enable_flags_setting=yes
+		dnl Set to empty flags so AC_PROG_CC does not add -g -O2
+		CFLAGS=""
+	])
+AC_MSG_RESULT([${enable_flags_setting}])
+
+dnl Put config stuff in 'build-aux'.
+AC_CONFIG_AUX_DIR([build-aux])
 
 AC_CONFIG_SRCDIR([src/spectrogram.c])
-AC_CANONICAL_TARGET([])
+AC_CANONICAL_HOST
 
-AC_CONFIG_MACRO_DIR([M4])
-AM_CONFIG_HEADER([src/config.h])
-AM_INIT_AUTOMAKE
+AC_CONFIG_MACRO_DIR([m4])
+AC_CONFIG_HEADERS([src/config.h])
+
+AM_INIT_AUTOMAKE([1.14 foreign dist-bzip2 no-dist-gzip subdir-objects])
 AM_SILENT_RULES([yes])
 
-dnl Add parameters for aclocal
-AC_SUBST(ACLOCAL_AMFLAGS, "-I M4")
-
-AC_LANG([C])
-
-#------------------------------------------------------------------------------------
+dnl ====================================================================================
 
 AC_PROG_CC
-AM_PROG_CC_C_O
+AC_PROG_CC_C99
 
-MN_C_COMPILER_IS_CLANG
-MN_GCC_REALLY_IS_GCC
+AS_IF([test "x$ac_cv_prog_cc_c99" = "xno"], [
+		AC_MSG_ERROR([sndfile-tools requires a C99 capable compiler!])
+	])
 
-# Do not check for F77.
-define([AC_LIBTOOL_LANG_F77_CONFIG], [:])dnl
+AC_LANG([C])
+AX_COMPILER_VENDOR
+AX_COMPILER_VERSION
 
 AC_PROG_INSTALL
 AC_PROG_MAKE_SET
 AC_PROG_LN_S
-AC_PROG_LIBTOOL
-AM_PROG_LIBTOOL
+LT_INIT
 
-AC_HEADER_STDC
+dnl ====================================================================================
+dnl  Finished checking, handle options.
 
-#====================================================================================
-# Finished checking, handle options.
+AC_ARG_ENABLE([werror],
+	[AS_HELP_STRING([--enable-werror], [enable -Werror in all Makefiles])])
 
-AC_ARG_ENABLE(werror,
-	AC_HELP_STRING([--enable-werror], [enable -Werror in all Makefiles]),
-	ac_arg_werror=yes, ac_arg_werror=no)
+AC_ARG_ENABLE([jack],
+	[AS_HELP_STRING([--disable-jack], [disable use of JACK (default=autodetect)])], [], [enable_jack=auto])
 
-AC_ARG_ENABLE(gcc-pipe,
-		AC_HELP_STRING([--disable-gcc-pipe], [disable gcc -pipe option ]),
-		ac_arg_gcc_pipe="N", ac_arg_gcc_pipe="Y")
+dnl ====================================================================================
+dnl  Check for functions.
 
-AC_ARG_ENABLE(gcc-opt,
-		AC_HELP_STRING([--disable-gcc-opt], [disable gcc optimisations ]),
-		ac_arg_gcc_opt="N", ac_arg_gcc_opt="Y")
+AC_SEARCH_LIBS([floor], [m], [], [
+		AC_MSG_ERROR([unable to find the floor() function!])
+	])
+AC_CHECK_FUNCS([floor ceil fmod lrint lrintf])
 
-AC_ARG_ENABLE(fftw,
-		AC_HELP_STRING([--disable-fftw], [disable usage of FFTW ]),
-		ac_arg_fftw="N", ac_arg_fftw="Y")
+dnl ====================================================================================
+dnl  Check for libsndfile.
 
-AC_ARG_ENABLE(jack,
-	AC_HELP_STRING([--disable-jack], [disable use of JACK]))
+PKG_CHECK_MODULES([SNDFILE], [sndfile >= 1.0.19], [
+		AC_DEFINE([HAVE_SNDFILE], [1], [Set to 1 if you have libsndfile])
+	], [
+		AC_MSG_ERROR([libsndfile could not be found!])
+	])
 
-AC_ARG_ENABLE(debug,
-		AC_HELP_STRING([--enable-debug], [enable debugging ]),
-		ac_arg_debug=yes, ac_arg_debug=no)
+dnl ====================================================================================
+dnl  Check for libsamplerate.
 
-AC_ARG_ENABLE(cpu-clip,
-		AC_HELP_STRING([--disable-cpu-clip], [disable tricky cpu specific clipper]),
-		ac_arg_cpu_clip="N", ac_arg_cpu_clip="Y")
+PKG_CHECK_MODULES([SAMPLERATE], [samplerate >= 0.1.5], [
+		AC_DEFINE([HAVE_SAMPLERATE], [1], [Set to 1 if you have libsamplerate])
+	], [
+		AC_MSG_ERROR([libsamplerate could not be found!])
+	])
 
-if test x$ac_arg_debug = xyes ; then
-	AC_DEFINE([ENABLE_DEBUG],1,[Set to 1 to enable debugging.])
-else
-	AC_DEFINE([ENABLE_DEBUG],0,[Set to 1 to enable debugging.])
-	fi
+dnl ====================================================================================
+dnl  Check for libfftw3 which is required for src/sndfile-spectrogram.c).
 
-#====================================================================================
-# Check for functions.
+PKG_CHECK_MODULES([FFTW3], [fftw3 >= 0.15.0], [
+		AC_DEFINE([HAVE_FFTW3], [1], [Set to 1 if you have FFTW])
+	], [
+		AC_MSG_ERROR([FFTW could not be found!])
+	])
 
-AC_CHECK_LIB([m],floor)
-AC_CHECK_FUNCS(floor ceil fmod)
+dnl ====================================================================================
+dnl  Check for libcairo which is required for src/sndfile-spectrogram.c.
 
-MN_C99_FUNC_LRINT
-MN_C99_FUNC_LRINTF
-# AC_C99_FUNC_LLRINT  Don't need this (yet?).
+PKG_CHECK_MODULES([CAIRO], [cairo >= 1.4.0], [
+		AC_DEFINE([HAVE_CAIRO], [1], [Set to 1 if you have Cairo])
+	], [
+		AC_MSG_ERROR([Cairo could not be found!])
+	])
 
-case "x$ac_cv_c99_lrint$ac_cv_c99_lrintf" in
-	xyesyes)
-		;;
-	*)
-		AC_MSG_WARN([[*** Missing C99 standard functions lrint() and lrintf().]])
-		AC_MSG_WARN([[*** This may cause benign compiler warnings on some systems (ie Solaris).]])
-		;;
-	esac
+dnl ====================================================================================
+dnl  Check for JACK which is required for src/sndfile-jackplay.c.
 
-#====================================================================================
-# Check for libsndfile.
+AS_IF([test "x$enable_jack" != "xno"], [
+		PKG_CHECK_MODULES([JACK], [jack >= 0.100], [
+				AC_DEFINE([HAVE_JACK], [1], [Set to 1 if you have JACK])
+				enable_jack="yes"
 
-PKG_CHECK_MODULES(SNDFILE, sndfile >= 1.0.19, ac_cv_sndfile=1, ac_cv_sndfile=0)
+				AX_PTHREAD
+				JACK_CFLAGS="${JACK_CFLAGS} ${PTHREAD_CFLAGS}"
+				JACK_LIBS="${JACK_LIBS} ${PTHREAD_LIBS}"
+			], [
+				AS_IF([test "x$enable_jack" = "xyes"], [
+						dnl explicitly passed --enable-jack, hence error out loud and clearly
+						AC_MSG_ERROR([You explicitly requested JACK support, but JACK could not be found!])
+					], [
+						dnl did not explicitly pass --enable-jack, relying on default automagic on
+						enable_jack="no (auto)"
+					])
+			])
+	])
+AM_CONDITIONAL([HAVE_JACK], [test "x$enable_jack" = "xyes"])
 
-AC_DEFINE_UNQUOTED([HAVE_SNDFILE],$ac_cv_sndfile,[Set to 1 if you have libsndfile.])
+dnl ====================================================================================
+dnl Compiler stuff.
 
-if test x$ac_cv_sndfile = x1 ; then
-	ac_cv_sndfile=yes
-	HAVE_SNDFILE=1
-else
-	ac_cv_sndfile=no
-	HAVE_SNDFILE=0
-	fi
+AS_IF([test "x$enable_flags_setting" = "xyes"], [
+		AX_APPEND_COMPILE_FLAGS([-O2 -pipe], [CFLAGS])
 
-#====================================================================================
-# Check for libsamplerate.
+		AS_CASE([${host_os}],
+			[darwin*], [
+				ldflags_test="-Wl,-dead_strip_dylibs"],
+			[linux*], [
+				ldflags_test="-Wl,-O1 -Wl,--as-needed -Wl,--no-undefined -Wl,--gc-sections"]
+			)
+		AX_APPEND_LINK_FLAGS([${ldflags_test}], [LDFLAGS])
+	])
 
-PKG_CHECK_MODULES(SAMPLERATE, samplerate >= 0.1.5, ac_cv_samplerate=1, ac_cv_samplerate=0)
+AS_IF([test "x$enable_werror" = "xyes"], [
+		AX_APPEND_COMPILE_FLAGS([-Werror], [CFLAGS])
+	])
 
-AC_DEFINE_UNQUOTED([HAVE_SAMPLERATE],$ac_cv_samplerate,[Set to 1 if you have libsamplerate.])
+AX_APPEND_COMPILE_FLAGS([-Wall -Wextra -Wstrict-prototypes -Wmissing-prototypes -Waggregate-return -Wcast-align -Wcast-qual -Wnested-externs -Wshadow -Wpointer-arith], [CFLAGS])
 
-if test x$ac_cv_samplerate = x1 ; then
-	ac_cv_samplerate=yes
-	HAVE_SAMPLERATE=1
-else
-	ac_cv_samplerate=no
-	HAVE_SAMPLERATE=0
-	fi
-
-#====================================================================================
-# Check for libfftw3 which is required for src/sndfile-spectrogram.c).
-
-if test $ac_arg_fftw = "Y" ; then
-	PKG_CHECK_MODULES(FFTW3, fftw3 >= 0.15.0, ac_cv_fftw3=1, ac_cv_fftw3=0)
-	AC_DEFINE_UNQUOTED([HAVE_FFTW3],$ac_cv_fftw3,[Set to 1 if you have libfftw3.])
-
-	if test x$ac_cv_fftw3 = x1 ; then
-		ac_cv_fftw3=yes
-		HAVE_FFTW3=1
-		fi
-	fi
-
-if test x$ac_cv_fftw3 != xyes ; then
-	ac_cv_fftw3=no
-	HAVE_FFTW3=0
-	fi
-
-#====================================================================================
-# Check for libcairo which is required for src/sndfile-spectrogram.c.
-
-PKG_CHECK_MODULES(CAIRO, cairo >= 1.4.0, ac_cv_cairo=1, ac_cv_cairo=0)
-
-AC_DEFINE_UNQUOTED([HAVE_CAIRO],$ac_cv_cairo,[Set to 1 if you have libcairo.])
-
-if test x$ac_cv_cairo = x1 ; then
-	ac_cv_cairo=yes
-	HAVE_CAIRO=1
-else
-	ac_cv_cairo=no
-	HAVE_CAIRO=0
-	fi
-
-#====================================================================================
-# Check for JACK which is required for src/sndfile-jackplay.c.
-
-ac_cv_jack=no
-if test x$enable_jack != xno ; then
-	PKG_CHECK_MOD_VERSION(JACK, jack >= 0.100, ac_cv_jack=yes, ac_cv_jack=no)
-	fi
-
-
-if test x$ac_cv_jack = "xyes" ; then
-	HAVE_JACK=1
-else
-	HAVE_JACK=0
-	fi
-
-JACK_LIBS="-lpthread ${JACK_LIBS}"
-
-AC_DEFINE_UNQUOTED([HAVE_JACK],$HAVE_JACK,[Set to 1 if you have JACK.])
-
-#====================================================================================
-# GCC stuff.
-
-if test $ac_cv_c_compiler_gnu = yes ; then
-	CFLAGS="$CFLAGS -std=gnu99 -Wall -Wextra -Wstrict-prototypes -Wmissing-prototypes -Waggregate-return -Wcast-align -Wcast-qual -Wnested-externs -Wshadow -Wpointer-arith"
-	# -Wundef -Wbad-function-cast -Wmissing-declarations -Wconversion -Winline"
-
-	if test x$ac_arg_werror = "xyes" ; then
-		CFLAGS="-Werror $CFLAGS"
-		fi
-
-	AC_DEFINE([COMPILER_IS_GCC],1, [Set to 1 if the compile is GNU GCC.])
-	GCC_MAJOR_VERSION=`$CC -dumpversion | sed "s/\..*//"`
-	AC_DEFINE_UNQUOTED([GCC_MAJOR_VERSION],${GCC_MAJOR_VERSION}, [Major version of GCC or 3 otherwise.])
-	fi
-
-#====================================================================================
-# Now use the information from the checking stage.
-
-AC_SUBST(COMPILER_IS_GCC)
-AC_SUBST(GCC_MAJOR_VERSION)
-AC_SUBST(ENABLE_DEBUG)
-
-AC_SUBST(HAVE_SNDFILE)
-AC_SUBST(SNDFILE_CFLAGS)
-AC_SUBST(SNDFILE_LIBS)
-
-AC_SUBST(HAVE_FFTW3)
-AC_SUBST(FFTW3_CFLAGS)
-AC_SUBST(FFTW3_LIBS)
-
-AC_SUBST(HAVE_CAIRO)
-AC_SUBST(CAIRO_CFLAGS)
-AC_SUBST(CAIRO_LIBS)
-
-AC_SUBST(HAVE_JACK)
-AC_SUBST(JACK_CFLAGS)
-AC_SUBST(JACK_LIBS)
+dnl ====================================================================================
+dnl  Now use the information from the checking stage.
 
 AC_CONFIG_FILES([Makefile])
 AC_OUTPUT
 
-#====================================================================================
+dnl ====================================================================================
 
+AX_RECURSIVE_EVAL([$bindir], [full_absolute_bindir])
 AC_MSG_RESULT([
 -=-=-=-=-=-=-=-=-=-= Configuration Complete =-=-=-=-=-=-=-=-=-=-=-
 
   Configuration summary :
 
-    Version ....................... ${VERSION}])
-AC_MSG_RESULT([    Enable debugging .............. ${ac_arg_debug}
+    sndfile-tools version : ............... ${VERSION}
+
+    Host CPU : ............................ ${host_cpu}
+    Host Vendor : ......................... ${host_vendor}
+    Host OS : ............................. ${host_os}
+
+    CFLAGS : .............................. ${CFLAGS}
+    CPPFLAGS : ............................ ${CPPFLAGS}
+    LDFLAGS : ............................. ${LDFLAGS}
+
+  Tools :
+
+    C Compiler Vendor is : ................ ${ax_cv_c_compiler_vendor} (${ax_cv_c_compiler_version})
+
+  Extra tools required for testing and examples :
+
+    Found libjack ......................... ${enable_jack}
+
+  Installation directories :
+
+    Program directory : ................... ${full_absolute_bindir}
+
 ])
-
-echo
-echo -e "  Tools :\n"
-echo "    Compiler is Clang : .............. ${mn_cv_c_compiler_clang}"
-echo "    Compiler is GCC : ................ ${ac_cv_c_compiler_gnu}"
-
-if test x$ac_cv_c_compiler_gnu = xyes ; then
-	echo "    GCC major version ................ ${GCC_MAJOR_VERSION}"
-	fi
-
-AC_MSG_RESULT([
-  External libraries required for testing and examples :
-
-    Found libsndfile ................. ${ac_cv_sndfile}
-    Found libsamplerate .............. ${ac_cv_samplerate}
-    Found libfftw3 ................... ${ac_cv_fftw3}
-    Found libcairo ................... ${ac_cv_cairo}
-    Found libjack .................... ${ac_cv_jack}
-])
-
-if test "x$ac_cv_sndfile$ac_cv_samplerate$ac_cv_fftw3$ac_cv_cairo$ac_cv_jack" != "xyesyesyesyesyes" ; then
-	AC_MSG_RESULT([==================================================================])
-	AC_MSG_RESULT([  Error : You will need to install the missing libaries.])
-	echo
-	AC_MSG_RESULT([  On distributions like Debian/Ubuntu/Fedora/etc, you will need])
-	AC_MSG_RESULT([  to install the *-dev or *-devel versions of the libaries.])
-	AC_MSG_RESULT([==================================================================])
-	echo
-	exit 1
-	fi
-
-AC_MSG_RESULT([  Installation directories :
-
-    Program directory ............. ${prefix}/bin
-])
-
-
