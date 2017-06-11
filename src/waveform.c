@@ -1253,6 +1253,7 @@ main (int argc, char * argv [])
 				exit (0) ;
 			case 'h' :
 				usage_exit (argv [0], 0) ;
+				/* Falls through. */
 			default :
 				usage_exit (argv [0], EXIT_FAILURE) ;
 			} ;
