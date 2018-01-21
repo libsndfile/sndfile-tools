@@ -1,0 +1,58 @@
+.Dd October 9, 2016
+.Dt SNDFILE-RESAMPLE 1
+.Os
+.Sh NAME
+.Nm sndfile-resample
+.Nd sample rate converter
+.Sh SYNOPSIS
+.Nm
+.Op Fl c Ar number
+.Fl to Ar rate
+.Ar input
+.Ar output
+.Nm
+.Op Fl c Ar number
+.Fl by Ar ratio
+.Ar input
+.Ar output
+.Sh DESCRIPTION
+.Nm
+is a sample rate converter using libsndfile for file I/O
+and Secret Rabbit Code (aka libsamplerate) for performing the conversion.
+It works on any file format supported by libsndfile
+with any number of channels (limited only by host memory).
+.Pp
+The options are as follows:
+.Bl -tag -width converter
+.It Fl c Ar number
+Choose the converter type from the following list:
+.Bl -tag -width x -compact
+.It 0
+Best Sinc Interpolator
+.It 1
+Medium Sinc Interpolator (default)
+.It 2
+Fastest Sinc Interpolator
+.It 3
+ZOH Interpolator
+.It 4
+Linear Interpolator
+.El
+.It Fl to Ar rate
+Convert to the specified sample
+.Ar rate .
+.It Fl by Ar ratio
+Change the sample rate by the given
+.Ar ratio ,
+which can be any positive real;
+the resulting rate is floored to an integer.
+For instance, changing the rate of 44100 by a factor of 1.3333
+results in a sample rate of 58798.
+.It Fl -no-normalize
+Disable clipping check and normalization.
+.El
+.Sh SEE ALSO
+.Lk http://www.mega-nerd.com/libsndfile/
+.Lk http://www.mega-nerd.com/libsamplerate/
+.Sh AUTHORS
+.An Erik de Castro Lopo Aq Mt erikd@mega-nerd.com

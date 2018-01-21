@@ -12,7 +12,7 @@ bin_PROGRAMS = \
 CLEANFILES = src/*~
 
 dist_man_MANS = man/sndfile-generate-chirp.1 man/sndfile-spectrogram.1 \
-	man/sndfile-mix-to-mono.1 man/sndfile-jackplay.1
+	man/sndfile-mix-to-mono.1 man/sndfile-jackplay.1 man/sndfile-resample.1
 
 #=========================================================================================
 # The bin targets.
