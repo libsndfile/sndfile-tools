@@ -1,5 +1,5 @@
 /*
-** Copyright (C) 2007-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (C) 2007-2018 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2012 Robin Gareus <robin@gareus.org>
 ** Copyright (C) 2013 driedfruit <driedfruit@mindloop.net>
 **
@@ -956,7 +956,7 @@ render_sndfile (RENDER * render)
 		exit (EXIT_FAILURE) ;
 		} ;
 
-	if (render->channel > info.channels)
+	if (render->channel < 1 || render->channel > info.channels)
 	{	printf ("Error: channel parameter must be in range [%d, %d]\n", -1, info.channels) ;
 		sf_close (infile) ;
 		exit (EXIT_FAILURE) ;
