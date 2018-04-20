@@ -30,8 +30,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if HAVE_JACK
-
 #include <math.h>
 #include <pthread.h>
 #include <signal.h>
@@ -440,18 +438,3 @@ main (int argc, char * argv [])
 
 	return 0 ;
 } /* main */
-
-#else
-
-int
-main (void)
-{
-	puts (
-		"Sorry this program was compiled without libjack (which probably\n"
-		"only exists on Linux and Mac OSX) and hence doesn't work."
-		) ;
-
-	return 0 ;
-} /* main */
-
-#endif
