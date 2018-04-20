@@ -16,8 +16,6 @@
 
 #include "common.h"
 
-#if (HAVE_SNDFILE)
-
 #include <samplerate.h>
 #include <sndfile.h>
 
@@ -303,28 +301,3 @@ usage_exit (const char *progname)
 
 	exit (1) ;
 } /* usage_exit */
-
-/*==============================================================================
-*/
-
-#else /* (HAVE_SNFILE == 0) */
-
-/* Alternative main function when libsndfile is not available. */
-
-int
-main (void)
-{	puts (
-		"\n"
-		"****************************************************************\n"
-		"  This example program was compiled without libsndfile \n"
-		"  (http://www.mega-nerd.com/libsndfile/).\n"
-		"  It is therefore completely broken and non-functional.\n"
-		"****************************************************************\n"
-		"\n"
-		) ;
-
-	return 0 ;
-} /* main */
-
-#endif
-
