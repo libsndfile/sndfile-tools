@@ -39,9 +39,6 @@ main (int argc, char ** argv)
 		exit (1) ;
 		} ;
 
-	/* Delete the output file length to zero if already exists. */
-	remove (argv [argc - 1]) ;
-
 	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	if ((infile = sf_open (argv [argc - 2], SFM_READ, &sfinfo)) == NULL)
 	{	printf ("Error : Not able to open input file '%s'\n", argv [argc - 2]) ;
@@ -63,6 +60,9 @@ main (int argc, char ** argv)
 		sf_close (infile) ;
 		exit (1) ;
 		} ;
+
+	/* Delete the output file length to zero if already exists. */
+	remove (argv [argc - 1]) ;
 
 	mix_to_mono (infile, outfile) ;
 
