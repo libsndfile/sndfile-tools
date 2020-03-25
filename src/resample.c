@@ -1,5 +1,5 @@
 /*
-** Copyright (c) 2002-2018, Erik de Castro Lopo <erikd@mega-nerd.com>
+** Copyright (c) 2002-2020, Erik de Castro Lopo <erikd@mega-nerd.com>
 ** All rights reserved.
 **
 ** This code is released under 2-clause BSD license. Please see the
@@ -35,7 +35,8 @@ main (int argc, char *argv [])
 	int normalize = 1 ;
 	sf_count_t	count ;
 	double		src_ratio = -1.0, gain = 1.0 ;
-	int			new_sample_rate = -1, k, converter, max_speed = SF_FALSE ;
+	int			new_sample_rate = -1, k, converter, max_speed = SF_FALSE, raw_bits ;
+	char		raw_type ;
 
 	if (argc == 2 && strcmp (argv [1], "--version") == 0)
 	{	char buffer [64], *cptr ;
@@ -51,7 +52,7 @@ main (int argc, char *argv [])
 		exit (0) ;
 		} ;
 
-	if (argc != 5 && argc != 7 && argc != 8)
+	if (argc < 5 || argc == 6 || argc > 11)
 		usage_exit (argv [0]) ;
 
 	/* Set default converter. */
@@ -73,6 +74,48 @@ main (int argc, char *argv [])
 		else if (strcmp (argv [k], "-c") == 0)
 		{	k ++ ;
 			converter = parse_int_or_die (argv [k], "converter") ;
+			}
+		else if (strcmp (argv [k], "-r") == 0)
+		{	k ++ ;
+			if (sscanf (argv [k], "%d,%d,%c,%d", &sfinfo.samplerate, &sfinfo.channels, &raw_type, &raw_bits) != 4)
+			{	printf ("Error : unable to decode raw audio parameters.\n") ;
+				usage_exit (argv [0]) ;
+				}
+			sfinfo.format = SF_FORMAT_RAW ;
+			if (raw_type == 'i' && (raw_bits == 8 || raw_bits == 16 || raw_bits == 24 || raw_bits == 32))
+			{	switch (raw_bits)
+				{	case 8:
+						sfinfo.format |= SF_FORMAT_PCM_S8 ;
+						break ;
+
+					case 16:
+						sfinfo.format |= SF_FORMAT_PCM_16 ;
+						break ;
+
+					case 24:
+						sfinfo.format |= SF_FORMAT_PCM_24 ;
+						break ;
+
+					case 32:
+						sfinfo.format |= SF_FORMAT_PCM_32 ;
+						break ;
+					}
+				}
+			else if (raw_type == 'f' && (raw_bits == 32 || raw_bits == 64))
+			{	switch (raw_bits)
+				{	case 32:
+						sfinfo.format |= SF_FORMAT_FLOAT ;
+						break ;
+
+					case 64:
+						sfinfo.format |= SF_FORMAT_DOUBLE ;
+						break ;
+					}
+				}
+			else
+			{	printf ("Error : invalid raw audio parameters.\n") ;
+				usage_exit (argv [0]) ;
+				}
 			}
 		else
 			usage_exit (argv [0]) ;
@@ -296,6 +339,13 @@ usage_exit (const char *progname)
 
 	puts ("\n"
 		"  The --no-normalize option disables clipping check and normalization.") ;
+
+	puts ("\n"
+		"  Sound parameters for raw input may be specified using option -r RRRR,C,s,BB\n"
+		"  where RRRR is the sample rate, C is the channels number, s is 'i' (as integer)\n"
+		"  or 'f' (as float) and BB the bits per sample (8, 16, ...)\n"
+		"  Note: when raw audio input is used, then a raw output audio file will be\n"
+		"  created as well.") ;
 
 	puts ("") ;
 
