@@ -52,7 +52,7 @@ main (int argc, char *argv [])
 		exit (0) ;
 		} ;
 
-	if (argc != 5 && argc != 7 && argc != 8 && argc != 9 && argc != 10 && argc != 11)
+	if (argc < 5 || argc == 6 || argc > 11)
 		usage_exit (argv [0]) ;
 
 	/* Set default converter. */
@@ -76,47 +76,47 @@ main (int argc, char *argv [])
 			converter = parse_int_or_die (argv [k], "converter") ;
 			}
 		else if (strcmp (argv [k], "-r") == 0)
-		{   k ++ ;
-            if (sscanf (argv [k], "%d,%d,%c,%d", &sfinfo.samplerate, &sfinfo.channels, &raw_type, &raw_bits) != 4)
-            {   printf ("Error : unable to decode raw audio parameters.\n") ;
-                usage_exit (argv [0]) ;
-                }
-            sfinfo.format = SF_FORMAT_RAW;
-            if (raw_type == 'i' && ( raw_bits == 8 || raw_bits == 16 || raw_bits == 24 || raw_bits == 32 ) )
-            {   switch (raw_bits)
-                {   case  8:
-                        sfinfo.format |= SF_FORMAT_PCM_S8;
-                        break;
+		{	k ++ ;
+			if (sscanf (argv [k], "%d,%d,%c,%d", &sfinfo.samplerate, &sfinfo.channels, &raw_type, &raw_bits) != 4)
+			{	printf ("Error : unable to decode raw audio parameters.\n") ;
+				usage_exit (argv [0]) ;
+				}
+			sfinfo.format = SF_FORMAT_RAW;
+			if (raw_type == 'i' && ( raw_bits == 8 || raw_bits == 16 || raw_bits == 24 || raw_bits == 32 ) )
+			{	switch (raw_bits)
+				{	case  8:
+						sfinfo.format |= SF_FORMAT_PCM_S8;
+						break;
 
-                    case 16:
-                        sfinfo.format |= SF_FORMAT_PCM_16;
-                        break;
+					case 16:
+						sfinfo.format |= SF_FORMAT_PCM_16;
+						break;
 
-                    case 24:
-                        sfinfo.format |= SF_FORMAT_PCM_24;
-                        break;
+					case 24:
+						sfinfo.format |= SF_FORMAT_PCM_24;
+						break;
 
-                    case 32:
-                        sfinfo.format |= SF_FORMAT_PCM_32;
-                        break;
-                    }
-                }
-            else if (raw_type == 'f' && ( raw_bits == 32 || raw_bits == 64 ) )
-            {   switch (raw_bits)
-                {   case 32:
-                        sfinfo.format |= SF_FORMAT_FLOAT;
-                        break;
+					case 32:
+						sfinfo.format |= SF_FORMAT_PCM_32;
+						break;
+					}
+				}
+			else if (raw_type == 'f' && ( raw_bits == 32 || raw_bits == 64 ) )
+			{	switch (raw_bits)
+				{	case 32:
+						sfinfo.format |= SF_FORMAT_FLOAT;
+						break;
 
-                    case 64:
-                        sfinfo.format |= SF_FORMAT_DOUBLE;
-                        break;
-                    }
-                }
-		    else
-            {   printf ("Error : invalid raw audio parameters.\n") ;
-                usage_exit (argv [0]) ;
-                }
-		    }
+					case 64:
+						sfinfo.format |= SF_FORMAT_DOUBLE;
+						break;
+					}
+				}
+			else
+			{	printf ("Error : invalid raw audio parameters.\n") ;
+				usage_exit (argv [0]) ;
+				}
+			}
 		else
 			usage_exit (argv [0]) ;
 		} ;
@@ -342,10 +342,10 @@ usage_exit (const char *progname)
 
 	puts ("\n"
 		"  Sound parameters for raw input may be specified using option -r RRRR,C,s,BB\n"
-        "  where RRRR is the sample rate, C is the channels number, s is 'i' (as integer)\n"
-        "  or 'f' (as float) and BB the bits per sample (8, 16, ...)\n"
-        "  Note: when raw audio input is used, then a raw output audio file will be\n"
-        "  created as well.") ;
+		"  where RRRR is the sample rate, C is the channels number, s is 'i' (as integer)\n"
+		"  or 'f' (as float) and BB the bits per sample (8, 16, ...)\n"
+		"  Note: when raw audio input is used, then a raw output audio file will be\n"
+		"  created as well.") ;
 
 	puts ("") ;
 
