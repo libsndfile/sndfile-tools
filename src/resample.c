@@ -99,6 +99,10 @@ main (int argc, char *argv [])
 					case 32:
 						sfinfo.format |= SF_FORMAT_PCM_32 ;
 						break ;
+
+					default:
+						printf ("Error : PCM bits per sample should be 8, 16, 24 or 32.\n") ;
+						usage_exit (argv [0]) ;
 					}
 				}
 			else if (raw_type == 'f' && (raw_bits == 32 || raw_bits == 64))
@@ -110,6 +114,10 @@ main (int argc, char *argv [])
 					case 64:
 						sfinfo.format |= SF_FORMAT_DOUBLE ;
 						break ;
+
+					default:
+						printf ("Error : Floating point bits per sample should be 32 or 64.\n") ;
+						usage_exit (argv [0]) ;
 					}
 				}
 			else
