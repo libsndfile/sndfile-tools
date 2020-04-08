@@ -52,7 +52,7 @@ main (int argc, char *argv [])
 		exit (0) ;
 		} ;
 
-	if (argc < 5 || argc == 6 || argc > 11)
+	if (argc < 5 || argc > 10)
 		usage_exit (argv [0]) ;
 
 	/* Set default converter. */
