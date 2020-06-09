@@ -24,13 +24,14 @@
 #define	BUFFER_LEN		4096	/*-(1<<16)-*/
 
 static void usage_exit (const char *progname) ;
-static sf_count_t sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, int converter, double src_ratio, int channels, double * gain, int normalize) ;
+static sf_count_t sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, int converter, double src_ratio, int channels, double * gain, int normalize, sf_count_t nframes) ;
 static double apply_gain (float * data, long frames, int channels, double max, double gain) ;
 
 int
 main (int argc, char *argv [])
 {	SNDFILE	*infile, *outfile = NULL ;
 	SF_INFO sfinfo ;
+	sf_count_t nframes ;
 
 	int normalize = 1 ;
 	sf_count_t	count ;
@@ -151,6 +152,8 @@ main (int argc, char *argv [])
 	printf ("Sample Rate   : %d\n", sfinfo.samplerate) ;
 	printf ("Input Frames  : %ld\n\n", (long) sfinfo.frames) ;
 
+	nframes = sfinfo.frames ;
+
 	if (new_sample_rate > 0)
 	{	src_ratio = (1.0 * new_sample_rate) / sfinfo.samplerate ;
 		sfinfo.samplerate = new_sample_rate ;
@@ -181,7 +184,7 @@ main (int argc, char *argv [])
 	/* Delete the output file length to zero if already exists. */
 	remove (argv [argc - 1]) ;
 
-	printf ("Output file   : %s\n", argv [argc - 1]) ;
+	printf ("Output File   : %s\n", argv [argc - 1]) ;
 	printf ("Sample Rate   : %d\n", sfinfo.samplerate) ;
 
 	do
@@ -204,7 +207,7 @@ main (int argc, char *argv [])
 
 		sf_command (outfile, SFC_SET_CLIPPING, NULL, SF_TRUE) ;
 
-		count = sample_rate_convert (infile, outfile, converter, src_ratio, sfinfo.channels, &gain, normalize) ;
+		count = sample_rate_convert (infile, outfile, converter, src_ratio, sfinfo.channels, &gain, normalize, nframes) ;
 		}
 	while (count < 0) ;
 
@@ -220,7 +223,7 @@ main (int argc, char *argv [])
 */
 
 static sf_count_t
-sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, int converter, double src_ratio, int channels, double * gain, int normalize)
+sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, int converter, double src_ratio, int channels, double * gain, int normalize, sf_count_t nframes)
 {	static float input [BUFFER_LEN] ;
 	static float output [BUFFER_LEN] ;
 
@@ -229,6 +232,9 @@ sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, int converter, double sr
 	int			error ;
 	double		max = 0.0 ;
 	sf_count_t	output_count = 0 ;
+
+	char		anim[4] = "-\\|/" ;
+	short		p_anim = 0;
 
 	sf_seek (infile, 0, SEEK_SET) ;
 	sf_seek (outfile, 0, SEEK_SET) ;
@@ -279,7 +285,11 @@ sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, int converter, double sr
 
 		src_data.data_in += src_data.input_frames_used * channels ;
 		src_data.input_frames -= src_data.input_frames_used ;
+		nframes-=src_data.input_frames_used;
+		printf(" %c remaining  : %19li\r", anim[p_anim], nframes);
+		p_anim=(p_anim + 1) % 4;
 		} ;
+	printf("\n");
 
 	src_delete (src_state) ;
 
