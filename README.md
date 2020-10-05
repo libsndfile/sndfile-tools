@@ -7,4 +7,4 @@ sndfile-tools
 `sndfile-tools` is a collection of programs (written in C) to do interesting
 things with sound files.
 
-See the web page for more: http://www.mega-nerd.com/libsndfile/tools/
+See the web page for more: <http://libsndfile.github.io/libsndfile/>

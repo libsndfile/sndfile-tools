@@ -1,6 +1,7 @@
 EXTRA_DIST = README.md Scripts/calc-hilbert-fir.m
 
-dist_html_DATA = doc/index.html doc/sweep.png doc/wave-example.png doc/wave-sweep.png
+dist_html_DATA = doc/index.html doc/sweep.png doc/wave-example.png doc/wave-sweep.png \
+	doc/libsndfile.css
 
 bin_PROGRAMS = \
 	bin/sndfile-generate-chirp \
