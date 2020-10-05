@@ -1,0 +1,143 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<HTML>
+
+<HEAD>
+	<TITLE>
+	sndfile-tools
+	</TITLE>
+	<META NAME="Author"      CONTENT="Erik de Castro Lopo (erikd AT mega-nerd DOT com)">
+	<META NAME="Version"     CONTENT="sndfile-tools-1.04">
+	<LINK REL=StyleSheet HREF="libsndfile.css" TYPE="text/css" MEDIA="all">
+</HEAD>
+
+<BODY>
+<!-- pepper -->
+<H1><BR>sndfile-tools</H1>
+<!-- pepper -->
+<P>
+Sndfile-tools is a small collection of programs that use libsndfile and other
+libraries to do useful things.
+The collection currently includes the following programs:
+</P>
+<!-- pepper -->
+<UL>
+	<LI><a href="#generate-chirp">sndfile-generate-chirp</a>
+	<LI><a href="#jackplay">sndfile-jackplay</a>
+	<LI><a href="#spectrogram">sndfile-spectrogram</a>
+	<LI><a href="#mix-to-mono">sndfile-mix-to-mono</a>
+</UL>
+
+<p>
+The sndfile-tools package is released under the terms of the
+	<A HREF="http://www.gnu.org/copyleft/gpl.html">
+	GNU General Public License</a>
+(version 2 or version 3).
+</p>
+
+<p>
+The latest version is 1.04 and it can be downloaded here:
+	<A HREF="https://github.com/libsndfile/sndfile-tools/releases/download/v1.04/sndfile-tools-1.04.tar.bz2">
+	sndfile-tools-1.04.tar.bz2</a>
+	(<A HREF="https://github.com/libsndfile/sndfile-tools/releases/download/v1.04/sndfile-tools-1.04.tar.bz2.asc">
+	GPG signature</a>).
+
+</p>
+
+<p>
+It should be trivial to compile on Linux and relatively easy to compile on
+other Unices (including Mac OSX).
+Its probably possible to compile it on windows, but why would anyone bother?
+</p>
+
+
+<!-- pepper -->
+<br /><br />
+<A NAME="generate-chirp"></a>
+<H3><B>sndfile-generate-chirp</B></H3>
+
+<p>
+Create a sound file containing a swept sine wave (ie a chirp).
+</p>
+
+<pre>
+    sndfile-generate-chirp  [options] &lt;sample rate&gt; &lt;length in seconds&gt; &lt;sound file&gt;
+
+    Options include:
+
+        -from &lt;start&gt;    Sweep start frequency in Hz (default 200Hz).
+        -to &lt;end&gt;        Sweep end frequency in Hz (default fs/2).
+        -amp &lt;value&gt;     Amplitude of generated sine (default 1.0).
+        &lt;sweep type&gt;     One of (default -log):
+                             -log     logarithmic sweep
+                             -quad    quadratic sweep
+                             -linear  linear sweep
+
+    The output file will contain floating point samples in the range [-1.0, 1.0].
+    The output file type is determined by the file name extension which should be one
+    of 'wav', 'aifc', 'aif', 'aiff', 'au', 'caf' and 'w64'.
+</pre>
+
+<!-- pepper -->
+<br /><br />
+<A NAME="jackplay"></a>
+<H3><B>sndfile-jackplay</B></H3>
+
+<p>
+Play a sound file via the JACK Audio Connect Kit daemon.
+</p>
+
+<pre>
+    sndfile-jackplay &lt;filename&gt;
+</pre>
+
+
+<!-- pepper -->
+<br /><br />
+<A NAME="spectrogram"></a>
+<H3><B>sndfile-spectrogram</B></H3>
+
+<P>
+Generate a spectrogram as a PNG file from a given sound file.
+</P>
+
+<!-- pepper -->
+<pre>
+    sndfile-spectrogram &lt;sound file&gt; &lt;img width&gt; &lt;img height&gt; &lt;png name&gt;
+</pre>
+
+<!-- pepper -->
+<p>
+This program (in conjunction with sndfile-generate-chirp) is particularly useful
+for evaluating the quality of sample rate converters.
+For instance, a chirp can be generated at 96kHz, passed through the converter
+and a spectrogram generated for the converter output file. For example:
+</p>
+
+<br/>
+<!-- pepper -->
+<center>
+<img src="sweep.png" alt="Example spectrogram" />
+</center>
+
+<!-- pepper -->
+<br /><br />
+<A NAME="mix-to-mono"></a>
+<H3><B>sndfile-mix-to-mono</B></H3>
+
+<!-- pepper -->
+<P>
+Convert a multi-channel input file to a mono output file, by mixing all input
+channels into one.
+</P>
+
+<!-- pepper -->
+<PRE>
+    sndfile-mix-to-mono &lt;input file&gt; &lt;output file&gt;
+</PRE>
+
+
+<!-- pepper -->
+
+</BODY>
+</HTML>
+
