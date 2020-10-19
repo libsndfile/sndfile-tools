@@ -1,0 +1,21 @@
+name: C/C++ CI
+
+on: [push, pull_request]
+
+jobs:
+  xenial-build:
+    runs-on: ubuntu-16.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2.0.0
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y autoconf automake pkg-config m4 libsndfile-dev libjack-dev libfftw3-dev libcairo2-dev libsamplerate0-dev
+
+      - name: Build project
+        run: |
+          ./autogen.sh
+          ./configure
+          make check
+          make distcheck
