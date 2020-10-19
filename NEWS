@@ -1,3 +1,7 @@
+Unreleased
+
+  * Replace Travis CI with GitHub Action CI.
+
 Version 1.03 (2009-12-14)
   * Add prgram sndfile-jackplay.
   * sndfile-spectrogram : Add --no-border option, improve frequency access
