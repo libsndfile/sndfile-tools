@@ -1,0 +1,3 @@
+#define PACKAGE_VERSION "@CPACK_PACKAGE_VERSION@"
+
+#cmakedefine HAVE_SYS_WAIT_H
