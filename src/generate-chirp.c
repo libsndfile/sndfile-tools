@@ -75,7 +75,7 @@ main (int argc, char * argv [])
 			continue ;
 			} ;
 
-		printf ("\nUnknow option '%s'.\n\n", argv [k]) ;
+		printf ("\nUnknown option '%s'.\n\n", argv [k]) ;
 		exit (1) ;
 		} ;
 
@@ -283,7 +283,7 @@ guess_major_format (const char * filename)
 	if (strcasecmp (ext, ".w64") == 0)
 		return SF_FORMAT_W64 ;
 
-	printf ("\nError : Can only generate files with extentions 'wav', 'aifc', 'aiff', 'aif', 'au', 'w64' and 'caf'.\n\n") ;
+	printf ("\nError : Can only generate files with extensions 'wav', 'aifc', 'aiff', 'aif', 'au', 'w64' and 'caf'.\n\n") ;
 	exit (1) ;
 	return 0 ;
 } /* guess_major_format */
