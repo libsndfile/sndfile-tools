@@ -1,4 +1,4 @@
-# Copyright (C) 2002-2017 Erik de Castro Lopo <erikd@mega-nerd.com>
+# Copyright (C) 2002-2021 Erik de Castro Lopo <erikd@mega-nerd.com>
 
 dnl Require autoconf version >= 2.69)
 AC_PREREQ([2.69])
@@ -42,11 +42,6 @@ AS_IF([test "x$ac_cv_prog_cc_c99" = "xno"], [
 AC_LANG([C])
 AX_COMPILER_VENDOR
 AX_COMPILER_VERSION
-
-AC_PROG_INSTALL
-AC_PROG_MAKE_SET
-AC_PROG_LN_S
-LT_INIT
 
 dnl ====================================================================================
 dnl  Finished checking, handle options.
