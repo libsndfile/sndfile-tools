@@ -29,7 +29,7 @@ sndfile-tools-*.tar.bz2
 tests/*_test
 tests/*_tests
 src/config.h
-src/config.h.in
+src/config.h.in*
 src/fir_hilbert_coeffs.h
 src/sndfile-generate-chirp
 src/sndfile-jackplay
