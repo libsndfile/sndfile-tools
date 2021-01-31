@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.12)
 
 project(sndfile-tools
-  VERSION 1.04
+  VERSION 1.5
   DESCRIPTION "Collection of programs for operating on sound files"
   HOMEPAGE_URL "http://libsndfile.github.io/libsamplerate/"
   LANGUAGES C
