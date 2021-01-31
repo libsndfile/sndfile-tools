@@ -1,6 +1,15 @@
-Unreleased
+Version 1.5 (2021-01-31)
 
+  * Use clear semantic versioning tuple.
+  * Fix spelling mistakes.
+  * Add experimental CMake support.
   * Replace Travis CI with GitHub Action CI.
+  * Improved error handling for PCM sample bits.
+  * Add `sndfile-resample` binary from libsamplerate.
+
+Version 1.04 (2019-06-01)
+  * Silence GCC 7 -Wimplicit-fallthrough warnings.
+  * Modernized Autotools build system.
 
 Version 1.03 (2009-12-14)
   * Add prgram sndfile-jackplay.
