@@ -200,7 +200,7 @@ generate_file (const char * filename, const PARAMS * params)
 {
 	char buffer [1024] ;
 	SNDFILE * file ;
-	SF_INFO info ;
+	SF_INFO info = {} ;
 	double w0, w1 ;
 
 	memset (&info, 0, sizeof (info)) ;

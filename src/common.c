@@ -31,7 +31,7 @@ const char *font_family = "DejaVu Sans Mono" ;
 sf_count_t
 sfx_mix_mono_read_double (SNDFILE * file, double * data, sf_count_t datalen)
 {
-	SF_INFO info ;
+	SF_INFO info = {} ;
 
 	sf_command (file, SFC_GET_CURRENT_SF_INFO, &info, sizeof (info)) ;
 
