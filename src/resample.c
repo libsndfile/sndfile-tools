@@ -30,7 +30,7 @@ static double apply_gain (float * data, long frames, int channels, double max, d
 int
 main (int argc, char *argv [])
 {	SNDFILE	*infile, *outfile = NULL ;
-	SF_INFO sfinfo ;
+	SF_INFO sfinfo = {} ;
 	sf_count_t nframes ;
 
 	int normalize = 1 ;
