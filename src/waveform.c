@@ -945,7 +945,7 @@ static void
 render_sndfile (RENDER * render)
 {
 	SNDFILE *infile ;
-	SF_INFO info ;
+	SF_INFO info = {} ;
 	sf_count_t max_width ;
 
 	memset (&info, 0, sizeof (info)) ;

@@ -29,7 +29,7 @@ int
 main (int argc, char ** argv)
 {
 	SNDFILE *infile, *outfile ;
-	SF_INFO sfinfo ;
+	SF_INFO sfinfo = {} ;
 
 	if (argc != 3)
 		usage_exit () ;

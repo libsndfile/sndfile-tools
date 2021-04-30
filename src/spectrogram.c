@@ -898,7 +898,7 @@ static void
 render_sndfile (RENDER * render)
 {
 	SNDFILE *infile ;
-	SF_INFO info ;
+	SF_INFO info = {} ;
 
 	memset (&info, 0, sizeof (info)) ;
 
