@@ -23,7 +23,8 @@ dist_man_MANS = \
 	man/sndfile-spectrogram.1 \
 	man/sndfile-mix-to-mono.1 \
 	man/sndfile-jackplay.1 \
-	man/sndfile-resample.1
+	man/sndfile-resample.1 \
+	man/sndfile-waveform.1
 
 #=========================================================================================
 # The bin targets.
