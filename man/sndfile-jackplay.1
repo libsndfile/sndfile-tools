@@ -1,15 +1,50 @@
-.TH SNDFILE-JACKPLAY 1 "October 5, 2009"
+.TH SNDFILE\-JACKPLAY 1 "May 2021" "" "User Commands"
 .SH NAME
-sndfile-jackplay \- play a sound file via the JACK sound server
+.B sndfile\-jackplay
+\(em play a sound file via the JACK sound server
 .SH SYNOPSIS
-.B sndfile-jackplay
-.RI "[options] <sound file>"
+.B sndfile\-jackplay
+.RB [ OPTIONS ]
+.RI < input\ sound\ file >
 .SH DESCRIPTION
-sndfile-jackplay plays the specified sound file via the JACK sound server.
-It uses libsndfile (http://www.mega-nerd.com/libsndfile/)
+.B sndfile\-jackplay
+plays the specified sound file via the JACK sound server.
+It uses
+.UR http://www.mega\-nerd.com/libsndfile/
+libsndfile
+.UE
 to read the file.
-.LP
-Run "sndfile-jackplay --help" for information about the options.
-.SH AUTHOR
-This manual page was written by Erik de Castro Lopo <erikd@mega-nerd.com>.
-
+.SH OPTIONS
+.TP
+.BR \-w ,\  \-\-wait [ =\fIport ]
+Wait for input before starting playback; optionally auto-connect to
+.I port
+using Jack.
+.TP
+.BR \-a ,\  \-\-autoconnect [ =\fIport ]
+Auto-connect to
+.I port
+using Jack.
+.TP
+.BR \-l ,\  \-\-loop [ =\fIcount ]
+Loop the file
+.I count
+times
+.RB ( 0
+for infinite).
+.TP
+.BR \-h ,\  \-\-help
+Print a help message and exit.
+.SH AUTHORS
+This manual page was written by
+.MT erikd@mega-nerd.com
+Erik de Castro Lopo
+.ME
+in 2009.
+It has since been modified and updated by other authors.
+.SH "SEE ALSO"
+.BR sndfile\-generate\-chirp (1),
+.BR sndfile\-mix\-to\-mono (1),
+.BR sndfile\-resample (1),
+.BR sndfile\-spectrogram (1),
+.BR sndfile\-waveform (1)
