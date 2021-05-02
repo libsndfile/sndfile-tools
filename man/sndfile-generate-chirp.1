@@ -1,22 +1,78 @@
-.TH SNDFILE-GENERATE-CHIRP 1 "December 14, 2009"
+.TH SNDFILE\-GENERATE\-CHIRP 1 "May 2021" "" "User Commands"
 .SH NAME
-sndfile-generate-chirp \- generate a sound file containing a chirp
+.B sndfile\-generate\-chirp
+\(em create a sound file containing a swept sine wave
 .SH SYNOPSIS
-.B sndfile-generate-chirp
-.RI "[options] <sample rate> <length in seconds> <sound file>"
-
+.B sndfile\-generate-chirp
+.RB [ OPTIONS ]
+.RI < sample\ rate >
+.RI < length\ in\ seconds >
+.RI < sound\ file >
 .SH DESCRIPTION
-sndfile-generate-chirp generates a sound file containing a sine wave that
-sweeps from a low starting frequency to a higher ending frequency (ie a chirp).
-The file is written using libsndfile (http://www.mega-nerd.com/libsndfile/).
-.LP
-The parameters allows the start and end sine wave frequencies to be set as well
-as specifying the shape of the sweep (ie linear, quadratic or logarithmic).
-Run "sndfile\-generate-chirp \-\-help" for more information.
-.LP
-The format of the output file is determined by the filename extension
-of the output file.
-
-.SH AUTHOR
-This manual page was written by Erik de Castro Lopo <erikd@mega-nerd.com>.
-
+.B sndfile\-generate\-chirp
+generates a sound file containing a sine wave that
+sweeps from a low starting frequency to a higher ending frequency (i.e., a
+chirp).
+The file is written using
+.UR http://www.mega\-nerd.com/libsndfile/
+libsndfile
+.UE .
+.P
+The output file will contain floating point samples in the range
+.BR [\-1.0,\ 1.0] .
+The output file type is determined by the file name extension which should be
+one of
+.BR wav ,
+.BR aifc ,
+.BR aif ,
+.BR aiff ,
+.BR au ,
+.BR caf
+or
+.BR w64 .
+.SH OPTIONS
+.TP
+.B \-from\fR\ \fIstart
+Sweep start frequency in Hz (default 200Hz).
+.TP
+.B \-to\fR\ \fIend
+Sweep end frequency in Hz (default fs/2).
+.TP
+.B \-amp\fR\ \fIvalue
+Amplitude of generated sine (default 1.0).
+.TP
+.I sweep\ type
+One of (default
+.BR \-log ):
+.RS +14n
+.TP
+.B \-log
+logarithmic sweep
+.TP
+.B \-quad
+quadratic sweep
+.TP
+.B \-linear
+linear sweep
+.RE
+.TP
+.BR \-h ,\  \-\-help
+Print a help message and exit.
+.P
+The
+.I length\ in\ seconds
+parameter can be a decimal like
+.BR 0.5 .
+.SH AUTHORS
+This manual page was written by
+.MT erikd@mega-nerd.com
+Erik de Castro Lopo
+.ME
+in 2009.
+It has since been modified and updated by other authors.
+.SH "SEE ALSO"
+.BR sndfile\-jackplay (1),
+.BR sndfile\-mix\-to\-mono (1),
+.BR sndfile\-resample (1),
+.BR sndfile\-spectrogram (1),
+.BR sndfile\-waveform (1)
