@@ -1063,5 +1063,13 @@ main (int argc, char * argv [])
 
 	render_sndfile (&render) ;
 
+	/* Certain FontConfig objects indirectly referenced via the Cairo
+	 * static data are referenced by integer offsets rather than by
+	 * pointers, so they appear lost to Valgrind unless we call this
+	 * function. Otherwise we would not really care care about freeing
+	 * static data before exiting.
+	 */
+	cairo_debug_reset_static_data () ;
+
 	return 0 ;
 } /* main */
