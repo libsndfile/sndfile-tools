@@ -203,8 +203,6 @@ generate_file (const char * filename, const PARAMS * params)
 	SF_INFO info = {} ;
 	double w0, w1 ;
 
-	memset (&info, 0, sizeof (info)) ;
-
 	info.format = params->format ;
 	info.samplerate = params->samplerate ;
 	info.channels = 1 ;

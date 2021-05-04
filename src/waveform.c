@@ -949,8 +949,6 @@ render_sndfile (RENDER * render)
 	SF_INFO info = {} ;
 	sf_count_t max_width ;
 
-	memset (&info, 0, sizeof (info)) ;
-
 	infile = sf_open (render->sndfilepath, SFM_READ, &info) ;
 	if (infile == NULL)
 	{	printf ("Error: failed to open file '%s': \n%s\n", render->sndfilepath, sf_strerror (NULL)) ;

@@ -320,7 +320,6 @@ main (int argc, char * argv [])
 		} ;
 
 	/* Open the soundfile. */
-	memset (&sfinfo, 0, sizeof (sfinfo)) ;
 	sndfile = sf_open (filename, SFM_READ, &sfinfo) ;
 	if (sndfile == NULL)
 	{	fprintf (stderr, "Could not open soundfile '%s'\n", filename) ;
