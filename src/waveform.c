@@ -983,8 +983,7 @@ render_sndfile (RENDER * render)
 
 
 	if (render->tc_den > 0 && render->parse_bwf)	/* use BWF timecode offset */
-	{	SF_BROADCAST_INFO_2K binfo ;
-		memset (&binfo, 0, sizeof (binfo)) ;
+	{	SF_BROADCAST_INFO_2K binfo = { } ;
 		if (sf_command (infile, SFC_GET_BROADCAST_INFO, &binfo, sizeof (binfo)))
 		{	int64_t to = binfo.time_reference_high ;
 			to = (to << 32) + binfo.time_reference_low ;

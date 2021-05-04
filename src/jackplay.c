@@ -261,7 +261,6 @@ main (int argc, char * argv [])
 	const char * filename ;
 	jack_client_t *client ;
 	jack_status_t status = 0 ;
-	thread_info_t info ;
 	char * auto_connect_str = "system:playback_%d" ;
 	bool wait_before_play = false ;
 	int i, jack_sr, loop_count = 1 ;
@@ -340,32 +339,24 @@ main (int argc, char * argv [])
 	if (sfinfo.samplerate != jack_sr)
 		fprintf (stderr, "Warning: samplerate of soundfile (%d Hz) does not match jack server (%d Hz).\n", sfinfo.samplerate, jack_sr) ;
 
-	struct sigaction sig ;
-
-	memset (&sig, 0, sizeof (sig)) ;
-	sig.sa_handler	= close_signal_handler ;
-	sig.sa_flags	= SA_RESTART ;
+	struct sigaction sig = {
+		.sa_handler = close_signal_handler ,
+		.sa_flags = SA_RESTART } ;
 
 	sigemptyset (&sig.sa_mask) ;
 	sigaction (SIGINT, &sig, NULL) ;
 	sigaction (SIGTERM, &sig, NULL) ;
 
-	/* Init the thread info struct. */
-	memset (&info, 0, sizeof (info)) ;
-	info.can_process = 0 ;
-	info.read_done = 0 ;
-	info.sndfile = sndfile ;
-	info.channels = sfinfo.channels ;
-	info.samplerate = jack_sr ;
-	info.client = client ;
-	info.pos = 0 ;
+	thread_info_t info = {
+		.sndfile = sndfile ,
+		.channels = sfinfo.channels ,
+		.samplerate = jack_sr ,
+		.client = client ,
+		.loop_count = loop_count ,
+		/* Allocate output ports. */
+		.output_port = calloc (sfinfo.channels, sizeof (jack_port_t *)) ,
+		.outs = calloc (sfinfo.channels, sizeof (jack_default_audio_sample_t *)) } ;
 
-	info.current_loop = 0 ;
-	info.loop_count = loop_count ;
-
-	/* Allocate output ports. */
-	info.output_port = calloc (sfinfo.channels, sizeof (jack_port_t *)) ;
-	info.outs = calloc (sfinfo.channels, sizeof (jack_default_audio_sample_t *)) ;
 	for (i = 0 ; i < sfinfo.channels ; i++)
 	{	char name [16] ;
 
