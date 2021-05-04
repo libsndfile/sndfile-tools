@@ -252,7 +252,7 @@ y_line (cairo_t * cr, double x, double y, double len)
 ** Search for "worst case" for the commentary below that says why it is 35.
 */
 typedef struct
-{	double value [40] ;  /* 35 or more */
+{	double value [40] ;	/* 35 or more */
 	double distance [40] ;
 	/* The digit that changes from label to label.
 	** This ensures that a range from 999 to 1001 prints 999.5 and 1000.5
@@ -898,7 +898,7 @@ static void
 render_sndfile (RENDER * render)
 {
 	SNDFILE *infile ;
-	SF_INFO info = {} ;
+	SF_INFO info = { } ;
 
 	infile = sf_open (render->sndfilepath, SFM_READ, &info) ;
 	if (infile == NULL)

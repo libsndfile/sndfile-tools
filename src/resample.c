@@ -30,7 +30,7 @@ static double apply_gain (float * data, long frames, int channels, double max, d
 int
 main (int argc, char *argv [])
 {	SNDFILE	*infile, *outfile = NULL ;
-	SF_INFO sfinfo = {} ;
+	SF_INFO sfinfo = { } ;
 	sf_count_t nframes ;
 
 	int normalize = 1 ;
@@ -233,8 +233,8 @@ sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, int converter, double sr
 	double		max = 0.0 ;
 	sf_count_t	output_count = 0 ;
 
-	char		anim[4] = "-\\|/" ;
-	short		p_anim = 0;
+	char		anim [4] = "-\\|/" ;
+	short		p_anim = 0 ;
 
 	sf_seek (infile, 0, SEEK_SET) ;
 	sf_seek (outfile, 0, SEEK_SET) ;
@@ -285,11 +285,11 @@ sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, int converter, double sr
 
 		src_data.data_in += src_data.input_frames_used * channels ;
 		src_data.input_frames -= src_data.input_frames_used ;
-		nframes-=src_data.input_frames_used;
-		printf(" %c remaining  : %19li\r", anim[p_anim], nframes);
-		p_anim=(p_anim + 1) % 4;
+		nframes -= src_data.input_frames_used ;
+		printf (" %c remaining  : %19li\r", anim [p_anim], nframes) ;
+		p_anim = (p_anim + 1) % 4 ;
 		} ;
-	printf("\n");
+	printf ("\n") ;
 
 	src_delete (src_state) ;
 

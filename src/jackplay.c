@@ -257,7 +257,7 @@ int
 main (int argc, char * argv [])
 {	pthread_t thread_id ;
 	SNDFILE *sndfile ;
-	SF_INFO sfinfo = {} ;
+	SF_INFO sfinfo = { } ;
 	const char * filename ;
 	jack_client_t *client ;
 	jack_status_t status = 0 ;

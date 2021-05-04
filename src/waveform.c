@@ -946,7 +946,7 @@ static void
 render_sndfile (RENDER * render)
 {
 	SNDFILE *infile ;
-	SF_INFO info = {} ;
+	SF_INFO info = { } ;
 	sf_count_t max_width ;
 
 	infile = sf_open (render->sndfilepath, SFM_READ, &info) ;
