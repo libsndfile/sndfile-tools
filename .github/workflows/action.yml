@@ -3,8 +3,8 @@ name: C/C++ CI
 on: [push, pull_request]
 
 jobs:
-  xenial-build:
-    runs-on: ubuntu-16.04
+  ubuntu-latest:
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v2.0.0
