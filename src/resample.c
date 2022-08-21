@@ -286,7 +286,7 @@ sample_rate_convert (SNDFILE *infile, SNDFILE *outfile, int converter, double sr
 		src_data.data_in += src_data.input_frames_used * channels ;
 		src_data.input_frames -= src_data.input_frames_used ;
 		nframes -= src_data.input_frames_used ;
-		printf (" %c remaining  : %19li\r", anim [p_anim], nframes) ;
+		printf (" %c remaining  : %19lld\r", anim [p_anim], (long long int) nframes) ;
 		p_anim = (p_anim + 1) % 4 ;
 		} ;
 	printf ("\n") ;
