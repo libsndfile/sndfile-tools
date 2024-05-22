@@ -11,11 +11,8 @@
 .Sh DESCRIPTION
 .Nm
 reads a multi-channel input file and writes a single-channel output file
-consisting of all of the input channels mixed together
-(like an audio mixing desk would do).
-The input and output files are read/written using
-.Xr libsndfile 3 .
-.Pp
+consisting of all of the input channels mixed into one.
+The files are read and written using libsndfile.
 The format of the output file is determined by its filename extension.
 .Sh SEE ALSO
 .Lk https://github.com/libsndfile/
