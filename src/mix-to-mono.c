@@ -60,9 +60,6 @@ main (int argc, char ** argv)
 		exit (1) ;
 		} ;
 
-	/* Delete the output file length to zero if already exists. */
-	remove (argv [argc - 1]) ;
-
 	mix_to_mono (infile, outfile) ;
 
 	sf_close (infile) ;
