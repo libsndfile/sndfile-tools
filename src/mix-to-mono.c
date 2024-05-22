@@ -28,25 +28,32 @@ static void mix_to_mono (SNDFILE * infile, SNDFILE * outfile) ;
 int
 main (int argc, char ** argv)
 {
+	char *iname, *oname;
 	SNDFILE *infile, *outfile ;
 	SF_INFO sfinfo = { } ;
 
-	if (argc != 3)
+	if (argc != 3) {
 		usage_exit () ;
+	} else {
+		iname = argv[1];
+		oname = argv[2];
+	}
 
-	if (strcmp (argv [argc - 2], argv [argc - 1]) == 0)
-	{	printf ("Error : input and output file names are the same.\n") ;
+	if (strcmp(iname, "-") == 0 || strcmp(oname, "-") == 0) {
+		/* a name of "-" is never a clash */
+	} else if (strcmp (iname, oname) == 0) {
+		printf ("Error : input and output file names are the same.\n") ;
 		exit (1) ;
-		} ;
+	}
 
-	if ((infile = sf_open (argv [argc - 2], SFM_READ, &sfinfo)) == NULL)
-	{	printf ("Error : Not able to open input file '%s'\n", argv [argc - 2]) ;
+	if ((infile = sf_open (iname, SFM_READ, &sfinfo)) == NULL)
+	{	printf ("Error : Not able to open input file '%s'\n", iname) ;
 		sf_close (infile) ;
 		exit (1) ;
 		} ;
 
 	if (sfinfo.channels == 1)
-	{	printf ("Input file '%s' already mono. Exiting.\n", argv [argc - 2]) ;
+	{	printf ("Input file '%s' already mono. Exiting.\n", iname) ;
 		sf_close (infile) ;
 		exit (0) ;
 		} ;
@@ -54,14 +61,11 @@ main (int argc, char ** argv)
 	/* Force output channels to mono. */
 	sfinfo.channels = 1 ;
 
-	if ((outfile = sf_open (argv [argc - 1], SFM_WRITE, &sfinfo)) == NULL)
-	{	printf ("Error : Not able to open output file '%s'\n", argv [argc - 1]) ;
+	if ((outfile = sf_open (oname, SFM_WRITE, &sfinfo)) == NULL)
+	{	printf ("Error : Not able to open output file '%s'\n", oname) ;
 		sf_close (infile) ;
 		exit (1) ;
 		} ;
-
-	/* Delete the output file length to zero if already exists. */
-	remove (argv [argc - 1]) ;
 
 	mix_to_mono (infile, outfile) ;
 
