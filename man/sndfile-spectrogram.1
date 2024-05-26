@@ -1,84 +1,59 @@
-.TH SNDFILE\-SPECTROGRAM 1 "May 2021" "" "User Commands"
-.SH NAME
-.B sndfile\-spectrogram
-\(em generate a spectrogram from an input sound file
-.SH SYNOPSIS
-.B sndfile\-spectrogram
-.RB [ OPTIONS ]
-.RI < sound\ file >
-.RI < img\ width >
-.RI < img\ height >
-.RI < png\ name >
-.SH DESCRIPTION
-Create a spectrogram as a PNG file from a given sound file.
+.Dd May 26, 2024
+.Dt SNDFILE-SPECTROGRAM 1
+.Os
+.Sh NAME
+.Nm sndfile-spectrogram
+.Nd generate the spectrogram of a sound file
+.Sh SYNOPSIS
+.Nm
+.Ar file
+.Ar width
+.Ar height
+.Ar pngfile
+.Sh DESCRIPTION
+.Nm
+creates a spectrogram PNG file from a given sound file.
 The spectrogram image will be of the given width and height.
-.P
-The input file is read using
-.UR http://www.mega\-nerd.com/libsndfile/
-libsndfile
-.UE ,
-the spectrogram is calculated with the help of
-.UR http://fftw.org/
-FFTW
-.UE ,
-and the spectrogram is
-rendered and written to the output file using
-.UR https://www.cairographics.org/
-libcairo
-.UE .
-.SH OPTIONS
-.TP
-.BI \-\-dyn\-range= number
-Dynamic range (default is
-.B 180
-for 180dB range)
-.TP
-.B \-\-no\-border
-Drop the border, scales, heat map and title
-.TP
-.BI \-\-min\-freq= number
-Set the minimum frequency in the output
-.TP
-.BI \-\-max\-freq= number
-Set the maximum frequency in the output
-.TP
-.BI \-\-fft\-freq= number
-Set the lowest resolvable frequency and the height of each band in the linear
-spectrogram.
-Lower values increase frequency resolution but smear the output horizontally
-and higher values improve the temporal definition but decrease the distinction
-between the lowest frequencies.
-.TP
-.B \-\-log\-freq
-Use a logarithmic frequency scale
-.TP
-.B \-\-gray\-scale
-Output gray pixels instead of a heat map
-.TP
-.B \-\-kaiser
-Use a Kaiser window function (the default)
-.TP
-.B \-\-rectangular
-Use a rectangular window function
-.TP
-.B \-\-nuttall
-Use a Nuttall window function
-.TP
-.B \-\-hann
-Use a Hann window function
-.TP
-.BR \-h ,\  \-\-help
+The input file is read using libsndfile,
+the spectrogram is calculated with the help of fftw
+and the output file is rendered using libcairo.
+.Pp
+The options are as follows.
+.Pp
+.Bl -tag -compact -width dynrangexnumxxx
+.It Fl h
 Print a help message and exit.
-.SH AUTHORS
-This manual page was originally written by
-.MT erikd@mega-nerd.com
-Erik de Castro Lopo
-.ME
-in 2009.
-It has since been modified and updated by other authors.
-.SH "SEE ALSO"
-.BR sndfile\-generate\-chirp (1),
-.BR sndfile\-jackplay (1),
-.BR sndfile\-mix\-to\-mono (1),
-.BR sndfile\-resample (1),
-.BR sndfile\-waveform (1)
+.It Fl -dyn-range Ns = Ns Ar num
+The dynamic range, 180 dB by default.
+.It Fl -no-border
+Drop the border, scales, heat map and title.
+.It Fl -min-freq Ns = Ns num
+Minimum frequency in the output.
+.It Fl -max-freq Ns = Ns num
+Maximum frequency in the output.
+.It Fl -fft-freq Ns = Ns num
+The lowest resolvable frequency and
+the height of each band in the linear spectrogram.
+Lower values increase frequency resolution
+but smear the output horizontally
+and higher values improve the temporal definition
+but decrease the distinction between the lowest frequencies.
+.It Fl -log-freq
+Use a logarithmic frequency scale.
+.It Fl -gray-scale
+Output gray pixels instead of a heat map.
+.It Fl -kaiser
+Use a Kaiser window function (the default).
+.It Fl -rectangular
+Use a rectangular window function.
+.It Fl -nuttall
+Use a Nuttall window function.
+.It Fl -hann
+Use a Hann window function.
+.El
+.Sh SEE ALSO
+.Lk http://libsndfile.github.io/libsndfile/
+.Lk http://fftw.org/
+.Lk https://www.cairographics.org/
+.Sh AUTHORS
+.An Erik de Castro Lopo Aq Mt erikd@mega-nerd.com
