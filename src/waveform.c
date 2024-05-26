@@ -2,6 +2,7 @@
 ** Copyright (C) 2007-2015 Erik de Castro Lopo <erikd@mega-nerd.com>
 ** Copyright (C) 2012 Robin Gareus <robin@gareus.org>
 ** Copyright (C) 2013 driedfruit <driedfruit@mindloop.net>
+** Copyright (C) 2024 Jan Stary <hans@stare.cz>
 **
 ** This program is free software: you can redistribute it and/or modify
 ** it under the terms of the GNU General Public License as published by
@@ -1011,9 +1012,6 @@ check_int_range (const char * name, int value, int lower, int upper)
 } /* check_int_range */
 
 
-/* NOTE: after editing this, run
- * make && help2man -N -n 'waveform image generator' ./bin/sndfile-waveform -o man/sndfile-waveform.1
- */
 static void
 usage_exit (char * argv0, int status)
 {
