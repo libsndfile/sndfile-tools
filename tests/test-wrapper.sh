@@ -51,6 +51,7 @@ testwrap bin/sndfile-generate-chirp 44100 1 $tmpdir/chirp.wav
 testwrap bin/sndfile-resample -to 48000 -c 2 $tmpdir/chirp.wav $tmpdir/chirp2.wav
 testwrap bin/sndfile-resample -to 48000 -c 3 $tmpdir/chirp.wav $tmpdir/chirp2.wav
 testwrap bin/sndfile-resample -to 48000 -c 4 $tmpdir/chirp.wav $tmpdir/chirp2.wav
+testwrap bin/sndfile-resample -to 48000 -c 2 -s 1.088435 $tmpdir/chirp.wav $tmpdir/chirp2.wav
 testwrap bin/sndfile-spectrogram $tmpdir/chirp.wav 640 480 $tmpdir/chirp.png
 testwrap bin/sndfile-waveform $tmpdir/chirp.wav $tmpdir/wavform.png
 
