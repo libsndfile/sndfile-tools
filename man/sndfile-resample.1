@@ -7,11 +7,13 @@
 .Sh SYNOPSIS
 .Nm
 .Op Fl c Ar number
+.Op Fl s Ar ratio
 .Fl to Ar rate
 .Ar input
 .Ar output
 .Nm
 .Op Fl c Ar number
+.Op Fl s Ar ratio
 .Fl by Ar ratio
 .Ar input
 .Ar output
@@ -50,6 +52,12 @@ For instance, changing the rate of 44100 by a factor of 1.3333
 results in a sample rate of 58798.
 .It Fl -no-normalize
 Disable clipping check and normalization.
+.It Fl s Ar ratio
+Specifies a time stretch ratio to apply to the sample data.  This value
+can be used to adjust the playback speed of the file, to perform
+time-stretching operations.  Values greater than 1.0 increase the time
+and decrease the speed.  Values less than 1.0 decrease the time and
+increase the speed.
 .El
 .Sh SEE ALSO
 .Lk http://www.mega-nerd.com/libsndfile/

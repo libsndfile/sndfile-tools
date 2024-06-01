@@ -37,6 +37,7 @@ main (int argc, char *argv [])
 	sf_count_t	count ;
 	double		src_ratio = -1.0, gain = 1.0 ;
 	int			new_sample_rate = -1, k, converter, max_speed = SF_FALSE, raw_bits ;
+	double		stretch_ratio = 0.0;
 	char		raw_type ;
 
 	if (argc == 2 && strcmp (argv [1], "--version") == 0)
@@ -126,6 +127,10 @@ main (int argc, char *argv [])
 				usage_exit (argv [0]) ;
 				}
 			}
+		else if (strcmp (argv [k], "-s") == 0)
+		{	k ++ ;
+			stretch_ratio = atof (argv [k]) ;
+			}
 		else
 			usage_exit (argv [0]) ;
 		} ;
@@ -166,6 +171,9 @@ main (int argc, char *argv [])
 		exit (1) ;
 		} ;
 
+	if (stretch_ratio > 0.0)
+		src_ratio = src_ratio * stretch_ratio ;
+
 	if (fabs (src_ratio - 1.0) < 1e-20)
 	{	printf ("Target samplerate and input samplerate are the same. Exiting.\n") ;
 		sf_close (infile) ;
@@ -186,6 +194,9 @@ main (int argc, char *argv [])
 
 	printf ("Output File   : %s\n", argv [argc - 1]) ;
 	printf ("Sample Rate   : %d\n", sfinfo.samplerate) ;
+
+	if (stretch_ratio > 0.0)
+		printf ("Stretch Ratio : %f\n", stretch_ratio) ;
 
 	do
 	{	sf_close (outfile) ;
@@ -364,6 +375,14 @@ usage_exit (const char *progname)
 		"  or 'f' (as float) and BB the bits per sample (8, 16, ...)\n"
 		"  Note: when raw audio input is used, then a raw output audio file will be\n"
 		"  created as well.") ;
+
+	puts ("\n"
+		"  The optional -s argument specifies a time stretch ratio to apply to the\n"
+		"  sample data.  This value can be used to adjust the playback speed of the\n"
+		"  file, to perform time-stretching operations.  Values greater than 1.0\n"
+		"  increase the time and decrease the speed.  Values less than 1.0 decrease\n"
+		"  the time and increase the speed."
+		) ;
 
 	puts ("") ;
 
