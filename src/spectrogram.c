@@ -952,7 +952,7 @@ usage_exit (const char * argv0, int error)
 		"                                 smear the output horizontally and higher values\n"
 		"                                 improve the temporal definition but decrease the\n"
 		"                                 distinction between the lowest frequencies.\n"
-		"        --log-freq             : Use a logarithmic frquency scale\n"
+		"        --log-freq             : Use a logarithmic frequency scale\n"
 		"        --gray-scale           : Output gray pixels instead of a heat map\n"
 		"        --kaiser               : Use a Kaiser window function (the default)\n"
 		"        --rectangular          : Use a rectangular window function\n"
